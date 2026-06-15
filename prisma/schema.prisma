@@ -1,0 +1,149 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum CaseStatus {
+  OPEN
+  UNDER_INVESTIGATION
+  CLOSED
+}
+
+enum DocumentType {
+  FIR
+  INVESTIGATION_SUMMARY
+  CHARGE_SHEET
+  LEGAL_ANALYSIS
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}
+
+enum AIRequestType {
+  LEGAL_ANALYSIS
+  FIR_GENERATION
+  INVESTIGATION_SUMMARY
+  CHARGE_SHEET
+  CHAT
+}
+
+model Case {
+  id String @id @default(cuid())
+
+  
+  title           String
+  narrative       String   @db.Text
+
+  status          CaseStatus @default(OPEN)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  documents       GeneratedDocument[]
+  chatSessions    ChatSession[]
+  aiRequests      AIRequestLog[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model GeneratedDocument{
+   id              String @id @default(cuid())
+
+  type            DocumentType
+
+  title           String
+
+  content         Json
+
+  version         Int @default(1)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  caseId          String
+  case            Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@index([type])
+}
+
+
+model ChatSession {
+  id              String @id @default(cuid())
+
+  title           String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  caseId          String
+  case            Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  messages        ChatMessage[]
+
+  @@index([caseId])
+}
+
+
+model ChatMessage {
+  id              String @id @default(cuid())
+
+  role            MessageRole
+
+  content         String @db.Text
+
+  createdAt       DateTime @default(now())
+
+  sessionId       String
+  session         ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+}model LegalChunk {
+  id          String @id @default(cuid())
+
+  lawName     String
+  sectionCode String
+  title       String
+  content     String @db.Text
+
+  source      String?
+
+  createdAt   DateTime @default(now())
+}
+model AIRequestLog {
+  id              String @id @default(cuid())
+
+  requestType     AIRequestType
+
+  prompt          String @db.Text
+
+  retrievedContext String? @db.Text
+
+  response        String @db.Text
+
+  latencyMs       Int?
+
+  modelUsed       String?
+
+  tokenUsage      Int?
+
+  createdAt       DateTime @default(now())
+
+  caseId          String?
+  case            Case? @relation(fields: [caseId], references: [id], onDelete: SetNull)
+
+  @@index([requestType])
+  @@index([createdAt])
+}

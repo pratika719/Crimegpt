@@ -110,7 +110,8 @@ model ChatMessage {
   session         ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([sessionId])
-}model LegalChunk {
+}
+model LegalChunk {
   id          String @id @default(cuid())
 
   lawName     String

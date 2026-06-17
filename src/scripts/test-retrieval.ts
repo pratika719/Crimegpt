@@ -31,9 +31,7 @@ async function main() {
 
     console.log(`\n✅ Retrieval test completed successfully!`);
 
-    // Clean up database connections using the pool
-    const pool = getPool();
-    await pool.end();
+    // Clean up and exit immediately
     process.exit(0);
   } catch (error) {
     console.error("❌ Retrieval test failed:", error);

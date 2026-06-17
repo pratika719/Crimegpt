@@ -23,6 +23,13 @@ export class CaseRepository {
       where: {
         id,
       },
+      include: {
+        documents: {
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+      },
     });
   }
 

@@ -13,6 +13,7 @@ import {
   Briefcase,
   ExternalLink
 } from "lucide-react";
+import CaseAnalysisPanel from "@/components/case/case-analysis-panel";
 
 export default async function CaseDetailPage({
   params,
@@ -24,6 +25,8 @@ export default async function CaseDetailPage({
 
   try {
     const caseItem = await service.getCaseById(id);
+
+    const documents = caseItem.documents || [];
 
     // Format timestamps
     const dateCreated = caseItem.createdAt
@@ -117,6 +120,9 @@ export default async function CaseDetailPage({
                 <span>Characters: {charCount}</span>
               </div>
             </div>
+
+            {/* AI Document Generation Panel */}
+            <CaseAnalysisPanel caseId={caseItem.id} initialDocuments={documents} />
           </div>
 
           {/* Case Metadata & Action Side-Panel (Right Column, 1/3 Width) */}
@@ -169,14 +175,6 @@ export default async function CaseDetailPage({
               </h3>
               
               <div className="space-y-2.5">
-                <button className="w-full flex items-center justify-between text-left rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 px-4 py-3 text-xs font-semibold transition-all">
-                  <div className="flex items-center gap-2.5">
-                    <Play className="h-4 w-4 text-zinc-500" />
-                    <span>Run AI Narrative Analysis</span>
-                  </div>
-                  <span className="rounded bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 text-[8px] font-mono text-zinc-400 uppercase">AI Tool</span>
-                </button>
-
                 <button className="w-full flex items-center justify-between text-left rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 px-4 py-3 text-xs font-semibold transition-all">
                   <div className="flex items-center gap-2.5">
                     <Briefcase className="h-4 w-4 text-zinc-500" />

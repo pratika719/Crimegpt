@@ -34,6 +34,11 @@ export function getPool(): Pool {
         ? { rejectUnauthorized: false }
         : false,
     });
+
+    // Handle pool errors to prevent process crashes on transient network issues or pool teardown
+    pool.on("error", (err) => {
+      console.warn("⚠️ Database pool error:", err.message);
+    });
   }
   return pool;
 }

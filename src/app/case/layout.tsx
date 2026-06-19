@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
@@ -14,11 +15,12 @@ import {
   BookOpen
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import SearchDialog from "@/components/search/search-dialog";
 
 const navigation = [
   { name: "Cases", href: "/case", icon: FolderOpen, active: true },
   { name: "Legal Database", href: "#", icon: BookOpen, active: false, badge: "Coming Soon" },
-  { name: "Audit Logs", href: "#", icon: Terminal, active: false, badge: "Admin Only" },
+  { name: "Audit Logs", href: "/case/audit", icon: Terminal, active: true },
   { name: "System Config", href: "#", icon: Settings, active: false },
 ];
 
@@ -28,6 +30,18 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setIsSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-zinc-50 dark:bg-zinc-950 font-sans text-zinc-900 dark:text-zinc-50">
@@ -105,6 +119,18 @@ export default function DashboardLayout({
             <span className="text-zinc-900 dark:text-zinc-50 font-medium">cases</span>
           </div>
 
+          {/* Search Trigger Button */}
+          <button 
+            onClick={() => setIsSearchOpen(true)}
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-850 bg-zinc-50 dark:bg-zinc-950/30 text-zinc-450 dark:text-zinc-500 hover:border-zinc-300 dark:hover:border-zinc-750 transition-all text-xs w-60 select-none cursor-pointer"
+          >
+            <Search className="h-3.5 w-3.5 shrink-0" />
+            <span className="flex-1 text-left text-zinc-450 dark:text-zinc-500">Search repository...</span>
+            <kbd className="text-[9px] font-mono border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-1.5 py-0.5 rounded leading-none shrink-0 shadow-xs">
+              Ctrl+K
+            </kbd>
+          </button>
+
           {/* Platform Status */}
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 px-3 py-1 text-[10px] font-mono font-medium">
@@ -122,6 +148,9 @@ export default function DashboardLayout({
           {children}
         </main>
       </div>
+
+      {/* Global Search Dialog */}
+      <SearchDialog open={isSearchOpen} onOpenChange={setIsSearchOpen} />
     </div>
   );
 }

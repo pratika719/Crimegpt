@@ -23,6 +23,9 @@ enum DocumentType {
   INVESTIGATION_SUMMARY
   CHARGE_SHEET
   LEGAL_ANALYSIS
+  AI_DIAGNOSTICS
+  REMAND_REQUEST
+  CASE_DIARY
 }
 
 enum MessageRole {
@@ -36,6 +39,9 @@ enum AIRequestType {
   INVESTIGATION_SUMMARY
   CHARGE_SHEET
   CHAT
+  AI_DIAGNOSTICS_GENERATION
+  REMAND_REQUEST_GENERATION
+  CASE_DIARY_GENERATION
 }
 
 model Case {
@@ -53,6 +59,20 @@ model Case {
   documents       GeneratedDocument[]
   chatSessions    ChatSession[]
   aiRequests      AIRequestLog[]
+  metadata        CaseMetadata?
+  activities      CaseActivity[]
+  persons         Person[]
+  evidence        Evidence[]
+  checklist       ChecklistItem[]
+  
+  investigationProfile InvestigationProfile?
+  victims              Victim[]
+  accused              Accused[]
+  witnesses            Witness[]
+  vehicles             Vehicle[]
+  seizedItems          SeizedItem[]
+  medicalInfos         MedicalInformation[]
+  courtInfos           CourtInformation[]
 
   @@index([status])
   @@index([createdAt])
@@ -147,4 +167,289 @@ model AIRequestLog {
 
   @@index([requestType])
   @@index([createdAt])
+}
+
+model CaseMetadata {
+  id                 String    @id @default(cuid())
+  incidentDate       DateTime?
+  incidentTime       String?
+  incidentLocation   String?
+  victimName         String?
+  victimStatement    String?   @db.Text
+  suspectName        String?
+  suspectDescription String?   @db.Text
+  witnessInformation String?   @db.Text
+  evidenceSummary    String?   @db.Text
+  officerNotes       String?   @db.Text
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  caseId             String    @unique
+  case               Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+}
+
+enum ActivityType {
+  CASE_CREATED
+  CASE_UPDATED
+  METADATA_CREATED
+  METADATA_UPDATED
+  LEGAL_ANALYSIS_GENERATED
+  FIR_GENERATED
+  INVESTIGATION_SUMMARY_GENERATED
+  CHARGE_SHEET_GENERATED
+  REMAND_REQUEST_GENERATED
+  CASE_DIARY_GENERATED
+  DOCUMENT_DOWNLOADED
+  DOCUMENT_REGENERATED
+  AI_DIAGNOSTICS_GENERATED
+  DOCUMENT_CREATED
+  PERSON_ADDED
+  PERSON_UPDATED
+  PERSON_DELETED
+  EVIDENCE_ADDED
+  EVIDENCE_UPDATED
+  EVIDENCE_DELETED
+  CHECKLIST_ITEM_COMPLETED
+  INVESTIGATION_PROFILE_UPDATED
+  VICTIM_ADDED
+  VICTIM_UPDATED
+  VICTIM_DELETED
+  ACCUSED_ADDED
+  ACCUSED_UPDATED
+  ACCUSED_DELETED
+  WITNESS_ADDED
+  WITNESS_UPDATED
+  WITNESS_DELETED
+  VEHICLE_ADDED
+  VEHICLE_UPDATED
+  VEHICLE_DELETED
+  SEIZED_ITEM_ADDED
+  SEIZED_ITEM_UPDATED
+  SEIZED_ITEM_DELETED
+  MEDICAL_INFO_ADDED
+  MEDICAL_INFO_UPDATED
+  MEDICAL_INFO_DELETED
+  COURT_INFO_ADDED
+  COURT_INFO_UPDATED
+  COURT_INFO_DELETED
+}
+
+enum PersonRole {
+  VICTIM
+  SUSPECT
+  WITNESS
+  OFFICER
+}
+
+model Person {
+  id        String     @id @default(cuid())
+  name      String
+  role      PersonRole
+  phone     String?
+  address   String?    @db.Text
+  statement String?    @db.Text
+  notes     String?    @db.Text
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  caseId    String
+  case      Case       @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  victim    Victim?
+  accused   Accused?
+  witness   Witness?
+
+  @@index([caseId])
+  @@index([role])
+}
+
+model CaseActivity {
+  id           String       @id @default(cuid())
+  activityType ActivityType
+  description  String       @db.Text
+  metadata     Json?
+  createdAt    DateTime     @default(now())
+
+  caseId       String
+  case         Case         @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@index([createdAt])
+}
+
+enum EvidenceType {
+  DOCUMENT
+  IMAGE
+  VIDEO
+  AUDIO
+  SCREENSHOT
+  LOG_FILE
+  OTHER
+}
+
+model Evidence {
+  id          String       @id @default(cuid())
+  title       String
+  description String?      @db.Text
+  type        EvidenceType
+  notes       String?      @db.Text
+  fileUrl     String?      @db.Text
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  caseId      String
+  case        Case         @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@index([type])
+}
+
+model ChecklistItem {
+  id          String    @id @default(cuid())
+  title       String
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  caseId      String
+  case        Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+}
+
+model InvestigationProfile {
+  id                 String             @id @default(cuid())
+  caseId             String             @unique
+  case               Case               @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  
+  // Police Information
+  firNumber          String?
+  policeStation      String?
+  investigatingOfficer String?
+  dateOfRegistration DateTime?
+  
+  // Incident details
+  incidentDateTime   DateTime?
+  incidentLocation   String?
+  incidentDescription String?          @db.Text
+  
+  // Notes
+  investigationNotes String?            @db.Text
+  
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+model Victim {
+  id             String   @id @default(cuid())
+  caseId         String
+  case           Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  personId       String   @unique
+  person         Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  injuryDetails  String?  @db.Text
+  status         String?  // e.g., Deceased, Injured, Stable, Unharmed
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  @@index([caseId])
+}
+
+model Accused {
+  id             String   @id @default(cuid())
+  caseId         String
+  case           Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  personId       String   @unique
+  person         Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  arrestStatus   String?  // e.g., Absconding, Arrested, Custody, On Bail
+  bailDetails    String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  @@index([caseId])
+}
+
+model Witness {
+  id               String   @id @default(cuid())
+  caseId           String
+  case             Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  personId         String   @unique
+  person           Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  statementDate    DateTime?
+  credibilityScore String?  // e.g., High, Medium, Low
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  @@index([caseId])
+}
+
+model Vehicle {
+  id                String   @id @default(cuid())
+  caseId            String
+  case              Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  make              String?
+  model             String?
+  year              Int?
+  color             String?
+  licensePlate      String?
+  registrationState String?
+  ownerName         String?
+  seizureStatus     String?  // e.g., Seized, Released, Wanted
+  notes             String?  @db.Text
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([caseId])
+}
+
+model SeizedItem {
+  id              String   @id @default(cuid())
+  caseId          String
+  case            Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  itemName        String
+  description     String?  @db.Text
+  serialNumber    String?
+  seizureLocation String?
+  seizureDate     DateTime?
+  officerInCharge String?
+  storageLocation String?
+  status          String?  // e.g., In Custody, Released, Destroyed
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([caseId])
+}
+
+model MedicalInformation {
+  id               String   @id @default(cuid())
+  caseId           String
+  case             Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  hospitalName     String?
+  doctorName       String?
+  admissionDate    DateTime?
+  injuryType       String?
+  medicalReportNo  String?
+  treatmentDetails String?  @db.Text
+  severity         String?  // e.g., Critical, Severe, Moderate, Mild
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  @@index([caseId])
+}
+
+model CourtInformation {
+  id                   String   @id @default(cuid())
+  caseId               String
+  case                 Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  courtName            String?
+  judgeName            String?
+  caseNumber           String?
+  nextHearingDate      DateTime?
+  chargesheetFiledDate DateTime?
+  currentStatus        String?  // e.g., Trial, Hearing, Disposed
+  judgementDetails     String?  @db.Text
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  
+  @@index([caseId])
 }

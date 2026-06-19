@@ -53,7 +53,7 @@ export default function FIRDocumentViewer({ fir, version, createdAt }: FIRDocume
           </div>
         </div>
         <div className="flex flex-col items-start md:items-end text-[11px] font-mono text-zinc-400 gap-1">
-          <div>DOCUMENT ID: FIR-V{version}-{Math.random().toString(36).substring(2, 6).toUpperCase()}</div>
+          <div>DOCUMENT ID: FIR-V{version}</div>
           <div>GENERATED: {createdAt}</div>
           <div className="rounded bg-amber-500/10 border border-amber-500/30 text-amber-400 px-2 py-0.5 mt-1 font-semibold uppercase tracking-wider text-[9px]">
             LAW ENFORCEMENT ONLY
@@ -188,7 +188,7 @@ export default function FIRDocumentViewer({ fir, version, createdAt }: FIRDocume
           </div>
           <div className="grid gap-6 md:grid-cols-3">
             <div className="md:col-span-2 rounded-lg border border-zinc-150 dark:border-zinc-800 bg-zinc-50/30 dark:bg-zinc-950/20 p-4 text-xs italic text-zinc-600 dark:text-zinc-400">
-              "{fir.officerRemarks}"
+              &quot;{fir.officerRemarks}&quot;
             </div>
             <div className="flex flex-col items-center justify-center border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 bg-zinc-50/10 dark:bg-zinc-900/30">
               <div className="w-full border-b border-dashed border-zinc-300 dark:border-zinc-700 min-h-[40px] flex items-end justify-center pb-2">

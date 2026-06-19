@@ -1,0 +1,49 @@
+import { CaseRepository } from "@/repositories/case.repository";
+import { aiDiagnosticsChain } from "@/ai/chains/ai-diagnostics.chain";
+import { AIRequestType } from "@/generated/prisma/client";
+import { aiObservabilityService } from "@/services/shared/ai-shared.service";
+import { unifiedContextService } from "@/services/case/unified-context.service";
+
+export class AIDiagnosticsService {
+  private caseRepository = new CaseRepository();
+
+  async runDiagnostics(caseId: string) {
+    console.log(`🧠 [AIDiagnosticsService] Fetching full case data for ID: ${caseId}`);
+    
+    // 1. Fetch comprehensive case details
+    const caseItem = await this.caseRepository.findById(caseId);
+    if (!caseItem) {
+      throw new Error(`Case not found for ID: ${caseId}`);
+    }
+
+    // 2. Execute the Diagnostics Chain with Unified Case Context
+    console.log(`🧠 [AIDiagnosticsService] Building unified case context...`);
+    const context = await unifiedContextService.buildUnifiedCaseContext(caseId);
+
+    console.log(`🧠 [AIDiagnosticsService] Launching AI Diagnostics chain...`);
+    const chainOutput = await aiDiagnosticsChain.execute(context);
+
+    // 3. Log observability (Telemetry for the LLM request)
+    console.log(`🧠 [AIDiagnosticsService] Storing AI request logs...`);
+    try {
+      await aiObservabilityService.logRequest({
+        requestType: AIRequestType.AI_DIAGNOSTICS_GENERATION,
+        prompt: chainOutput.promptText,
+        retrievedContext: JSON.stringify(chainOutput.retrievedChunks),
+        response: chainOutput.rawResponse,
+        latencyMs: chainOutput.latencyMs,     
+        modelUsed: chainOutput.modelUsed,
+        caseId,
+      });
+    } catch (obsError) {
+      console.warn(`⚠️ Warning: Failed to write AI observability log:`, obsError);
+    }
+
+    console.log(`🧠 [AIDiagnosticsService] Case diagnostics complete.`);
+    return chainOutput.result;
+  }
+}
+
+export const aiDiagnosticsService = new AIDiagnosticsService();
+export default aiDiagnosticsService;
+

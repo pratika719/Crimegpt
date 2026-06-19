@@ -29,6 +29,78 @@ export class CaseRepository {
             createdAt: "desc",
           },
         },
+        aiRequests: {
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        metadata: true,
+        activities: {
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        persons: {
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        evidence: {
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        checklist: {
+          orderBy: [
+            { completed: "asc" },
+            { createdAt: "desc" },
+          ],
+        },
+        investigationProfile: true,
+        victims: {
+          include: {
+            person: true,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        accused: {
+          include: {
+            person: true,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        witnesses: {
+          include: {
+            person: true,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        vehicles: {
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        seizedItems: {
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        medicalInfos: {
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        courtInfos: {
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
       },
     });
   }

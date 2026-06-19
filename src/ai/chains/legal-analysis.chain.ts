@@ -2,6 +2,7 @@ import { lawRetriever, CleanedLawReference } from "../retrievers/law.retriever";
 import { buildLegalAnalysisPrompt } from "../prompts/legal-analysis.prompt";
 import { geminiProvider } from "../providers/gemini-provider";
 import { parseLegalAnalysisResult, LegalAnalysisResult } from "../types/legal-analysis.types";
+import { UnifiedCaseContext } from "@/services/case/unified-context.service";
 
 export interface ChainOutput {
   result: LegalAnalysisResult;
@@ -20,20 +21,20 @@ export class LegalAnalysisChain {
   /**
    * Executes the RAG flow for legal analysis.
    * 
-   * @param narrative The case statement narrative.
+   * @param context The unified case context.
    * @param k Number of chunks to retrieve.
    * @returns ChainOutput containing validated structured results and metadata logs.
    */
-  async execute(narrative: string, k = 5): Promise<ChainOutput> {
+  async execute(context: UnifiedCaseContext, k = 5): Promise<ChainOutput> {
     const startTime = Date.now();
     console.log(`🤖 [LegalAnalysisChain] Initiating chain execution...`);
 
-    // 1. Retrieve unique law sections from PGVector
-    const retrievedChunks = await lawRetriever.retrieve(narrative, k);
+    // 1. Retrieve unique law sections from PGVector using the narrative
+    const retrievedChunks = await lawRetriever.retrieve(context.narrative, k);
     console.log(`🤖 [LegalAnalysisChain] Retrieved ${retrievedChunks.length} unique legal context chunks.`);
 
-    // 2. Build the strict prompt with context
-    const promptText = buildLegalAnalysisPrompt(narrative, retrievedChunks);
+    // 2. Build the strict prompt with unified context
+    const promptText = buildLegalAnalysisPrompt(context, retrievedChunks);
 
     // 3. Query Gemini Flash
     const modelUsed = geminiProvider.getModelName();

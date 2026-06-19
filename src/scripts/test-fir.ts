@@ -11,11 +11,34 @@ async function main() {
     "and demanded that I hand over my phone and wallet for security verification. " +
     "I trusted him because of the uniform, but he took my belongings and ran away in a red car.";
 
+  const mockContext: any = {
+    caseId: "mock-case-id",
+    title: "Mock Case Title",
+    narrative: mockNarrative,
+    status: "OPEN",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    metadata: null,
+    investigationProfile: null,
+    persons: [],
+    victims: [],
+    accused: [],
+    witnesses: [],
+    vehicles: [],
+    seizedItems: [],
+    medicalInfos: [],
+    courtInfos: [],
+    evidence: [],
+    checklist: [],
+    documents: [],
+    activities: [],
+  };
+
   console.log(`🤖 [Test FIR Generation] Running FIR generation chain...`);
   console.log(`   Mock Case Narrative: "${mockNarrative}"\n`);
 
   try {
-    const output = await firGenerationChain.execute(mockNarrative);
+    const output = await firGenerationChain.execute(mockContext);
 
     console.log(`✅ Chain Executed Successfully in ${output.latencyMs}ms!`);
     console.log(`🤖 Model Used: ${output.modelUsed}`);

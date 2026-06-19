@@ -3,6 +3,7 @@ import {
 } from "@/schema/case.schema";
 
 import { CaseRepository } from "@/repositories/case.repository";
+import { activityService } from "@/services/activity/activity.service";
 
 export class CaseService {
   private repository =
@@ -11,7 +12,9 @@ export class CaseService {
   async createCase(
     input: CreateCaseInput
   ) {
-    return this.repository.create(input);
+    const caseItem = await this.repository.create(input);
+    await activityService.logCaseCreated(caseItem.id, caseItem.title);
+    return caseItem;
   }
 
   async getCases() {

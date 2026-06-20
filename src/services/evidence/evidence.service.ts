@@ -8,14 +8,14 @@ export class EvidenceService {
   /**
    * Registers a new evidence item. Validates metadata and logs EVIDENCE_ADDED timeline log.
    */
-  async createEvidence(caseId: string, input: Omit<CreateEvidenceInput, "caseId">) {
+  async createEvidence(caseId: string, userId: string, input: Omit<CreateEvidenceInput, "caseId">) {
     const parsed = CreateEvidenceSchema.parse({
       ...input,
       caseId,
     });
 
-    console.log(`💼 [EvidenceService] Registering evidence "${parsed.title}" for case: ${caseId}`);
-    const result = await this.repository.create(caseId, parsed);
+    console.log(`💼 [EvidenceService] Registering evidence "${parsed.title}" for case: ${caseId} by user: ${userId}`);
+    const result = await this.repository.create(caseId, userId, parsed);
     
     // Log timeline activity
     await activityService.logEvidenceAdded(caseId, result.title, result.type);
@@ -24,12 +24,12 @@ export class EvidenceService {
   }
 
   /**
-   * Retrieves an evidence item by ID. Throws error if not found.
+   * Retrieves an evidence item by ID. Throws error if not found or unauthorized.
    */
-  async getEvidenceById(id: string) {
-    const evidence = await this.repository.findById(id);
+  async getEvidenceById(id: string, userId: string) {
+    const evidence = await this.repository.findById(id, userId);
     if (!evidence) {
-      throw new Error("Evidence record not found.");
+      throw new Error("Evidence record not found or access denied.");
     }
     return evidence;
   }
@@ -37,19 +37,19 @@ export class EvidenceService {
   /**
    * Retrieves all evidence registered under a case.
    */
-  async getEvidenceByCaseId(caseId: string) {
-    return this.repository.findByCaseId(caseId);
+  async getEvidenceByCaseId(caseId: string, userId: string) {
+    return this.repository.findByCaseId(caseId, userId);
   }
 
   /**
    * Updates details for an evidence item. Validates input and logs EVIDENCE_UPDATED timeline log.
    */
-  async updateEvidence(id: string, input: UpdateEvidenceInput) {
+  async updateEvidence(id: string, userId: string, input: UpdateEvidenceInput) {
     const parsed = UpdateEvidenceSchema.parse(input);
-    const existing = await this.getEvidenceById(id);
+    const existing = await this.getEvidenceById(id, userId);
 
-    console.log(`💼 [EvidenceService] Updating evidence details for ID: ${id}`);
-    const result = await this.repository.update(id, parsed);
+    console.log(`💼 [EvidenceService] Updating evidence details for ID: ${id} by user: ${userId}`);
+    const result = await this.repository.update(id, userId, parsed);
     
     // Log timeline activity
     await activityService.logEvidenceUpdated(existing.caseId, result.title, result.type);
@@ -60,11 +60,11 @@ export class EvidenceService {
   /**
    * Deletes an evidence item. Logs EVIDENCE_DELETED timeline log.
    */
-  async deleteEvidence(id: string) {
-    const existing = await this.getEvidenceById(id);
+  async deleteEvidence(id: string, userId: string) {
+    const existing = await this.getEvidenceById(id, userId);
     
-    console.log(`💼 [EvidenceService] Deleting evidence record: ${existing.title} (ID: ${id})`);
-    const result = await this.repository.delete(id);
+    console.log(`💼 [EvidenceService] Deleting evidence record: ${existing.title} (ID: ${id}) by user: ${userId}`);
+    const result = await this.repository.delete(id, userId);
     
     // Log timeline activity
     await activityService.logEvidenceDeleted(existing.caseId, existing.title, existing.type);

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { personService } from "@/services/person/person.service";
 import { CreatePersonInput, UpdatePersonInput } from "@/schema/person.schema";
+import { auth } from "@/auth";
 
 /**
  * Server action to register a new person to a case.
@@ -12,11 +13,17 @@ export async function createPersonAction(
   data: Omit<CreatePersonInput, "caseId">
 ) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+    const userId = session.user.id;
+
     if (!caseId) {
       return { success: false, message: "Case ID is required." };
     }
 
-    const person = await personService.createPerson(caseId, data);
+    const person = await personService.createPerson(caseId, userId, data);
     revalidatePath(`/case/${caseId}`);
 
     return {
@@ -41,11 +48,17 @@ export async function updatePersonAction(
   data: UpdatePersonInput
 ) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+    const userId = session.user.id;
+
     if (!id || !caseId) {
       return { success: false, message: "ID and Case ID are required." };
     }
 
-    const person = await personService.updatePerson(id, data);
+    const person = await personService.updatePerson(id, userId, data);
     revalidatePath(`/case/${caseId}`);
 
     return {
@@ -66,11 +79,17 @@ export async function updatePersonAction(
  */
 export async function deletePersonAction(id: string, caseId: string) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+    const userId = session.user.id;
+
     if (!id || !caseId) {
       return { success: false, message: "ID and Case ID are required." };
     }
 
-    const person = await personService.deletePerson(id);
+    const person = await personService.deletePerson(id, userId);
     revalidatePath(`/case/${caseId}`);
 
     return {

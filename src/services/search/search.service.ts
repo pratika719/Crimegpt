@@ -4,15 +4,15 @@ import { SearchResultDTO } from "@/types/search.types";
 export class SearchService {
   /**
    * Performs global query across cases, documents, evidence, persons, activities, and profiles
-   * and maps them into standardized SearchResultDTO records.
+   * and maps them into standardized SearchResultDTO records, scoped by userId.
    */
-  async search(query: string): Promise<SearchResultDTO[]> {
+  async search(userId: string, query: string): Promise<SearchResultDTO[]> {
     if (!query || query.trim() === "") {
       return [];
     }
 
     const trimmed = query.trim();
-    const raw = await searchRepository.searchAll(trimmed);
+    const raw = await searchRepository.searchAll(userId, trimmed);
     const results: SearchResultDTO[] = [];
 
     // 1. Map Cases

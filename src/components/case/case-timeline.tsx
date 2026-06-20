@@ -100,7 +100,7 @@ export default function CaseTimeline({ activities }: CaseTimelineProps) {
       },
       DOCUMENT_CREATED: {
         icon: FileSpreadsheet,
-        colorClass: "bg-zinc-550/10 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-350 dark:border-zinc-700",
+        colorClass: "bg-zinc-500/10 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-350 dark:border-zinc-700",
         dotClass: "bg-zinc-500 text-white dark:bg-zinc-500"
       },
       PERSON_ADDED: {
@@ -197,7 +197,7 @@ export default function CaseTimeline({ activities }: CaseTimelineProps) {
                       </div>
                     </div>
 
-                    <p className="text-xs leading-relaxed text-zinc-850 dark:text-zinc-300 font-sans">
+                    <p className="text-xs leading-relaxed text-zinc-800 dark:text-zinc-300 font-sans">
                       {activity.description}
                     </p>
                   </div>

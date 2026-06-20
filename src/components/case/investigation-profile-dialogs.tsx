@@ -117,7 +117,7 @@ export function PoliceAndIncidentDialog({
           <DialogTitle className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100 font-sans">
             Edit Police & Incident Details
           </DialogTitle>
-          <DialogDescription className="text-xs text-zinc-450 dark:text-zinc-500">
+          <DialogDescription className="text-xs text-zinc-400 dark:text-zinc-500">
             Update administrative records, geographic metadata, and chronological parameters.
           </DialogDescription>
         </DialogHeader>

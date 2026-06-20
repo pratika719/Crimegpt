@@ -134,8 +134,8 @@ export interface UnifiedCaseContext {
 export class UnifiedContextService {
   private caseRepository = new CaseRepository();
 
-  async buildUnifiedCaseContext(caseId: string): Promise<UnifiedCaseContext> {
-    const caseItem = await this.caseRepository.findById(caseId);
+  async buildUnifiedCaseContext(caseId: string, userId: string): Promise<UnifiedCaseContext> {
+    const caseItem = await this.caseRepository.findById(caseId, userId);
     if (!caseItem) {
       throw new Error(`Case not found for ID: ${caseId}`);
     }

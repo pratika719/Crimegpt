@@ -8,14 +8,14 @@ export class PersonService {
   /**
    * Adds a person to a case. Validates data and logs a PERSON_ADDED timeline event.
    */
-  async createPerson(caseId: string, input: Omit<CreatePersonInput, "caseId">) {
+  async createPerson(caseId: string, userId: string, input: Omit<CreatePersonInput, "caseId">) {
     const parsed = CreatePersonSchema.parse({
       ...input,
       caseId,
     });
 
-    console.log(`💼 [PersonService] Adding person "${parsed.name}" to case: ${caseId}`);
-    const result = await this.repository.create(caseId, parsed);
+    console.log(`💼 [PersonService] Adding person "${parsed.name}" to case: ${caseId} by user: ${userId}`);
+    const result = await this.repository.create(caseId, userId, parsed);
     
     // Log timeline activity
     await activityService.logPersonAdded(caseId, result.name, result.role);
@@ -24,12 +24,12 @@ export class PersonService {
   }
 
   /**
-   * Retrieves a person by ID. Throws error if not found.
+   * Retrieves a person by ID. Throws error if not found or unauthorized.
    */
-  async getPersonById(id: string) {
-    const person = await this.repository.findById(id);
+  async getPersonById(id: string, userId: string) {
+    const person = await this.repository.findById(id, userId);
     if (!person) {
-      throw new Error("Person not found.");
+      throw new Error("Person not found or access denied.");
     }
     return person;
   }
@@ -37,19 +37,19 @@ export class PersonService {
   /**
    * Retrieves all persons registered to a case.
    */
-  async getPersonsByCaseId(caseId: string) {
-    return this.repository.findByCaseId(caseId);
+  async getPersonsByCaseId(caseId: string, userId: string) {
+    return this.repository.findByCaseId(caseId, userId);
   }
 
   /**
    * Updates details for a person. Validates input and logs a PERSON_UPDATED timeline event.
    */
-  async updatePerson(id: string, input: UpdatePersonInput) {
+  async updatePerson(id: string, userId: string, input: UpdatePersonInput) {
     const parsed = UpdatePersonSchema.parse(input);
-    const existing = await this.getPersonById(id);
+    const existing = await this.getPersonById(id, userId);
 
-    console.log(`💼 [PersonService] Updating person details for ID: ${id}`);
-    const result = await this.repository.update(id, parsed);
+    console.log(`💼 [PersonService] Updating person details for ID: ${id} by user: ${userId}`);
+    const result = await this.repository.update(id, userId, parsed);
     
     // Log timeline activity
     await activityService.logPersonUpdated(existing.caseId, result.name, result.role);
@@ -60,11 +60,11 @@ export class PersonService {
   /**
    * Deletes a person by ID. Logs a PERSON_DELETED timeline event.
    */
-  async deletePerson(id: string) {
-    const existing = await this.getPersonById(id);
+  async deletePerson(id: string, userId: string) {
+    const existing = await this.getPersonById(id, userId);
     
-    console.log(`💼 [PersonService] Deleting person: ${existing.name} (ID: ${id})`);
-    const result = await this.repository.delete(id);
+    console.log(`💼 [PersonService] Deleting person: ${existing.name} (ID: ${id}) by user: ${userId}`);
+    const result = await this.repository.delete(id, userId);
     
     // Log timeline activity
     await activityService.logPersonDeleted(existing.caseId, existing.name, existing.role);

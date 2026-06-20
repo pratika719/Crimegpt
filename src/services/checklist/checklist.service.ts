@@ -8,23 +8,23 @@ export class ChecklistService {
   /**
    * Creates a new checklist item under a case.
    */
-  async createChecklistItem(caseId: string, input: Omit<CreateChecklistItemInput, "caseId">) {
+  async createChecklistItem(caseId: string, userId: string, input: Omit<CreateChecklistItemInput, "caseId">) {
     const parsed = CreateChecklistItemSchema.parse({
       ...input,
       caseId,
     });
 
-    console.log(`📋 [ChecklistService] Creating checklist item "${parsed.title}" for case: ${caseId}`);
-    return this.repository.create(caseId, parsed.title);
+    console.log(`📋 [ChecklistService] Creating checklist item "${parsed.title}" for case: ${caseId} by user: ${userId}`);
+    return this.repository.create(caseId, userId, parsed.title);
   }
 
   /**
    * Retrieves a checklist item by ID.
    */
-  async getChecklistItemById(id: string) {
-    const item = await this.repository.findById(id);
+  async getChecklistItemById(id: string, userId: string) {
+    const item = await this.repository.findById(id, userId);
     if (!item) {
-      throw new Error("Checklist item not found.");
+      throw new Error("Checklist item not found or access denied.");
     }
     return item;
   }
@@ -32,8 +32,8 @@ export class ChecklistService {
   /**
    * Retrieves all checklist items for a case.
    */
-  async getChecklistByCaseId(caseId: string) {
-    return this.repository.findByCaseId(caseId);
+  async getChecklistByCaseId(caseId: string, userId: string) {
+    return this.repository.findByCaseId(caseId, userId);
   }
 
   /**
@@ -41,9 +41,9 @@ export class ChecklistService {
    * If toggled to completed=true, sets completedAt and logs activity.
    * If toggled to completed=false, nulls completedAt.
    */
-  async updateChecklistItem(id: string, input: UpdateChecklistItemInput) {
+  async updateChecklistItem(id: string, userId: string, input: UpdateChecklistItemInput) {
     const parsed = UpdateChecklistItemSchema.parse(input);
-    const existing = await this.getChecklistItemById(id);
+    const existing = await this.getChecklistItemById(id, userId);
 
     // Prepare updated values
     const completed = parsed.completed;
@@ -68,8 +68,8 @@ export class ChecklistService {
       completedAt,
     };
 
-    console.log(`📋 [ChecklistService] Updating checklist item ID: ${id}`);
-    const result = await this.repository.update(id, updatedData);
+    console.log(`📋 [ChecklistService] Updating checklist item ID: ${id} by user: ${userId}`);
+    const result = await this.repository.update(id, userId, updatedData);
 
     // If transitioned from false to true, log timeline activity
     if (completed && !existing.completed) {
@@ -82,10 +82,10 @@ export class ChecklistService {
   /**
    * Deletes a checklist item.
    */
-  async deleteChecklistItem(id: string) {
-    const existing = await this.getChecklistItemById(id);
-    console.log(`📋 [ChecklistService] Deleting checklist item ID: ${id}`);
-    return this.repository.delete(id);
+  async deleteChecklistItem(id: string, userId: string) {
+    const existing = await this.getChecklistItemById(id, userId);
+    console.log(`📋 [ChecklistService] Deleting checklist item ID: ${id} by user: ${userId}`);
+    return this.repository.delete(id, userId);
   }
 }
 

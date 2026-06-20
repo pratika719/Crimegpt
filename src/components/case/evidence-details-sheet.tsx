@@ -114,14 +114,14 @@ export default function EvidenceDetailsSheet({
       },
       OTHER: {
         icon: FileBox,
-        colorClass: "bg-zinc-550/10 text-zinc-700 border-zinc-200 dark:bg-zinc-805 dark:text-zinc-350 dark:border-zinc-700",
+        colorClass: "bg-zinc-500/10 text-zinc-700 border-zinc-200 dark:bg-zinc-805 dark:text-zinc-350 dark:border-zinc-700",
         label: "Evidence Asset",
       },
     };
 
     return maps[type] || {
       icon: FileBox,
-      colorClass: "bg-zinc-550/10 text-zinc-700 border-zinc-200 dark:bg-zinc-805 dark:text-zinc-350 dark:border-zinc-700",
+      colorClass: "bg-zinc-500/10 text-zinc-700 border-zinc-200 dark:bg-zinc-805 dark:text-zinc-350 dark:border-zinc-700",
       label: "Evidence Asset",
     };
   };
@@ -221,7 +221,7 @@ export default function EvidenceDetailsSheet({
                       <span className="block text-xs font-semibold text-zinc-800 dark:text-zinc-200 font-sans truncate leading-none mb-1">
                         {evidence.fileUrl.split("/").pop()}
                       </span>
-                      <span className="block text-[9px] font-mono text-zinc-450 truncate">
+                      <span className="block text-[9px] font-mono text-zinc-400 truncate">
                         {evidence.fileUrl}
                       </span>
                     </div>
@@ -238,7 +238,7 @@ export default function EvidenceDetailsSheet({
                   </div>
                 </div>
               ) : (
-                <div className="rounded-lg border border-dashed border-zinc-200 dark:border-zinc-800 p-4 text-center py-6 text-xs text-zinc-400 dark:text-zinc-550 font-sans italic">
+                <div className="rounded-lg border border-dashed border-zinc-200 dark:border-zinc-800 p-4 text-center py-6 text-xs text-zinc-400 dark:text-zinc-500 font-sans italic">
                   No linked file attachment found. Edit evidence to associate a mock storage link.
                 </div>
               )}
@@ -249,7 +249,7 @@ export default function EvidenceDetailsSheet({
               <h4 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-mono">
                 Chain of Custody & Security Remarks
               </h4>
-              <p className="text-xs font-sans leading-relaxed text-zinc-650 dark:text-zinc-400 bg-zinc-50/20 dark:bg-zinc-950/20 p-4 rounded-lg border border-zinc-100 dark:border-zinc-800/40">
+              <p className="text-xs font-sans leading-relaxed text-zinc-600 dark:text-zinc-400 bg-zinc-50/20 dark:bg-zinc-950/20 p-4 rounded-lg border border-zinc-100 dark:border-zinc-800/40">
                 {evidence.notes || "No custody notes or internal security remarks compiled."}
               </p>
             </div>

@@ -2,12 +2,23 @@
 
 import { searchService } from "@/services/search/search.service";
 import { SearchResultDTO } from "@/types/search.types";
+import { auth } from "@/auth";
 
 /**
  * Server action to run global keyword search across all platforms elements.
  */
 export async function performGlobalSearchAction(query: string) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return {
+        success: false,
+        message: "Unauthorized",
+        results: [] as SearchResultDTO[],
+      };
+    }
+    const userId = session.user.id;
+
     if (!query || query.trim() === "") {
       return {
         success: true,
@@ -15,7 +26,7 @@ export async function performGlobalSearchAction(query: string) {
       };
     }
 
-    const results = await searchService.search(query);
+    const results = await searchService.search(userId, query);
     return {
       success: true,
       results,

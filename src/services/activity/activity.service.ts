@@ -92,7 +92,7 @@ export class ActivityService {
    */
   async logDocumentDownloaded(caseId: string, docType: string, docTitle: string, version: number) {
     // Standardize descriptive prefix: e.g. "Downloaded FIR"
-    let actionDesc = `Downloaded ${docType === "FIR" ? "FIR" : docType === "CHARGE_SHEET" ? "Charge Sheet" : docType === "REMAND_REQUEST" ? "Remand Request" : docType === "INVESTIGATION_SUMMARY" ? "Investigation Summary" : docType === "CASE_DIARY" ? "Case Diary" : "document"}`;
+    const actionDesc = `Downloaded ${docType === "FIR" ? "FIR" : docType === "CHARGE_SHEET" ? "Charge Sheet" : docType === "REMAND_REQUEST" ? "Remand Request" : docType === "INVESTIGATION_SUMMARY" ? "Investigation Summary" : docType === "CASE_DIARY" ? "Case Diary" : "document"}`;
     return this.repository.create({
       caseId,
       activityType: ActivityType.DOCUMENT_DOWNLOADED,
@@ -105,7 +105,7 @@ export class ActivityService {
    * Logs activity when a document is regenerated.
    */
   async logDocumentRegenerated(caseId: string, docType: string, docTitle: string, version: number) {
-    let actionDesc = `Regenerated ${docType === "FIR" ? "FIR" : docType === "CHARGE_SHEET" ? "Charge Sheet" : docType === "REMAND_REQUEST" ? "Remand Request" : docType === "INVESTIGATION_SUMMARY" ? "Investigation Summary" : docType === "CASE_DIARY" ? "Case Diary" : "document"}`;
+    const actionDesc = `Regenerated ${docType === "FIR" ? "FIR" : docType === "CHARGE_SHEET" ? "Charge Sheet" : docType === "REMAND_REQUEST" ? "Remand Request" : docType === "INVESTIGATION_SUMMARY" ? "Investigation Summary" : docType === "CASE_DIARY" ? "Case Diary" : "document"}`;
     return this.repository.create({
       caseId,
       activityType: ActivityType.DOCUMENT_REGENERATED,

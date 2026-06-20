@@ -9,17 +9,17 @@ export class CaseMetadataService {
    * Saves or updates (upserts) the metadata profile for a case.
    * Runs schema validation.
    */
-  async upsertMetadata(caseId: string, input: Omit<CreateCaseMetadataInput, "caseId">) {
+  async upsertMetadata(caseId: string, userId: string, input: Omit<CreateCaseMetadataInput, "caseId">) {
     // Validate schema
     const parsed = CreateCaseMetadataSchema.parse({
       ...input,
       caseId,
     });
 
-    console.log(`💼 [CaseMetadataService] Upserting metadata for case ID: ${caseId}`);
+    console.log(`💼 [CaseMetadataService] Upserting metadata for case ID: ${caseId} by user: ${userId}`);
     
     // Check if metadata profile already exists
-    const existing = await this.repository.findByCaseId(caseId);
+    const existing = await this.repository.findByCaseId(caseId, userId);
 
     // Convert incidentDate string/date union into a real Date object or null
     const finalIncidentDate = parsed.incidentDate ? new Date(parsed.incidentDate) : null;
@@ -27,7 +27,7 @@ export class CaseMetadataService {
     // Extract validated fields (excluding caseId for relation updates)
     const { caseId: _, incidentDate: __, ...data } = parsed;
 
-    const result = await this.repository.upsert(caseId, {
+    const result = await this.repository.upsert(caseId, userId, {
       ...data,
       incidentDate: finalIncidentDate,
     });
@@ -45,12 +45,12 @@ export class CaseMetadataService {
   /**
    * Retrieves case metadata by case ID.
    */
-  async getMetadata(caseId: string) {
-    console.log(`💼 [CaseMetadataService] Fetching metadata for case ID: ${caseId}`);
+  async getMetadata(caseId: string, userId: string) {
+    console.log(`💼 [CaseMetadataService] Fetching metadata for case ID: ${caseId} by user: ${userId}`);
     if (!caseId) {
       throw new Error("Case ID is required.");
     }
-    return this.repository.findByCaseId(caseId);
+    return this.repository.findByCaseId(caseId, userId);
   }
 }
 

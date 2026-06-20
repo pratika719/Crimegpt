@@ -1,27 +1,32 @@
 import { prisma } from "@/lib/prisma";
 
 export class CaseRepository {
-  async create(data: {
+  async create(userId: string, data: {
     title: string;
     narrative: string;
   }) {
     return prisma.case.create({
-      data,
+      data: {
+        ...data,
+        userId,
+      },
     });
   }
 
-  async findAll() {
+  async findAll(userId: string) {
     return prisma.case.findMany({
+      where: { userId },
       orderBy: {
         createdAt: "desc",
       },
     });
   }
 
-  async findById(id: string) {
-    return prisma.case.findUnique({
+  async findById(id: string, userId: string) {
+    return prisma.case.findFirst({
       where: {
         id,
+        userId,
       },
       include: {
         documents: {
@@ -107,8 +112,12 @@ export class CaseRepository {
 
   async updateStatus(
     id: string,
+    userId: string,
     status: "OPEN" | "UNDER_INVESTIGATION" | "CLOSED"
   ) {
+    const c = await prisma.case.findFirst({ where: { id, userId } });
+    if (!c) throw new Error("Case not found or unauthorized");
+
     return prisma.case.update({
       where: { id },
       data: { status },

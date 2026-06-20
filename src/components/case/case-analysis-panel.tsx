@@ -166,6 +166,7 @@ export default function CaseAnalysisPanel({
   // Set default selected version when active type changes
   useEffect(() => {
     if (availableVersions.length > 0 && !customVersion[activeType]) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCustomVersion((prev) => ({ ...prev, [activeType]: availableVersions[0] }));
     }
   }, [activeType, availableVersions]);
@@ -302,32 +303,32 @@ export default function CaseAnalysisPanel({
           <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-sm space-y-3">
             {/* Search & Filter Controls */}
             <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
               <input
                 type="text"
                 placeholder="Search document type..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-lg bg-zinc-50 dark:bg-zinc-950/20 text-xs text-zinc-800 dark:text-zinc-150 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full pl-9 pr-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-lg bg-zinc-50 dark:bg-zinc-950/20 text-xs text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
             </div>
 
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-500">
               <button 
                 onClick={() => setTypeFilter("ALL")} 
-                className={`px-2 py-1 rounded transition-colors ${typeFilter === "ALL" ? "bg-zinc-150 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100" : "hover:bg-zinc-50 dark:hover:bg-zinc-850"}`}
+                className={`px-2 py-1 rounded transition-colors ${typeFilter === "ALL" ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100" : "hover:bg-zinc-50 dark:hover:bg-zinc-800"}`}
               >
                 All
               </button>
               <button 
                 onClick={() => setTypeFilter("FIR")} 
-                className={`px-2 py-1 rounded transition-colors ${typeFilter === "FIR" ? "bg-zinc-150 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100" : "hover:bg-zinc-50 dark:hover:bg-zinc-850"}`}
+                className={`px-2 py-1 rounded transition-colors ${typeFilter === "FIR" ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100" : "hover:bg-zinc-50 dark:hover:bg-zinc-800"}`}
               >
                 FIR
               </button>
               <button 
                 onClick={() => setTypeFilter("LEGAL_ANALYSIS")} 
-                className={`px-2 py-1 rounded transition-colors ${typeFilter === "LEGAL_ANALYSIS" ? "bg-zinc-150 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100" : "hover:bg-zinc-50 dark:hover:bg-zinc-850"}`}
+                className={`px-2 py-1 rounded transition-colors ${typeFilter === "LEGAL_ANALYSIS" ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100" : "hover:bg-zinc-50 dark:hover:bg-zinc-800"}`}
               >
                 Analysis
               </button>
@@ -348,7 +349,7 @@ export default function CaseAnalysisPanel({
                     className={`w-full flex items-start text-left p-3 rounded-lg border transition-all text-xs relative ${
                       isSelected 
                         ? "border-zinc-900 bg-zinc-50 dark:border-zinc-100 dark:bg-zinc-800/40" 
-                        : "border-zinc-150 dark:border-zinc-800/80 hover:bg-zinc-50/50 dark:hover:bg-zinc-850/30"
+                        : "border-zinc-200 dark:border-zinc-800/80 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30"
                     }`}
                   >
                     <div className="mr-3 mt-0.5">
@@ -363,11 +364,11 @@ export default function CaseAnalysisPanel({
                       </p>
                       <div className="flex items-center gap-2 pt-1 text-[9px] font-mono uppercase tracking-wider">
                         {hasGenerated ? (
-                          <span className="text-emerald-500 font-bold">
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold">
                             ✓ v{generatedDocs.map(d => d.version).sort((a,b)=>b-a)[0]} Ready
                           </span>
                         ) : (
-                          <span className="text-zinc-400">Not Generated</span>
+                          <span className="text-zinc-500 dark:text-zinc-400">Not Generated</span>
                         )}
                         {docMeta.requiresRAG && (
                           <span className="rounded bg-blue-500/10 border border-blue-500/30 text-blue-400 px-1 py-0.2">
@@ -381,7 +382,7 @@ export default function CaseAnalysisPanel({
               })}
 
               {filteredDocTypes.length === 0 && (
-                <div className="p-8 text-center text-zinc-400 dark:text-zinc-650 space-y-2">
+                <div className="p-8 text-center text-zinc-500 dark:text-zinc-400 space-y-2">
                   <FolderOpen className="h-8 w-8 mx-auto" />
                   <p className="text-xs">No matching document types found.</p>
                 </div>
@@ -414,7 +415,7 @@ export default function CaseAnalysisPanel({
                 <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
                   {/* Left Side: Version dropdown */}
                   <div className="flex items-center gap-3">
-                    <span className="text-xs font-mono font-bold text-zinc-400 uppercase">Version:</span>
+                    <span className="text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase">Version:</span>
                     <select
                       value={selectedVersion}
                       onChange={(e) => setCustomVersion((prev) => ({ ...prev, [activeType]: Number(e.target.value) }))}
@@ -430,13 +431,13 @@ export default function CaseAnalysisPanel({
 
                   {/* Center/Right Side: Metadata telemetry */}
                   {telemetryLog && (
-                    <div className="flex items-center gap-4 text-[10px] font-mono text-zinc-400 dark:text-zinc-550 border-r border-zinc-200 dark:border-zinc-800 pr-4">
+                    <div className="flex items-center gap-4 text-[10px] font-mono text-zinc-500 dark:text-zinc-400 border-r border-zinc-200 dark:border-zinc-800 pr-4">
                       <div className="flex items-center gap-1">
-                        <Cpu className="h-3.5 w-3.5 text-zinc-450" />
+                        <Cpu className="h-3.5 w-3.5 text-zinc-500" />
                         <span>{telemetryLog.modelUsed || "gemini-2.5-flash"}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5 text-zinc-450" />
+                        <Clock className="h-3.5 w-3.5 text-zinc-500" />
                         <span>{telemetryLog.latencyMs ? `${telemetryLog.latencyMs}ms` : "N/A"}</span>
                       </div>
                     </div>
@@ -453,7 +454,7 @@ export default function CaseAnalysisPanel({
                     </button>
                     <button
                       onClick={handlePDFDownload}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-zinc-900 border border-zinc-900 text-white dark:bg-zinc-150 dark:border-zinc-150 dark:text-zinc-900 hover:opacity-90 transition-opacity"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-zinc-900 border border-zinc-900 text-white dark:bg-zinc-200 dark:border-zinc-200 dark:text-zinc-900 hover:opacity-90 transition-opacity"
                     >
                       <Download className="h-3.5 w-3.5" />
                       Download PDF
@@ -462,7 +463,7 @@ export default function CaseAnalysisPanel({
                 </div>
               ) : (
                 /* Un-generated Empty State */
-                <div className="rounded-xl border border-dashed border-zinc-250 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-12 text-center flex flex-col items-center justify-center space-y-4">
+                <div className="rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-12 text-center flex flex-col items-center justify-center space-y-4">
                   <div className="h-14 w-14 rounded-full bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center border border-zinc-100 dark:border-zinc-800">
                     <ActiveIcon className={`h-7 w-7 ${activeMeta.colorClass}`} />
                   </div>
@@ -470,8 +471,8 @@ export default function CaseAnalysisPanel({
                     <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
                       Draft {activeMeta.title}
                     </h3>
-                    <p className="text-xs text-zinc-400 dark:text-zinc-500 leading-relaxed">
-                      {activeMeta.description} Use CrimeGPT's Unified Case Data Pool to compile a validated, structured legal draft.
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                      {activeMeta.description} Use CrimeGPT&apos;s Unified Case Data Pool to compile a validated, structured legal draft.
                     </p>
                   </div>
                   <button
@@ -492,15 +493,13 @@ export default function CaseAnalysisPanel({
                     <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden animate-fadeIn">
                       <div className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 px-6 py-4 flex flex-wrap items-center justify-between gap-3">
                         <div className="flex items-center gap-2 text-zinc-700 dark:text-zinc-300">
-                          <Brain className="h-4.5 w-4.5 text-zinc-550" />
+                          <Brain className="h-4.5 w-4.5 text-zinc-500" />
                           <span className="text-xs font-mono font-semibold uppercase tracking-wider">AI Legal Analysis Report</span>
                         </div>
                         {renderConfidenceBadge(activeDoc.content.confidence)}
-                      </div>
-
-                      <div className="p-6 md:p-8 space-y-6">
+                      </div>                      <div className="p-6 md:p-8 space-y-6">
                         <div className="space-y-2">
-                          <h4 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-mono">
+                          <h4 className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest font-mono">
                             Incident Abstract
                           </h4>
                           <p className="text-sm leading-relaxed text-zinc-800 dark:text-zinc-200 font-sans font-medium">
@@ -509,20 +508,20 @@ export default function CaseAnalysisPanel({
                         </div>
 
                         <div className="space-y-3 pt-2 border-t border-zinc-100 dark:border-zinc-800/50">
-                          <h4 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-mono">
+                          <h4 className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest font-mono">
                             Applicable Offenses
                           </h4>
                           <div className="grid gap-3 sm:grid-cols-2">
                             {activeDoc.content.applicableSections?.map((sec: any, idx: number) => (
                               <div 
                                 key={idx}
-                                className="rounded-lg border border-zinc-150 dark:border-zinc-800/80 bg-zinc-50/30 dark:bg-zinc-950/20 p-4 space-y-2.5 transition-all hover:border-zinc-300 dark:hover:border-zinc-700"
+                                className="rounded-lg border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/30 dark:bg-zinc-950/20 p-4 space-y-2.5 transition-all hover:border-zinc-300 dark:hover:border-zinc-700"
                               >
                                 <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100">
-                                  <Gavel className="h-4 w-4 text-zinc-400 dark:text-zinc-550" />
+                                  <Gavel className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
                                   <span className="text-xs font-mono font-bold">{sec.section}</span>
                                 </div>
-                                <p className="text-xs leading-relaxed text-zinc-650 dark:text-zinc-400">
+                                <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
                                   {sec.reason}
                                 </p>
                               </div>
@@ -531,7 +530,7 @@ export default function CaseAnalysisPanel({
                         </div>
 
                         <div className="space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800/50">
-                          <h4 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-mono">
+                          <h4 className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest font-mono">
                             Detailed Legal Reasoning
                           </h4>
                           <div className="rounded-lg border border-zinc-100 dark:border-zinc-800/40 bg-zinc-50/10 p-5 font-sans text-xs leading-relaxed text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">

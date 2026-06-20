@@ -125,7 +125,7 @@ export default function CaseChecklistSection({ caseId, initialChecklist }: CaseC
             Investigation Procedures Checklist
           </h2>
         </div>
-        <span className="text-[10px] font-mono font-bold text-zinc-450 uppercase">
+        <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase">
           {completedTasks} / {totalTasks} Completed
         </span>
       </div>
@@ -133,7 +133,7 @@ export default function CaseChecklistSection({ caseId, initialChecklist }: CaseC
       <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden p-5 md:p-6 space-y-6">
         
         {/* Completeness Tracker Panel */}
-        <div className="bg-zinc-50/50 dark:bg-zinc-950/20 border border-zinc-100 dark:border-zinc-850/55 rounded-xl p-4.5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-zinc-50/50 dark:bg-zinc-950/20 border border-zinc-100 dark:border-zinc-800/55 rounded-xl p-4.5 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="text-xs font-mono font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
               <span>Procedure Completion Rate</span>
@@ -143,7 +143,7 @@ export default function CaseChecklistSection({ caseId, initialChecklist }: CaseC
             </div>
           </div>
           <div className="flex-1 md:max-w-xs w-full space-y-2">
-            <div className="w-full bg-zinc-150 dark:bg-zinc-800 rounded-full h-2 overflow-hidden shadow-inner">
+            <div className="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-2 overflow-hidden shadow-inner">
               <div 
                 className="bg-gradient-to-r from-indigo-500 to-indigo-600 h-2 rounded-full transition-all duration-500 ease-out" 
                 style={{ width: `${progressPercent}%` }}
@@ -181,10 +181,10 @@ export default function CaseChecklistSection({ caseId, initialChecklist }: CaseC
 
         {/* List of Checklist Items */}
         {totalTasks === 0 ? (
-          <div className="rounded-lg border border-dashed border-zinc-200 dark:border-zinc-850 p-8 text-center flex flex-col items-center justify-center space-y-2">
-            <AlertCircle className="h-7 w-7 text-zinc-350 dark:text-zinc-650" />
+          <div className="rounded-lg border border-dashed border-zinc-200 dark:border-zinc-800 p-8 text-center flex flex-col items-center justify-center space-y-2">
+            <AlertCircle className="h-7 w-7 text-zinc-350 dark:text-zinc-600" />
             <h4 className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">No procedures assigned</h4>
-            <p className="text-[11px] text-zinc-450 dark:text-zinc-500 max-w-sm">
+            <p className="text-[11px] text-zinc-400 dark:text-zinc-500 max-w-sm">
               Use the field above to register procedural checklist actions needed for this investigation.
             </p>
           </div>
@@ -199,7 +199,7 @@ export default function CaseChecklistSection({ caseId, initialChecklist }: CaseC
                   key={item.id}
                   className={`group flex items-center justify-between p-3 rounded-lg border transition-all ${
                     item.completed 
-                      ? "border-zinc-150 bg-zinc-50/30 dark:border-zinc-850/50 dark:bg-zinc-950/10 opacity-70"
+                      ? "border-zinc-200 bg-zinc-50/30 dark:border-zinc-800/50 dark:bg-zinc-950/10 opacity-70"
                       : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/40 hover:border-zinc-350 dark:hover:border-zinc-700"
                   }`}
                 >
@@ -216,7 +216,7 @@ export default function CaseChecklistSection({ caseId, initialChecklist }: CaseC
                       }`}
                     >
                       {isUpdating ? (
-                        <Loader2 className="h-2.5 w-2.5 animate-spin text-zinc-450 dark:text-zinc-500" />
+                        <Loader2 className="h-2.5 w-2.5 animate-spin text-zinc-400 dark:text-zinc-500" />
                       ) : item.completed ? (
                         <svg className="h-2.5 w-2.5 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
                           <polyline points="20 6 9 17 4 12" />

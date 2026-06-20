@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { legalAnalysisService } from "@/services/case/legal-analysis.services";
+import { auth } from "@/auth";
 
 /**
  * Server action to trigger AI legal analysis for a case.
@@ -11,6 +12,12 @@ import { legalAnalysisService } from "@/services/case/legal-analysis.services";
  */
 export async function analyzeCaseAction(caseId: string) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+    const userId = session.user.id;
+
     if (!caseId) {
       return {
         success: false,
@@ -18,7 +25,7 @@ export async function analyzeCaseAction(caseId: string) {
       };
     }
 
-    await legalAnalysisService.analyzeCase(caseId);
+    await legalAnalysisService.analyzeCase(caseId, userId);
 
     // Revalidate the case detail page so the UI displays the generated analysis document and new status
     revalidatePath(`/case/${caseId}`);

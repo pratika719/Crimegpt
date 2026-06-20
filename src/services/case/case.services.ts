@@ -10,20 +10,21 @@ export class CaseService {
     new CaseRepository();
 
   async createCase(
+    userId: string,
     input: CreateCaseInput
   ) {
-    const caseItem = await this.repository.create(input);
+    const caseItem = await this.repository.create(userId, input);
     await activityService.logCaseCreated(caseItem.id, caseItem.title);
     return caseItem;
   }
 
-  async getCases() {
-    return this.repository.findAll();
+  async getCases(userId: string) {
+    return this.repository.findAll(userId);
   }
 
-  async getCaseById(id: string) {
+  async getCaseById(id: string, userId: string) {
     const found =
-      await this.repository.findById(id);
+      await this.repository.findById(id, userId);
 
     if (!found) {
       throw new Error(

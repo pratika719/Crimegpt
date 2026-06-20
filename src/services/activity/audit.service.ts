@@ -44,22 +44,22 @@ export class AuditService {
   private enrichActivity(activity: any): EnrichedActivity {
     const type = activity.activityType;
     let severity: AuditSeverity = "INFO";
-    let module: AuditModule = "SYSTEM";
+    let auditModule: AuditModule = "SYSTEM";
     let isAi = false;
 
     switch (type) {
       case "CASE_CREATED":
         severity = "SUCCESS";
-        module = "CASE";
+        auditModule = "CASE";
         break;
       case "CASE_UPDATED":
         severity = "INFO";
-        module = "CASE";
+        auditModule = "CASE";
         break;
       case "METADATA_CREATED":
       case "METADATA_UPDATED":
         severity = "INFO";
-        module = "CASE";
+        auditModule = "CASE";
         break;
       
       case "LEGAL_ANALYSIS_GENERATED":
@@ -70,24 +70,24 @@ export class AuditService {
       case "CASE_DIARY_GENERATED":
       case "DOCUMENT_REGENERATED":
         severity = "SUCCESS";
-        module = "DOCUMENT";
+        auditModule = "DOCUMENT";
         isAi = true;
         break;
 
       case "DOCUMENT_DOWNLOADED":
         severity = "INFO";
-        module = "DOCUMENT";
+        auditModule = "DOCUMENT";
         break;
 
       case "AI_DIAGNOSTICS_GENERATED":
         severity = "SUCCESS";
-        module = "DIAGNOSTICS";
+        auditModule = "DIAGNOSTICS";
         isAi = true;
         break;
 
       case "DOCUMENT_CREATED":
         severity = "SUCCESS";
-        module = "DOCUMENT";
+        auditModule = "DOCUMENT";
         break;
 
       case "PERSON_ADDED":
@@ -95,31 +95,31 @@ export class AuditService {
       case "VICTIM_ADDED":
       case "VICTIM_UPDATED":
         severity = "INFO";
-        module = "PERSON";
+        auditModule = "PERSON";
         break;
       case "PERSON_DELETED":
         severity = "WARNING";
-        module = "PERSON";
+        auditModule = "PERSON";
         break;
 
       case "EVIDENCE_ADDED":
       case "EVIDENCE_UPDATED":
         severity = "INFO";
-        module = "EVIDENCE";
+        auditModule = "EVIDENCE";
         break;
       case "EVIDENCE_DELETED":
         severity = "WARNING";
-        module = "EVIDENCE";
+        auditModule = "EVIDENCE";
         break;
 
       case "CHECKLIST_ITEM_COMPLETED":
         severity = "SUCCESS";
-        module = "CHECKLIST";
+        auditModule = "CHECKLIST";
         break;
 
       case "INVESTIGATION_PROFILE_UPDATED":
         severity = "INFO";
-        module = "PROFILE";
+        auditModule = "PROFILE";
         break;
 
       default:
@@ -142,7 +142,7 @@ export class AuditService {
       caseId: activity.caseId,
       caseTitle: activity.case?.title || "Unknown Case",
       severity,
-      module,
+      module: auditModule,
       isAi,
     };
   }
@@ -150,14 +150,16 @@ export class AuditService {
   /**
    * Get filtered, paginated activities.
    */
-  async getAuditLogs(filters: AuditLogFilters = {}) {
+  async getAuditLogs(userId: string, filters: AuditLogFilters = {}) {
     const page = Number(filters.page) || 1;
     const limit = Number(filters.limit) || 20;
     const skip = (page - 1) * limit;
     const sortOrder = filters.sortOrder === "asc" ? "asc" : "desc";
 
     // Build the query where clause
-    const where: any = {};
+    const where: any = {
+      case: { userId },
+    };
 
     if (filters.caseId && filters.caseId !== "ALL") {
       where.caseId = filters.caseId;
@@ -183,12 +185,6 @@ export class AuditService {
     }
 
     // Fetch all candidates from Prisma to filter/enrich/page them
-    // (since isAi, severity, and module are computed client-side/service-side, we filter client-side if these filters are active, or we fetch matching and filter in JS)
-    // Wait, since we are doing dynamic enrichment, we load the candidate activities from the DB.
-    // If the database has 100k records, loading all of them is bad. But in typical use/demos or moderate databases, it is fast.
-    // To make it efficient, if no severity/isAi/module filter is applied, we can use DB pagination directly.
-    // Let's implement an intelligent approach: load all matching DB filters (caseId, startDate, endDate, search), enrich them, then apply severity, isAi, and module filters in memory, then paginate.
-    // This is clean, robust, and works perfectly without schema changes.
     const rawActivities = await prisma.caseActivity.findMany({
       where,
       include: {
@@ -206,13 +202,14 @@ export class AuditService {
     // Enrich
     let enriched = rawActivities.map((act) => this.enrichActivity(act));
 
-    // Calculate overall stats before specific status/isAi filters
+    // Calculate overall stats before memory-based filters
     const stats: AuditDashboardStats = {
       totalCount: enriched.length,
+      isAi: 0, // Backward compatibility or client layout checks
       aiCount: enriched.filter((e) => e.isAi).length,
       severeCount: enriched.filter((e) => e.severity === "WARNING" || e.severity === "HIGH").length,
       userCount: enriched.filter((e) => !e.isAi).length,
-    };
+    } as any;
 
     // Apply memory-based filters
     if (filters.module && filters.module !== "ALL" as any) {
@@ -226,7 +223,6 @@ export class AuditService {
       enriched = enriched.filter((e) => e.isAi === isAiBool);
     }
 
-    // Recalculate stats for the filtered list if needed, or keep global candidate stats. Let's return global candidate stats so that the metrics represent the current scope (case/date scope).
     const totalFiltered = enriched.length;
     const totalPages = Math.ceil(totalFiltered / limit);
     const paginated = enriched.slice(skip, skip + limit);
@@ -246,8 +242,9 @@ export class AuditService {
   /**
    * Helper to fetch all cases for the filter dropdown
    */
-  async getCasesForFilter() {
+  async getCasesForFilter(userId: string) {
     return prisma.case.findMany({
+      where: { userId },
       select: {
         id: true,
         title: true,

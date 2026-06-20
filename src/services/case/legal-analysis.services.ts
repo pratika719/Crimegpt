@@ -18,31 +18,32 @@ export class LegalAnalysisService {
    * updates the case status, and logs telemetry.
    * 
    * @param caseId Unique identifier of the case.
+   * @param userId Unique identifier of the user.
    * @returns Persisted GeneratedDocument instance.
    */
-  async analyzeCase(caseId: string) {
-    console.log(`💼 [LegalAnalysisService] Fetching case narrative for ID: ${caseId}`);
+  async analyzeCase(caseId: string, userId: string) {
+    console.log(`💼 [LegalAnalysisService] Fetching case narrative for ID: ${caseId} by user: ${userId}`);
     
     // 1. Fetch case details
-    const caseItem = await this.caseRepository.findById(caseId);
+    const caseItem = await this.caseRepository.findById(caseId, userId);
     if (!caseItem) {
       throw new Error(`Case not found for ID: ${caseId}`);
     }
 
     // 2. Execute the RAG Chain with Unified Case Context
     console.log(`💼 [LegalAnalysisService] Building unified case context...`);
-    const context = await unifiedContextService.buildUnifiedCaseContext(caseId);
+    const context = await unifiedContextService.buildUnifiedCaseContext(caseId, userId);
 
     console.log(`💼 [LegalAnalysisService] Launching AI legal analysis chain...`);
     const chainOutput = await legalAnalysisChain.execute(context);
 
     // 3. Delete any previous AI Legal Analysis documents for this case (supports regeneration)
     console.log(`💼 [LegalAnalysisService] Cleaning up old analysis records...`);
-    await this.documentRepository.deleteManyByType(caseId, DocumentType.LEGAL_ANALYSIS);
+    await this.documentRepository.deleteManyByType(caseId, userId, DocumentType.LEGAL_ANALYSIS);
 
     // 4. Save results to GeneratedDocument table using shared service
     console.log(`💼 [LegalAnalysisService] Storing legal analysis document...`);
-    const document = await generatedDocumentService.saveDocument({
+    const document = await generatedDocumentService.saveDocument(userId, {
       caseId,
       type: DocumentType.LEGAL_ANALYSIS,
       title: `AI Legal Analysis: ${caseItem.title}`,
@@ -51,7 +52,7 @@ export class LegalAnalysisService {
 
     // 5. Store telemetry and RAG observability in AIRequestLog table using shared service
     console.log(`💼 [LegalAnalysisService] Storing AI request logs for observability...`);
-    await aiObservabilityService.logRequest({
+    await aiObservabilityService.logRequest(userId, {
       requestType: AIRequestType.LEGAL_ANALYSIS,
       prompt: chainOutput.promptText,
       retrievedContext: JSON.stringify(chainOutput.retrievedChunks),
@@ -67,7 +68,7 @@ export class LegalAnalysisService {
     // 6. Automatically transition Case status from OPEN to UNDER_INVESTIGATION
     if (caseItem.status === "OPEN") {
       console.log(`💼 [LegalAnalysisService] Upgrading case status to UNDER_INVESTIGATION...`);
-      await this.caseRepository.updateStatus(caseId, "UNDER_INVESTIGATION");
+      await this.caseRepository.updateStatus(caseId, userId, "UNDER_INVESTIGATION");
     }
 
     console.log(`💼 [LegalAnalysisService] Case analysis complete.`);

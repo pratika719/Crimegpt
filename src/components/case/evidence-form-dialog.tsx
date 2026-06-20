@@ -92,7 +92,7 @@ export function EvidenceFormDialog({
           <DialogTitle className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100 font-sans">
             {isEdit ? "Edit Evidence Metadata" : "Register Evidence Item"}
           </DialogTitle>
-          <DialogDescription className="text-xs text-zinc-450 dark:text-zinc-500">
+          <DialogDescription className="text-xs text-zinc-400 dark:text-zinc-500">
             {isEdit 
               ? "Modify metadata records, descriptions, or internal notes for this item." 
               : "Register official evidence items, files, logs, or recordings related to this case."}

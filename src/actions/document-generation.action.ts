@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { DocumentType } from "@/generated/prisma/client";
 import { documentGeneratorService } from "@/services/document-engine/document-generator.service";
 import { activityService } from "@/services/activity/activity.service";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 
 /**
  * Server action to generate (or regenerate) any registered document type for a case.
@@ -15,6 +17,12 @@ import { activityService } from "@/services/activity/activity.service";
  */
 export async function generateDocumentAction(caseId: string, type: string, isRegenerate = false) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+    const userId = session.user.id;
+
     if (!caseId) {
       return { success: false, message: "Case ID is required." };
     }
@@ -23,7 +31,7 @@ export async function generateDocumentAction(caseId: string, type: string, isReg
     }
 
     const docType = type as DocumentType;
-    const document = await documentGeneratorService.generateDocument(caseId, docType);
+    const document = await documentGeneratorService.generateDocument(caseId, userId, docType);
 
     // If it's a regeneration, also log a specific activity entry
     if (isRegenerate) {
@@ -58,6 +66,17 @@ export async function logDocumentActivityAction(
   version: number
 ) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+    const userId = session.user.id;
+
+    const caseItem = await prisma.case.findFirst({ where: { id: caseId, userId } });
+    if (!caseItem) {
+      return { success: false, message: "Unauthorized or case not found" };
+    }
+
     if (actionType === "DOWNLOAD") {
       await activityService.logDocumentDownloaded(caseId, docType, docTitle, version);
     } else if (actionType === "REGENERATE") {

@@ -94,7 +94,7 @@ export function PersonFormDialog({
           <DialogTitle className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100 font-sans">
             {isEdit ? "Edit Person Profile" : "Register Person to Case"}
           </DialogTitle>
-          <DialogDescription className="text-xs text-zinc-450 dark:text-zinc-500">
+          <DialogDescription className="text-xs text-zinc-400 dark:text-zinc-500">
             {isEdit 
               ? "Update details, statements, or notes for this registered individual." 
               : "Register a victim, witness, suspect, or investigating officer associated with this case."}

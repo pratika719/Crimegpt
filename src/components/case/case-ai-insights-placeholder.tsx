@@ -27,11 +27,11 @@ export default function CaseAIInsightsPlaceholder() {
         {/* Informative Header Strip */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-100 dark:border-zinc-800/60 pb-5">
           <div className="space-y-1">
-            <h4 className="text-sm font-bold text-zinc-850 dark:text-zinc-200 tracking-tight flex items-center gap-2">
+            <h4 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 tracking-tight flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-indigo-500 animate-pulse" />
               Automated Case Diagnostics
             </h4>
-            <p className="text-xs text-zinc-455 dark:text-zinc-500 max-w-xl">
+            <p className="text-xs text-zinc-400 dark:text-zinc-500 max-w-xl">
               CrimeGPT scans narratives, witness profiles, statement histories, and logged evidence to map legal contradictions, identify risk categories, and propose procedure audits.
             </p>
           </div>
@@ -47,7 +47,7 @@ export default function CaseAIInsightsPlaceholder() {
         <div className="grid gap-4 md:grid-cols-3 relative">
           
           {/* Card 1: Legal Risk Analysis */}
-          <div className="rounded-xl border border-zinc-150 dark:border-zinc-800/60 bg-zinc-50/10 dark:bg-zinc-950/10 p-5 space-y-4 filter blur-[0.5px] select-none">
+          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800/60 bg-zinc-50/10 dark:bg-zinc-950/10 p-5 space-y-4 filter blur-[0.5px] select-none">
             <div className="flex items-center justify-between text-zinc-400">
               <span className="text-[9px] font-mono font-bold uppercase tracking-wider">01. Legal Risk Assessment</span>
               <ShieldAlert className="h-3.5 w-3.5" />
@@ -55,9 +55,9 @@ export default function CaseAIInsightsPlaceholder() {
             
             {/* Skeletons */}
             <div className="space-y-2">
-              <div className="h-3 bg-zinc-150 dark:bg-zinc-800 rounded w-3/4" />
-              <div className="h-2.5 bg-zinc-150 dark:bg-zinc-800 rounded w-full" />
-              <div className="h-2.5 bg-zinc-150 dark:bg-zinc-800 rounded w-5/6" />
+              <div className="h-3 bg-zinc-200 dark:bg-zinc-800 rounded w-3/4" />
+              <div className="h-2.5 bg-zinc-200 dark:bg-zinc-800 rounded w-full" />
+              <div className="h-2.5 bg-zinc-200 dark:bg-zinc-800 rounded w-5/6" />
             </div>
 
             <div className="pt-2 border-t border-zinc-100 dark:border-zinc-805 text-[10px] text-zinc-400 flex items-center justify-between">
@@ -67,7 +67,7 @@ export default function CaseAIInsightsPlaceholder() {
           </div>
 
           {/* Card 2: Statement Discrepancy Checks */}
-          <div className="rounded-xl border border-zinc-150 dark:border-zinc-800/60 bg-zinc-50/10 dark:bg-zinc-950/10 p-5 space-y-4 filter blur-[0.5px] select-none">
+          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800/60 bg-zinc-50/10 dark:bg-zinc-950/10 p-5 space-y-4 filter blur-[0.5px] select-none">
             <div className="flex items-center justify-between text-zinc-400">
               <span className="text-[9px] font-mono font-bold uppercase tracking-wider">02. Statement Cross-Reference</span>
               <BrainCircuit className="h-3.5 w-3.5" />
@@ -75,9 +75,9 @@ export default function CaseAIInsightsPlaceholder() {
             
             {/* Skeletons */}
             <div className="space-y-2">
-              <div className="h-3 bg-zinc-150 dark:bg-zinc-800 rounded w-1/2" />
-              <div className="h-2.5 bg-zinc-150 dark:bg-zinc-800 rounded w-full" />
-              <div className="h-2.5 bg-zinc-150 dark:bg-zinc-800 rounded w-2/3" />
+              <div className="h-3 bg-zinc-200 dark:bg-zinc-800 rounded w-1/2" />
+              <div className="h-2.5 bg-zinc-200 dark:bg-zinc-800 rounded w-full" />
+              <div className="h-2.5 bg-zinc-200 dark:bg-zinc-800 rounded w-2/3" />
             </div>
 
             <div className="pt-2 border-t border-zinc-100 dark:border-zinc-805 text-[10px] text-zinc-400 flex items-center justify-between">
@@ -87,7 +87,7 @@ export default function CaseAIInsightsPlaceholder() {
           </div>
 
           {/* Card 3: Next Actions */}
-          <div className="rounded-xl border border-zinc-150 dark:border-zinc-800/60 bg-zinc-50/10 dark:bg-zinc-950/10 p-5 space-y-4 filter blur-[0.5px] select-none">
+          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800/60 bg-zinc-50/10 dark:bg-zinc-950/10 p-5 space-y-4 filter blur-[0.5px] select-none">
             <div className="flex items-center justify-between text-zinc-400">
               <span className="text-[9px] font-mono font-bold uppercase tracking-wider">03. Procedural Recommendations</span>
               <CheckCircle className="h-3.5 w-3.5" />
@@ -95,9 +95,9 @@ export default function CaseAIInsightsPlaceholder() {
             
             {/* Skeletons */}
             <div className="space-y-2">
-              <div className="h-3 bg-zinc-150 dark:bg-zinc-800 rounded w-5/6" />
-              <div className="h-2.5 bg-zinc-150 dark:bg-zinc-800 rounded w-full" />
-              <div className="h-2.5 bg-zinc-150 dark:bg-zinc-800 rounded w-4/5" />
+              <div className="h-3 bg-zinc-200 dark:bg-zinc-800 rounded w-5/6" />
+              <div className="h-2.5 bg-zinc-200 dark:bg-zinc-800 rounded w-full" />
+              <div className="h-2.5 bg-zinc-200 dark:bg-zinc-800 rounded w-4/5" />
             </div>
 
             <div className="pt-2 border-t border-zinc-100 dark:border-zinc-805 text-[10px] text-zinc-400 flex items-center justify-between">
@@ -113,10 +113,10 @@ export default function CaseAIInsightsPlaceholder() {
                 <Lock className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
               </div>
               <div className="space-y-1">
-                <h5 className="text-xs font-bold text-zinc-850 dark:text-zinc-200 font-sans tracking-tight">
+                <h5 className="text-xs font-bold text-zinc-800 dark:text-zinc-200 font-sans tracking-tight">
                   Diagnostics Engine Pending
                 </h5>
-                <p className="text-[10px] text-zinc-450 dark:text-zinc-500 leading-normal">
+                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 leading-normal">
                   Requires complete case metadata, at least 1 witness statement, and checklist milestones to compute risk vectors.
                 </p>
               </div>

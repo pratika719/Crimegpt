@@ -54,20 +54,20 @@ export default function ChargeSheetViewer({ chargesheet, version, createdAt }: C
           </h3>
           <div className="grid gap-4 sm:grid-cols-4 text-xs font-mono">
             <div>
-              <span className="block text-zinc-450 dark:text-zinc-505 mb-0.5">FIR NUMBER</span>
-              <span className="font-bold text-zinc-850 dark:text-zinc-205">{caseDetails.firNumber}</span>
+              <span className="block text-zinc-400 dark:text-zinc-500 mb-0.5">FIR NUMBER</span>
+              <span className="font-bold text-zinc-800 dark:text-zinc-200">{caseDetails.firNumber}</span>
             </div>
             <div>
-              <span className="block text-zinc-450 dark:text-zinc-550 mb-0.5">POLICE STATION</span>
-              <span className="font-bold text-zinc-850 dark:text-zinc-205">{caseDetails.policeStation}</span>
+              <span className="block text-zinc-400 dark:text-zinc-500 mb-0.5">POLICE STATION</span>
+              <span className="font-bold text-zinc-800 dark:text-zinc-200">{caseDetails.policeStation}</span>
             </div>
             <div>
-              <span className="block text-zinc-450 dark:text-zinc-550 mb-0.5">INVESTIGATING OFFICER</span>
-              <span className="font-bold text-zinc-850 dark:text-zinc-205">{caseDetails.investigatingOfficer}</span>
+              <span className="block text-zinc-400 dark:text-zinc-500 mb-0.5">INVESTIGATING OFFICER</span>
+              <span className="font-bold text-zinc-800 dark:text-zinc-200">{caseDetails.investigatingOfficer}</span>
             </div>
             <div>
-              <span className="block text-zinc-450 dark:text-zinc-550 mb-0.5">REGISTRATION DATE</span>
-              <span className="font-bold text-zinc-850 dark:text-zinc-205">{caseDetails.dateOfRegistration}</span>
+              <span className="block text-zinc-400 dark:text-zinc-500 mb-0.5">REGISTRATION DATE</span>
+              <span className="font-bold text-zinc-800 dark:text-zinc-200">{caseDetails.dateOfRegistration}</span>
             </div>
           </div>
         </div>
@@ -98,7 +98,7 @@ export default function ChargeSheetViewer({ chargesheet, version, createdAt }: C
                 </div>
                 {accused.bailDetails && (
                   <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    <span className="font-semibold text-zinc-650 dark:text-zinc-350">Bail:</span> {accused.bailDetails}
+                    <span className="font-semibold text-zinc-600 dark:text-zinc-350">Bail:</span> {accused.bailDetails}
                   </p>
                 )}
                 <div className="flex flex-wrap gap-1.5 pt-1">
@@ -111,7 +111,7 @@ export default function ChargeSheetViewer({ chargesheet, version, createdAt }: C
                     </span>
                   ))}
                 </div>
-                <div className="rounded bg-zinc-50 dark:bg-zinc-950/30 p-3 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 border border-zinc-100 dark:border-zinc-850">
+                <div className="rounded bg-zinc-50 dark:bg-zinc-950/30 p-3 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 border border-zinc-100 dark:border-zinc-800">
                   <span className="font-semibold text-zinc-800 dark:text-zinc-200 block mb-1">Evidence Summary:</span>
                   {accused.evidenceLinks}
                 </div>
@@ -143,14 +143,14 @@ export default function ChargeSheetViewer({ chargesheet, version, createdAt }: C
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
             {/* Physical */}
-            <div className="rounded-lg border border-zinc-150 dark:border-zinc-800/80 bg-zinc-50/20 dark:bg-zinc-950/10 p-4 space-y-2.5">
+            <div className="rounded-lg border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/20 dark:bg-zinc-950/10 p-4 space-y-2.5">
               <span className="text-xs font-mono font-bold text-zinc-700 dark:text-zinc-350 block border-b border-zinc-200 dark:border-zinc-800 pb-1.5">
                 Physical Evidence
               </span>
               {evidenceCollected.physicalEvidence.length === 0 ? (
                 <span className="text-xs italic text-zinc-400">None recorded.</span>
               ) : (
-                <ul className="text-xs space-y-1.5 text-zinc-650 dark:text-zinc-400 list-disc list-inside">
+                <ul className="text-xs space-y-1.5 text-zinc-600 dark:text-zinc-400 list-disc list-inside">
                   {evidenceCollected.physicalEvidence.map((item, i) => (
                     <li key={i}>{item}</li>
                   ))}
@@ -159,14 +159,14 @@ export default function ChargeSheetViewer({ chargesheet, version, createdAt }: C
             </div>
 
             {/* Documentary */}
-            <div className="rounded-lg border border-zinc-150 dark:border-zinc-800/80 bg-zinc-50/20 dark:bg-zinc-950/10 p-4 space-y-2.5">
+            <div className="rounded-lg border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/20 dark:bg-zinc-950/10 p-4 space-y-2.5">
               <span className="text-xs font-mono font-bold text-zinc-700 dark:text-zinc-350 block border-b border-zinc-200 dark:border-zinc-800 pb-1.5">
                 Documentary Evidence
               </span>
               {evidenceCollected.documentaryEvidence.length === 0 ? (
                 <span className="text-xs italic text-zinc-400">None recorded.</span>
               ) : (
-                <ul className="text-xs space-y-1.5 text-zinc-650 dark:text-zinc-400 list-disc list-inside">
+                <ul className="text-xs space-y-1.5 text-zinc-600 dark:text-zinc-400 list-disc list-inside">
                   {evidenceCollected.documentaryEvidence.map((item, i) => (
                     <li key={i}>{item}</li>
                   ))}
@@ -175,14 +175,14 @@ export default function ChargeSheetViewer({ chargesheet, version, createdAt }: C
             </div>
 
             {/* Scientific/Medical */}
-            <div className="rounded-lg border border-zinc-150 dark:border-zinc-800/80 bg-zinc-50/20 dark:bg-zinc-950/10 p-4 space-y-2.5">
+            <div className="rounded-lg border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/20 dark:bg-zinc-950/10 p-4 space-y-2.5">
               <span className="text-xs font-mono font-bold text-zinc-700 dark:text-zinc-350 block border-b border-zinc-200 dark:border-zinc-800 pb-1.5">
                 Scientific / Medical Evidence
               </span>
               {evidenceCollected.scientificOrMedicalEvidence.length === 0 ? (
                 <span className="text-xs italic text-zinc-400">None recorded.</span>
               ) : (
-                <ul className="text-xs space-y-1.5 text-zinc-650 dark:text-zinc-400 list-disc list-inside">
+                <ul className="text-xs space-y-1.5 text-zinc-600 dark:text-zinc-400 list-disc list-inside">
                   {evidenceCollected.scientificOrMedicalEvidence.map((item, i) => (
                     <li key={i}>{item}</li>
                   ))}
@@ -204,17 +204,17 @@ export default function ChargeSheetViewer({ chargesheet, version, createdAt }: C
             {witnessStatements.map((witness, idx) => (
               <div 
                 key={idx}
-                className="rounded-lg border border-zinc-150 dark:border-zinc-850 bg-zinc-50/20 dark:bg-zinc-950/10 p-4 text-xs space-y-1.5"
+                className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/20 dark:bg-zinc-950/10 p-4 text-xs space-y-1.5"
               >
                 <div className="flex items-center justify-between border-b border-dashed border-zinc-200 dark:border-zinc-800 pb-1">
-                  <span className="font-bold text-zinc-850 dark:text-zinc-200">{witness.name}</span>
+                  <span className="font-bold text-zinc-800 dark:text-zinc-200">{witness.name}</span>
                   {witness.credibilityScore && (
                     <span className="rounded bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-[9px] font-semibold text-zinc-500">
                       CREDIBILITY: {witness.credibilityScore.toUpperCase()}
                     </span>
                   )}
                 </div>
-                <p className="text-zinc-650 dark:text-zinc-350 leading-relaxed italic">
+                <p className="text-zinc-600 dark:text-zinc-350 leading-relaxed italic">
                   &quot;{witness.summaryOfStatement}&quot;
                 </p>
               </div>
@@ -244,7 +244,7 @@ export default function ChargeSheetViewer({ chargesheet, version, createdAt }: C
             </h3>
           </div>
           <div className="grid gap-6 md:grid-cols-3">
-            <div className="md:col-span-2 rounded-lg border border-zinc-150 dark:border-zinc-850 bg-zinc-50/30 dark:bg-zinc-950/20 p-4 text-xs italic text-zinc-600 dark:text-zinc-400">
+            <div className="md:col-span-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/30 dark:bg-zinc-950/20 p-4 text-xs italic text-zinc-600 dark:text-zinc-400">
               &quot;{officerRemarks}&quot;
             </div>
             <div className="flex flex-col items-center justify-center border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 bg-zinc-50/10 dark:bg-zinc-900/30">

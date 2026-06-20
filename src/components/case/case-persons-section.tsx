@@ -108,7 +108,7 @@ export default function CasePersonsSection({ caseId, initialPersons }: CasePerso
             persons.map((person) => (
               <div 
                 key={person.id} 
-                className="group/card relative rounded-lg border border-zinc-150 dark:border-zinc-800/80 bg-zinc-50/20 dark:bg-zinc-950/20 p-3.5 space-y-2.5 transition-all hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm"
+                className="group/card relative rounded-lg border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/20 dark:bg-zinc-950/20 p-3.5 space-y-2.5 transition-all hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm"
               >
                 {/* Edit/Delete overlay controls */}
                 <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity">
@@ -145,13 +145,13 @@ export default function CasePersonsSection({ caseId, initialPersons }: CasePerso
                 <div className="space-y-1.5 text-[11px] leading-relaxed font-sans text-zinc-500 dark:text-zinc-400">
                   {person.phone && (
                     <div className="flex items-center gap-1.5">
-                      <Phone className="h-3 w-3 flex-shrink-0 text-zinc-450" />
+                      <Phone className="h-3 w-3 flex-shrink-0 text-zinc-400" />
                       <span>{person.phone}</span>
                     </div>
                   )}
                   {person.address && (
                     <div className="flex items-start gap-1.5">
-                      <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0 text-zinc-450" />
+                      <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0 text-zinc-400" />
                       <span className="line-clamp-1">{person.address}</span>
                     </div>
                   )}
@@ -170,7 +170,7 @@ export default function CasePersonsSection({ caseId, initialPersons }: CasePerso
                       <span className="block text-[9px] font-bold text-zinc-400 uppercase tracking-widest font-mono mb-0.5 flex items-center gap-1">
                         <Clipboard className="h-2.5 w-2.5" /> Notes
                       </span>
-                      <p className="text-zinc-650 dark:text-zinc-400 line-clamp-2 text-[11px]">
+                      <p className="text-zinc-600 dark:text-zinc-400 line-clamp-2 text-[11px]">
                         {person.notes}
                       </p>
                     </div>
@@ -197,7 +197,7 @@ export default function CasePersonsSection({ caseId, initialPersons }: CasePerso
 
         <Button 
           onClick={handleAddPerson}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer border border-zinc-200 dark:border-zinc-850 hover:bg-zinc-50 dark:hover:bg-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 px-3 py-1.5 h-auto shadow-sm"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 px-3 py-1.5 h-auto shadow-sm"
         >
           <UserPlus className="h-3.5 w-3.5" />
           Register Person

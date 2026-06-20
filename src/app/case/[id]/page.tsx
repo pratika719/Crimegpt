@@ -19,17 +19,25 @@ import CaseOverviewCards from "@/components/case/case-overview-cards";
 import CaseAIInsightsDash from "@/components/case/case-ai-insights-dash";
 import CaseInvestigationProfileSection from "@/components/case/case-investigation-profile-section";
 
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
+
 export default async function CaseDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
   const { id } = await params;
   const service = new CaseService();
 
   let caseItem;
   try {
-    caseItem = await service.getCaseById(id);
+    caseItem = await service.getCaseById(id, session.user.id);
   } catch (error) {
     console.error("Error fetching CaseDetailPage:", error);
     notFound();
@@ -112,7 +120,7 @@ export default async function CaseDetailPage({
           {/* Title & MONO References */}
           <div className="space-y-2.5">
             <div className="flex items-center gap-2">
-              <span className="rounded bg-zinc-100 dark:bg-zinc-800 px-2.5 py-0.5 text-[9px] font-mono font-bold text-zinc-500 dark:text-zinc-450 uppercase tracking-wider">
+              <span className="rounded bg-zinc-100 dark:bg-zinc-800 px-2.5 py-0.5 text-[9px] font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                 REF: {caseItem.id.toUpperCase()}
               </span>
               <span className="rounded bg-red-50 text-red-700 dark:bg-red-950/20 dark:text-red-400 border border-red-200/20 px-2.5 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider">
@@ -124,7 +132,7 @@ export default async function CaseDetailPage({
               {caseItem.title}
             </h1>
 
-            <div className="flex flex-wrap gap-4 text-[11px] font-mono text-zinc-450 dark:text-zinc-500">
+            <div className="flex flex-wrap gap-4 text-[11px] font-mono text-zinc-400 dark:text-zinc-500">
               <div className="flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5" />
                 <span>Filed: {dateCreated}</span>
@@ -142,7 +150,7 @@ export default async function CaseDetailPage({
               type="button"
               className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-3 py-1.5 text-xs font-semibold shadow-sm transition-all cursor-pointer"
             >
-              <Download className="h-3.5 w-3.5 text-zinc-450" />
+              <Download className="h-3.5 w-3.5 text-zinc-400" />
               <span>Export Briefing</span>
             </button>
 
@@ -150,7 +158,7 @@ export default async function CaseDetailPage({
               type="button"
               className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-3 py-1.5 text-xs font-semibold shadow-sm transition-all cursor-pointer"
             >
-              <Briefcase className="h-3.5 w-3.5 text-zinc-450" />
+              <Briefcase className="h-3.5 w-3.5 text-zinc-400" />
               <span>Draft Charge Sheet</span>
               <span className="rounded bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 text-[8px] font-mono text-zinc-400 uppercase">AI Tool</span>
             </button>

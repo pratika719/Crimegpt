@@ -2,10 +2,20 @@
 
 import { revalidatePath } from "next/cache";
 import { investigationProfileService } from "@/services/investigation-profile/investigation-profile.service";
+import { auth } from "@/auth";
+
+async function getSessionUserId() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new Error("Unauthorized");
+  }
+  return session.user.id;
+}
 
 export async function upsertInvestigationProfileAction(caseId: string, data: any) {
   try {
-    await investigationProfileService.upsertProfile(caseId, data);
+    const userId = await getSessionUserId();
+    await investigationProfileService.upsertProfile(caseId, userId, data);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -16,7 +26,8 @@ export async function upsertInvestigationProfileAction(caseId: string, data: any
 // Victims
 export async function addVictimAction(caseId: string, data: any) {
   try {
-    await investigationProfileService.addVictim(caseId, data);
+    const userId = await getSessionUserId();
+    await investigationProfileService.addVictim(caseId, userId, data);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -26,7 +37,8 @@ export async function addVictimAction(caseId: string, data: any) {
 
 export async function updateVictimAction(victimId: string, caseId: string, data: any) {
   try {
-    await investigationProfileService.updateVictim(victimId, data);
+    const userId = await getSessionUserId();
+    await investigationProfileService.updateVictim(victimId, userId, data);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -36,7 +48,8 @@ export async function updateVictimAction(victimId: string, caseId: string, data:
 
 export async function deleteVictimAction(victimId: string, caseId: string) {
   try {
-    await investigationProfileService.deleteVictim(victimId);
+    const userId = await getSessionUserId();
+    await investigationProfileService.deleteVictim(victimId, userId);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -47,7 +60,8 @@ export async function deleteVictimAction(victimId: string, caseId: string) {
 // Accused
 export async function addAccusedAction(caseId: string, data: any) {
   try {
-    await investigationProfileService.addAccused(caseId, data);
+    const userId = await getSessionUserId();
+    await investigationProfileService.addAccused(caseId, userId, data);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -57,7 +71,8 @@ export async function addAccusedAction(caseId: string, data: any) {
 
 export async function updateAccusedAction(accusedId: string, caseId: string, data: any) {
   try {
-    await investigationProfileService.updateAccused(accusedId, data);
+    const userId = await getSessionUserId();
+    await investigationProfileService.updateAccused(accusedId, userId, data);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -67,7 +82,8 @@ export async function updateAccusedAction(accusedId: string, caseId: string, dat
 
 export async function deleteAccusedAction(accusedId: string, caseId: string) {
   try {
-    await investigationProfileService.deleteAccused(accusedId);
+    const userId = await getSessionUserId();
+    await investigationProfileService.deleteAccused(accusedId, userId);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -78,7 +94,8 @@ export async function deleteAccusedAction(accusedId: string, caseId: string) {
 // Witness
 export async function addWitnessAction(caseId: string, data: any) {
   try {
-    await investigationProfileService.addWitness(caseId, data);
+    const userId = await getSessionUserId();
+    await investigationProfileService.addWitness(caseId, userId, data);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -88,7 +105,8 @@ export async function addWitnessAction(caseId: string, data: any) {
 
 export async function updateWitnessAction(witnessId: string, caseId: string, data: any) {
   try {
-    await investigationProfileService.updateWitness(witnessId, data);
+    const userId = await getSessionUserId();
+    await investigationProfileService.updateWitness(witnessId, userId, data);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -98,7 +116,8 @@ export async function updateWitnessAction(witnessId: string, caseId: string, dat
 
 export async function deleteWitnessAction(witnessId: string, caseId: string) {
   try {
-    await investigationProfileService.deleteWitness(witnessId);
+    const userId = await getSessionUserId();
+    await investigationProfileService.deleteWitness(witnessId, userId);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -109,7 +128,8 @@ export async function deleteWitnessAction(witnessId: string, caseId: string) {
 // Vehicles
 export async function addVehicleAction(caseId: string, data: any) {
   try {
-    await investigationProfileService.addVehicle(caseId, data);
+    const userId = await getSessionUserId();
+    await investigationProfileService.addVehicle(caseId, userId, data);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -119,7 +139,8 @@ export async function addVehicleAction(caseId: string, data: any) {
 
 export async function updateVehicleAction(vehicleId: string, caseId: string, data: any) {
   try {
-    await investigationProfileService.updateVehicle(vehicleId, data);
+    const userId = await getSessionUserId();
+    await investigationProfileService.updateVehicle(vehicleId, userId, data);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -129,7 +150,8 @@ export async function updateVehicleAction(vehicleId: string, caseId: string, dat
 
 export async function deleteVehicleAction(vehicleId: string, caseId: string) {
   try {
-    await investigationProfileService.deleteVehicle(vehicleId);
+    const userId = await getSessionUserId();
+    await investigationProfileService.deleteVehicle(vehicleId, userId);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -140,7 +162,8 @@ export async function deleteVehicleAction(vehicleId: string, caseId: string) {
 // Seized Property
 export async function addSeizedItemAction(caseId: string, data: any) {
   try {
-    await investigationProfileService.addSeizedItem(caseId, data);
+    const userId = await getSessionUserId();
+    await investigationProfileService.addSeizedItem(caseId, userId, data);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -150,7 +173,8 @@ export async function addSeizedItemAction(caseId: string, data: any) {
 
 export async function updateSeizedItemAction(itemId: string, caseId: string, data: any) {
   try {
-    await investigationProfileService.updateSeizedItem(itemId, data);
+    const userId = await getSessionUserId();
+    await investigationProfileService.updateSeizedItem(itemId, userId, data);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -160,7 +184,8 @@ export async function updateSeizedItemAction(itemId: string, caseId: string, dat
 
 export async function deleteSeizedItemAction(itemId: string, caseId: string) {
   try {
-    await investigationProfileService.deleteSeizedItem(itemId);
+    const userId = await getSessionUserId();
+    await investigationProfileService.deleteSeizedItem(itemId, userId);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -171,7 +196,8 @@ export async function deleteSeizedItemAction(itemId: string, caseId: string) {
 // Medical
 export async function addMedicalInfoAction(caseId: string, data: any) {
   try {
-    await investigationProfileService.addMedicalInfo(caseId, data);
+    const userId = await getSessionUserId();
+    await investigationProfileService.addMedicalInfo(caseId, userId, data);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -181,7 +207,8 @@ export async function addMedicalInfoAction(caseId: string, data: any) {
 
 export async function updateMedicalInfoAction(medicalInfoId: string, caseId: string, data: any) {
   try {
-    await investigationProfileService.updateMedicalInfo(medicalInfoId, data);
+    const userId = await getSessionUserId();
+    await investigationProfileService.updateMedicalInfo(medicalInfoId, userId, data);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -191,7 +218,8 @@ export async function updateMedicalInfoAction(medicalInfoId: string, caseId: str
 
 export async function deleteMedicalInfoAction(medicalInfoId: string, caseId: string) {
   try {
-    await investigationProfileService.deleteMedicalInfo(medicalInfoId);
+    const userId = await getSessionUserId();
+    await investigationProfileService.deleteMedicalInfo(medicalInfoId, userId);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -202,7 +230,8 @@ export async function deleteMedicalInfoAction(medicalInfoId: string, caseId: str
 // Court
 export async function addCourtInfoAction(caseId: string, data: any) {
   try {
-    await investigationProfileService.addCourtInfo(caseId, data);
+    const userId = await getSessionUserId();
+    await investigationProfileService.addCourtInfo(caseId, userId, data);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -212,7 +241,8 @@ export async function addCourtInfoAction(caseId: string, data: any) {
 
 export async function updateCourtInfoAction(courtInfoId: string, caseId: string, data: any) {
   try {
-    await investigationProfileService.updateCourtInfo(courtInfoId, data);
+    const userId = await getSessionUserId();
+    await investigationProfileService.updateCourtInfo(courtInfoId, userId, data);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -222,7 +252,8 @@ export async function updateCourtInfoAction(courtInfoId: string, caseId: string,
 
 export async function deleteCourtInfoAction(courtInfoId: string, caseId: string) {
   try {
-    await investigationProfileService.deleteCourtInfo(courtInfoId);
+    const userId = await getSessionUserId();
+    await investigationProfileService.deleteCourtInfo(courtInfoId, userId);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {

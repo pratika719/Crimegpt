@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { caseMetadataService } from "@/services/case-metadata/case-metadata.service";
 import { CreateCaseMetadataInput } from "@/schema/case-metadata.schema";
+import { auth } from "@/auth";
 
 /**
  * Server action to save or update (upsert) investigation metadata for a case.
@@ -12,6 +13,12 @@ export async function saveCaseMetadataAction(
   data: Omit<CreateCaseMetadataInput, "caseId">
 ) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+    const userId = session.user.id;
+
     if (!caseId) {
       return {
         success: false,
@@ -19,7 +26,7 @@ export async function saveCaseMetadataAction(
       };
     }
 
-    const metadata = await caseMetadataService.upsertMetadata(caseId, data);
+    const metadata = await caseMetadataService.upsertMetadata(caseId, userId, data);
 
     // Revalidate the case detail page so the UI displays the new metadata
     revalidatePath(`/case/${caseId}`);
@@ -42,6 +49,12 @@ export async function saveCaseMetadataAction(
  */
 export async function getCaseMetadataAction(caseId: string) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+    const userId = session.user.id;
+
     if (!caseId) {
       return {
         success: false,
@@ -49,7 +62,7 @@ export async function getCaseMetadataAction(caseId: string) {
       };
     }
 
-    const metadata = await caseMetadataService.getMetadata(caseId);
+    const metadata = await caseMetadataService.getMetadata(caseId, userId);
 
     return {
       success: true,

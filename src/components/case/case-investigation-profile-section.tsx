@@ -151,7 +151,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
               onClick={() => setActiveTab(tab.value)}
               className={`flex items-center gap-2 px-5 py-3.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
                 isActive
-                  ? "border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100 bg-zinc-50/50 dark:bg-zinc-850/40"
+                  ? "border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100 bg-zinc-50/50 dark:bg-zinc-800/40"
                   : "border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
               }`}
             >
@@ -159,7 +159,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
               <span>{tab.label}</span>
               {tab.count !== undefined && (
                 <span className={`text-[10px] font-mono font-bold px-1.5 py-0.25 rounded-full ${
-                  isActive ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-650"
+                  isActive ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-600"
                 }`}>
                   {tab.count}
                 </span>
@@ -176,7 +176,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
         {activeTab === "admin" && (
           <div className="space-y-6">
             <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800/80 pb-3">
-              <h4 className="text-xs font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-widest font-mono">
+              <h4 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-mono">
                 Administrative & Incident Registry
               </h4>
               <Button
@@ -190,7 +190,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
 
             <div className="grid gap-6 md:grid-cols-2">
               {/* Police Station */}
-              <div className="rounded-lg border border-zinc-150 dark:border-zinc-800 bg-zinc-50/20 dark:bg-zinc-950/20 p-4 space-y-4">
+              <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/20 dark:bg-zinc-950/20 p-4 space-y-4">
                 <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100">
                   <Building2 className="h-4 w-4 text-zinc-400" />
                   <span className="text-xs font-mono font-bold uppercase tracking-wider">Police Information</span>
@@ -218,7 +218,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
               </div>
 
               {/* Incident Details */}
-              <div className="rounded-lg border border-zinc-150 dark:border-zinc-800 bg-zinc-50/20 dark:bg-zinc-950/20 p-4 space-y-4">
+              <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/20 dark:bg-zinc-950/20 p-4 space-y-4">
                 <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100">
                   <MapPin className="h-4 w-4 text-zinc-400" />
                   <span className="text-xs font-mono font-bold uppercase tracking-wider">Incident Details</span>
@@ -240,8 +240,8 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
 
             {/* Description & Notes */}
             <div className="space-y-4">
-              <div className="rounded-lg border border-zinc-100 dark:border-zinc-850 p-5 space-y-2">
-                <span className="text-[10px] font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-widest font-mono flex items-center gap-1.5">
+              <div className="rounded-lg border border-zinc-100 dark:border-zinc-800 p-5 space-y-2">
+                <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-mono flex items-center gap-1.5">
                   <FileText className="h-3.5 w-3.5" /> Incident Narrative Description
                 </span>
                 <p className="text-xs leading-relaxed text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">
@@ -249,8 +249,8 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
                 </p>
               </div>
 
-              <div className="rounded-lg border border-zinc-100 dark:border-zinc-850 p-5 space-y-2">
-                <span className="text-[10px] font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-widest font-mono flex items-center gap-1.5">
+              <div className="rounded-lg border border-zinc-100 dark:border-zinc-800 p-5 space-y-2">
+                <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-mono flex items-center gap-1.5">
                   <Calendar className="h-3.5 w-3.5" /> General Investigation Notes
                 </span>
                 <p className="text-xs leading-relaxed text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">
@@ -265,7 +265,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
         {activeTab === "victims" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800/80 pb-3">
-              <h4 className="text-xs font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-widest font-mono">
+              <h4 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-mono">
                 Registered Victims Profile
               </h4>
               <Button
@@ -279,12 +279,12 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
 
             {victims.length === 0 ? (
               <div className="text-center py-10 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl space-y-1">
-                <p className="text-xs text-zinc-450 italic">No structured victim details registered.</p>
+                <p className="text-xs text-zinc-400 italic">No structured victim details registered.</p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {victims.map((v: any) => (
-                  <div key={v.id} className="relative rounded-xl border border-zinc-150 dark:border-zinc-800/80 bg-zinc-50/10 dark:bg-zinc-950/20 p-4 space-y-3 group hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
+                  <div key={v.id} className="relative rounded-xl border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/10 dark:bg-zinc-950/20 p-4 space-y-3 group hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
                     
                     {/* Controls */}
                     <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -321,7 +321,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
                     {v.person.statement && (
                       <div className="text-[11px] font-sans bg-zinc-50 dark:bg-zinc-900/40 p-2.5 rounded border border-zinc-100 dark:border-zinc-800/40">
                         <span className="text-zinc-400 block font-semibold text-[9px] uppercase tracking-wider font-mono mb-1">Recorded Statement</span>
-                        <span className="text-zinc-650 dark:text-zinc-350 italic">"{v.person.statement}"</span>
+                        <span className="text-zinc-600 dark:text-zinc-350 italic">&ldquo;{v.person.statement}&rdquo;</span>
                       </div>
                     )}
                   </div>
@@ -335,7 +335,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
         {activeTab === "accused" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800/80 pb-3">
-              <h4 className="text-xs font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-widest font-mono">
+              <h4 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-mono">
                 Registered Suspects & Accused Profile
               </h4>
               <Button
@@ -349,12 +349,12 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
 
             {accused.length === 0 ? (
               <div className="text-center py-10 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl space-y-1">
-                <p className="text-xs text-zinc-450 italic">No structured accused profiles registered.</p>
+                <p className="text-xs text-zinc-400 italic">No structured accused profiles registered.</p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {accused.map((a: any) => (
-                  <div key={a.id} className="relative rounded-xl border border-zinc-150 dark:border-zinc-800/80 bg-zinc-50/10 dark:bg-zinc-950/20 p-4 space-y-3 group hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
+                  <div key={a.id} className="relative rounded-xl border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/10 dark:bg-zinc-950/20 p-4 space-y-3 group hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
                     
                     {/* Controls */}
                     <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -391,7 +391,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
                     {a.person.statement && (
                       <div className="text-[11px] font-sans bg-zinc-50 dark:bg-zinc-900/40 p-2.5 rounded border border-zinc-100 dark:border-zinc-800/40">
                         <span className="text-zinc-400 block font-semibold text-[9px] uppercase tracking-wider font-mono mb-1">Confession / Statement</span>
-                        <span className="text-zinc-650 dark:text-zinc-350 italic">"{a.person.statement}"</span>
+                        <span className="text-zinc-600 dark:text-zinc-350 italic">&ldquo;{a.person.statement}&rdquo;</span>
                       </div>
                     )}
                   </div>
@@ -405,7 +405,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
         {activeTab === "witnesses" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800/80 pb-3">
-              <h4 className="text-xs font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-widest font-mono">
+              <h4 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-mono">
                 Registered Witness Testimonies
               </h4>
               <Button
@@ -419,12 +419,12 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
 
             {witnesses.length === 0 ? (
               <div className="text-center py-10 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl space-y-1">
-                <p className="text-xs text-zinc-450 italic">No structured witness records registered.</p>
+                <p className="text-xs text-zinc-400 italic">No structured witness records registered.</p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {witnesses.map((w: any) => (
-                  <div key={w.id} className="relative rounded-xl border border-zinc-150 dark:border-zinc-800/80 bg-zinc-50/10 dark:bg-zinc-950/20 p-4 space-y-3 group hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
+                  <div key={w.id} className="relative rounded-xl border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/10 dark:bg-zinc-950/20 p-4 space-y-3 group hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
                     
                     {/* Controls */}
                     <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -461,7 +461,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
                     {w.person.statement && (
                       <div className="text-[11px] font-sans bg-zinc-50 dark:bg-zinc-900/40 p-2.5 rounded border border-zinc-100 dark:border-zinc-800/40">
                         <span className="text-zinc-400 block font-semibold text-[9px] uppercase tracking-wider font-mono mb-1">Verbatim Statement</span>
-                        <span className="text-zinc-650 dark:text-zinc-350 italic">"{w.person.statement}"</span>
+                        <span className="text-zinc-600 dark:text-zinc-350 italic">&ldquo;{w.person.statement}&rdquo;</span>
                       </div>
                     )}
                   </div>
@@ -475,7 +475,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
         {activeTab === "vehicles" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800/80 pb-3">
-              <h4 className="text-xs font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-widest font-mono">
+              <h4 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-mono">
                 Implicated Vehicles Registry
               </h4>
               <Button
@@ -489,12 +489,12 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
 
             {vehicles.length === 0 ? (
               <div className="text-center py-10 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl space-y-1">
-                <p className="text-xs text-zinc-450 italic">No vehicles associated with this case.</p>
+                <p className="text-xs text-zinc-400 italic">No vehicles associated with this case.</p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {vehicles.map((vh: any) => (
-                  <div key={vh.id} className="relative rounded-xl border border-zinc-150 dark:border-zinc-800/80 bg-zinc-50/10 dark:bg-zinc-950/20 p-4 space-y-3 group hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
+                  <div key={vh.id} className="relative rounded-xl border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/10 dark:bg-zinc-950/20 p-4 space-y-3 group hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
                     
                     {/* Controls */}
                     <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -532,7 +532,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
                     {vh.notes && (
                       <div className="text-[11px] font-sans bg-zinc-50 dark:bg-zinc-900/40 p-2.5 rounded border border-zinc-100 dark:border-zinc-800/40">
                         <span className="text-zinc-400 block font-semibold text-[9px] uppercase tracking-wider font-mono mb-1">Remarks / Location Tracked</span>
-                        <span className="text-zinc-650 dark:text-zinc-350">{vh.notes}</span>
+                        <span className="text-zinc-600 dark:text-zinc-350">{vh.notes}</span>
                       </div>
                     )}
                   </div>
@@ -546,7 +546,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
         {activeTab === "seized" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800/80 pb-3">
-              <h4 className="text-xs font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-widest font-mono">
+              <h4 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-mono">
                 Seized Property & Evidence Inventory (Malkhana)
               </h4>
               <Button
@@ -560,12 +560,12 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
 
             {seizedItems.length === 0 ? (
               <div className="text-center py-10 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl space-y-1">
-                <p className="text-xs text-zinc-450 italic">No seized items cataloged.</p>
+                <p className="text-xs text-zinc-400 italic">No seized items cataloged.</p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {seizedItems.map((si: any) => (
-                  <div key={si.id} className="relative rounded-xl border border-zinc-150 dark:border-zinc-800/80 bg-zinc-50/10 dark:bg-zinc-950/20 p-4 space-y-3 group hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
+                  <div key={si.id} className="relative rounded-xl border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/10 dark:bg-zinc-950/20 p-4 space-y-3 group hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
                     
                     {/* Controls */}
                     <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -580,7 +580,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
                     <div className="space-y-1">
                       <h5 className="font-semibold text-xs text-zinc-900 dark:text-zinc-100">{si.itemName}</h5>
                       <div className="flex gap-2 text-[10px] font-mono">
-                        <span className="px-2 py-0.5 rounded bg-zinc-150 dark:bg-zinc-800 text-zinc-750 dark:text-zinc-300 uppercase tracking-wider">{si.status || "In Custody"}</span>
+                        <span className="px-2 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-750 dark:text-zinc-300 uppercase tracking-wider">{si.status || "In Custody"}</span>
                         {si.serialNumber && <span className="text-zinc-400">SN: {si.serialNumber}</span>}
                       </div>
                     </div>
@@ -618,7 +618,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
                     {si.description && (
                       <div className="text-[11px] font-sans bg-zinc-50 dark:bg-zinc-900/40 p-2.5 rounded border border-zinc-100 dark:border-zinc-800/40">
                         <span className="text-zinc-400 block font-semibold text-[9px] uppercase tracking-wider font-mono mb-1">Item Description Remarks</span>
-                        <span className="text-zinc-650 dark:text-zinc-350">{si.description}</span>
+                        <span className="text-zinc-600 dark:text-zinc-350">{si.description}</span>
                       </div>
                     )}
                   </div>
@@ -632,7 +632,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
         {activeTab === "medical" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800/80 pb-3">
-              <h4 className="text-xs font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-widest font-mono">
+              <h4 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-mono">
                 Medico-Legal Reports & Clinical Logs (MLC)
               </h4>
               <Button
@@ -646,12 +646,12 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
 
             {medicalInfos.length === 0 ? (
               <div className="text-center py-10 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl space-y-1">
-                <p className="text-xs text-zinc-450 italic">No medical diagnostic records cataloged.</p>
+                <p className="text-xs text-zinc-400 italic">No medical diagnostic records cataloged.</p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {medicalInfos.map((m: any) => (
-                  <div key={m.id} className="relative rounded-xl border border-zinc-150 dark:border-zinc-800/80 bg-zinc-50/10 dark:bg-zinc-950/20 p-4 space-y-3 group hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
+                  <div key={m.id} className="relative rounded-xl border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/10 dark:bg-zinc-950/20 p-4 space-y-3 group hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
                     
                     {/* Controls */}
                     <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -696,7 +696,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
                     {m.treatmentDetails && (
                       <div className="text-[11px] font-sans bg-zinc-50 dark:bg-zinc-900/40 p-2.5 rounded border border-zinc-100 dark:border-zinc-800/40">
                         <span className="text-zinc-400 block font-semibold text-[9px] uppercase tracking-wider font-mono mb-1">Clinical Treatment Details</span>
-                        <span className="text-zinc-650 dark:text-zinc-350">{m.treatmentDetails}</span>
+                        <span className="text-zinc-600 dark:text-zinc-350">{m.treatmentDetails}</span>
                       </div>
                     )}
                   </div>
@@ -710,7 +710,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
         {activeTab === "court" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800/80 pb-3">
-              <h4 className="text-xs font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-widest font-mono">
+              <h4 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-mono">
                 Judiciary & Court Trial Proceedings (CNR Registry)
               </h4>
               <Button
@@ -724,12 +724,12 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
 
             {courtInfos.length === 0 ? (
               <div className="text-center py-10 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl space-y-1">
-                <p className="text-xs text-zinc-450 italic">No court case trials registered.</p>
+                <p className="text-xs text-zinc-400 italic">No court case trials registered.</p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {courtInfos.map((c: any) => (
-                  <div key={c.id} className="relative rounded-xl border border-zinc-150 dark:border-zinc-800/80 bg-zinc-50/10 dark:bg-zinc-950/20 p-4 space-y-3 group hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
+                  <div key={c.id} className="relative rounded-xl border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/10 dark:bg-zinc-950/20 p-4 space-y-3 group hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
                     
                     {/* Controls */}
                     <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -776,7 +776,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
                     {c.judgementDetails && (
                       <div className="text-[11px] font-sans bg-zinc-50 dark:bg-zinc-900/40 p-2.5 rounded border border-zinc-100 dark:border-zinc-800/40">
                         <span className="text-zinc-400 block font-semibold text-[9px] uppercase tracking-wider font-mono mb-1">Judgement / Trial remarks</span>
-                        <span className="text-zinc-650 dark:text-zinc-350">{c.judgementDetails}</span>
+                        <span className="text-zinc-600 dark:text-zinc-350">{c.judgementDetails}</span>
                       </div>
                     )}
                   </div>

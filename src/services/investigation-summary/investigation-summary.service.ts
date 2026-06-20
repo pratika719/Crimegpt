@@ -10,10 +10,11 @@ export class InvestigationSummaryService {
    * persists the document, logs AI request logs, and updates case status.
    * 
    * @param caseId Case profile ID.
+   * @param userId Unique identifier of the user.
    * @returns Persisted GeneratedDocument instance.
    */
-  async generateSummary(caseId: string) {
-    return documentGeneratorService.generateDocument(caseId, DocumentType.INVESTIGATION_SUMMARY);
+  async generateSummary(caseId: string, userId: string) {
+    return documentGeneratorService.generateDocument(caseId, userId, DocumentType.INVESTIGATION_SUMMARY);
   }
 }
 

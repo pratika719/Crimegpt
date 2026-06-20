@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { evidenceService } from "@/services/evidence/evidence.service";
 import { CreateEvidenceInput, UpdateEvidenceInput } from "@/schema/evidence.schema";
+import { auth } from "@/auth";
 
 /**
  * Server action to register a new evidence item to a case.
@@ -12,11 +13,17 @@ export async function createEvidenceAction(
   data: Omit<CreateEvidenceInput, "caseId">
 ) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+    const userId = session.user.id;
+
     if (!caseId) {
       return { success: false, message: "Case ID is required." };
     }
 
-    const evidence = await evidenceService.createEvidence(caseId, data);
+    const evidence = await evidenceService.createEvidence(caseId, userId, data);
     revalidatePath(`/case/${caseId}`);
 
     return {
@@ -41,11 +48,17 @@ export async function updateEvidenceAction(
   data: UpdateEvidenceInput
 ) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+    const userId = session.user.id;
+
     if (!id || !caseId) {
       return { success: false, message: "ID and Case ID are required." };
     }
 
-    const evidence = await evidenceService.updateEvidence(id, data);
+    const evidence = await evidenceService.updateEvidence(id, userId, data);
     revalidatePath(`/case/${caseId}`);
 
     return {
@@ -66,11 +79,17 @@ export async function updateEvidenceAction(
  */
 export async function deleteEvidenceAction(id: string, caseId: string) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+    const userId = session.user.id;
+
     if (!id || !caseId) {
       return { success: false, message: "ID and Case ID are required." };
     }
 
-    const evidence = await evidenceService.deleteEvidence(id);
+    const evidence = await evidenceService.deleteEvidence(id, userId);
     revalidatePath(`/case/${caseId}`);
 
     return {

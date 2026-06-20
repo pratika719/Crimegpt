@@ -7,8 +7,8 @@ export class DocumentVersionService {
   /**
    * Retrieves the next version number for a document type under a specific case.
    */
-  async getNextVersion(caseId: string, type: DocumentType): Promise<number> {
-    const latestDoc = await documentRepository.findLatestByType(caseId, type);
+  async getNextVersion(caseId: string, userId: string, type: DocumentType): Promise<number> {
+    const latestDoc = await documentRepository.findLatestByType(caseId, userId, type);
     return latestDoc ? latestDoc.version + 1 : 1;
   }
 }
@@ -17,7 +17,7 @@ export class AIObservabilityService {
   /**
    * Records execution telemetry inside AIRequestLog.
    */
-  async logRequest(data: {
+  async logRequest(userId: string, data: {
     requestType: AIRequestType;
     prompt: string;
     retrievedContext?: string;
@@ -26,7 +26,7 @@ export class AIObservabilityService {
     modelUsed?: string;
     caseId?: string;
   }) {
-    return aiRequestLogRepository.create(data);
+    return aiRequestLogRepository.create(userId, data);
   }
 }
 
@@ -34,14 +34,14 @@ export class GeneratedDocumentService {
   /**
    * Saves/creates a generated document.
    */
-  async saveDocument(data: {
+  async saveDocument(userId: string, data: {
     caseId: string;
     type: DocumentType;
     title: string;
     content: any;
     version?: number;
   }) {
-    return documentRepository.create(data);
+    return documentRepository.create(userId, data);
   }
 }
 

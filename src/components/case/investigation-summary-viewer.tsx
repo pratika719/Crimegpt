@@ -91,7 +91,7 @@ export default function InvestigationSummaryViewer({
               2. Incident Overview & Timeline
             </h3>
           </div>
-          <p className="text-xs leading-relaxed text-zinc-650 dark:text-zinc-400 whitespace-pre-wrap pl-1 font-sans">
+          <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap pl-1 font-sans">
             {summary.incidentOverview}
           </p>
         </div>
@@ -121,7 +121,7 @@ export default function InvestigationSummaryViewer({
             {summary.applicableSections.map((sec, idx) => (
               <div 
                 key={idx}
-                className="rounded-lg border border-zinc-150 dark:border-zinc-800/80 bg-zinc-50/30 dark:bg-zinc-950/20 p-4 space-y-2 transition-all hover:border-zinc-300 dark:hover:border-zinc-700"
+                className="rounded-lg border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/30 dark:bg-zinc-950/20 p-4 space-y-2 transition-all hover:border-zinc-300 dark:hover:border-zinc-700"
               >
                 <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100 font-mono font-bold text-xs">
                   <Gavel className="h-4 w-4 text-zinc-400 dark:text-zinc-500" />
@@ -143,7 +143,7 @@ export default function InvestigationSummaryViewer({
               5. Physical / Circumstantial Evidence Assessment
             </h3>
           </div>
-          <p className="text-xs leading-relaxed text-zinc-650 dark:text-zinc-400 whitespace-pre-wrap pl-1 font-sans">
+          <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap pl-1 font-sans">
             {summary.evidenceAssessment}
           </p>
         </div>
@@ -169,7 +169,7 @@ export default function InvestigationSummaryViewer({
               7. Detailed Investigation Findings
             </h3>
           </div>
-          <p className="text-xs leading-relaxed text-zinc-650 dark:text-zinc-400 whitespace-pre-wrap pl-1 font-sans">
+          <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap pl-1 font-sans">
             {summary.investigationFindings}
           </p>
         </div>
@@ -196,7 +196,7 @@ export default function InvestigationSummaryViewer({
               9. Recommended Immediate Action Items
             </h3>
           </div>
-          <p className="text-xs leading-relaxed text-zinc-650 dark:text-zinc-400 whitespace-pre-wrap pl-1 font-sans">
+          <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap pl-1 font-sans">
             {summary.recommendedNextSteps}
           </p>
         </div>
@@ -209,7 +209,7 @@ export default function InvestigationSummaryViewer({
               10. Conclusion & Legal Recommendation
             </h3>
           </div>
-          <div className="rounded-lg border border-zinc-150 dark:border-zinc-800 bg-zinc-50/35 dark:bg-zinc-950/20 p-5 text-xs text-zinc-700 dark:text-zinc-300 font-sans italic leading-relaxed">
+          <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/35 dark:bg-zinc-950/20 p-5 text-xs text-zinc-700 dark:text-zinc-300 font-sans italic leading-relaxed">
             &quot;{summary.conclusion}&quot;
           </div>
         </div>

@@ -95,6 +95,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
       const stored = localStorage.getItem("crimegpt:recent-searches");
       if (stored) {
         try {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setRecentSearches(JSON.parse(stored));
         } catch (e) {
           console.error("Failed to parse recent searches", e);
@@ -108,6 +109,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   // Perform search when query changes
   useEffect(() => {
     if (!query.trim()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResults([]);
       setSelectedIndex(0);
       return;
@@ -193,24 +195,24 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
         
         {/* Search Input Box */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
-          <Search className="h-5 w-5 text-zinc-400 dark:text-zinc-500 shrink-0" />
+          <Search className="h-5 w-5 text-zinc-500 dark:text-zinc-400 shrink-0" />
           <input
             autoFocus
             type="text"
             placeholder="Search cases, documents, evidence, persons..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="flex-1 bg-transparent border-0 text-sm font-medium outline-none text-zinc-900 dark:text-zinc-50 placeholder-zinc-400 dark:placeholder-zinc-500 py-1"
+            className="flex-1 bg-transparent border-0 text-sm font-medium outline-none text-zinc-900 dark:text-zinc-50 placeholder-zinc-500 dark:placeholder-zinc-400 py-1"
           />
           {query && (
             <button 
               onClick={() => setQuery("")}
-              className="p-1 rounded-md text-zinc-400 dark:text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-850 hover:text-zinc-600 dark:hover:text-zinc-300"
+              className="p-1 rounded-md text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-750 dark:hover:text-zinc-200"
             >
               <X className="h-4 w-4" />
             </button>
           )}
-          <span className="rounded bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-1.5 py-0.5 text-[10px] font-mono text-zinc-400 dark:text-zinc-500 select-none">
+          <span className="rounded bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-1.5 py-0.5 text-[10px] font-mono text-zinc-500 dark:text-zinc-400 select-none">
             ESC
           </span>
         </div>
@@ -242,7 +244,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           className="max-h-[360px] overflow-y-auto p-2 space-y-0.5"
         >
           {isPending && (
-            <div className="flex items-center justify-center py-12 gap-2 text-xs font-medium text-zinc-400 dark:text-zinc-500">
+            <div className="flex items-center justify-center py-12 gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-zinc-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-zinc-500"></span>
@@ -253,14 +255,14 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
 
           {!isPending && filteredResults.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <FileSearch className="h-8 w-8 text-zinc-300 dark:text-zinc-700 mb-2" />
-              <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500">
+              <FileSearch className="h-8 w-8 text-zinc-400 dark:text-zinc-600 mb-2" />
+              <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                 {query.trim() === "" 
                   ? "No recent searches" 
                   : `No results matching "${query}"`
                 }
               </p>
-              <p className="text-[10px] text-zinc-400 dark:text-zinc-650 mt-1">
+              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1">
                 {query.trim() === "" 
                   ? "Items you open will appear here." 
                   : "Try different keywords or filters."
@@ -272,7 +274,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           {!isPending && filteredResults.length > 0 && (
             <>
               {query.trim() === "" && (
-                <div className="text-[10px] font-semibold text-zinc-450 dark:text-zinc-500 tracking-wider uppercase px-3 py-1.5 font-mono">
+                <div className="text-[10px] font-semibold text-zinc-600 dark:text-zinc-400 tracking-wider uppercase px-3 py-1.5 font-mono">
                   Recent Investigations & Assets
                 </div>
               )}
@@ -304,7 +306,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-zinc-850 dark:text-zinc-100 truncate block">
+                        <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-100 truncate block">
                           <HighlightText text={item.title} query={query} />
                         </span>
                         {item.badge && (
@@ -313,16 +315,16 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                           </span>
                         )}
                       </div>
-                      <span className="block text-[10px] text-zinc-450 dark:text-zinc-500 font-medium truncate mt-0.5">
+                      <span className="block text-[10px] text-zinc-600 dark:text-zinc-400 font-medium truncate mt-0.5">
                         {item.subtitle}
                       </span>
-                      <span className="block text-[10px] text-zinc-400 dark:text-zinc-500 truncate mt-0.5">
+                      <span className="block text-[10px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
                         <HighlightText text={item.description} query={query} />
                       </span>
                     </div>
 
                     {isSelected && (
-                      <div className="flex items-center gap-1.5 self-center text-[10px] font-mono text-zinc-400 dark:text-zinc-500 bg-white dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700 shrink-0">
+                      <div className="flex items-center gap-1.5 self-center text-[10px] font-mono text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700 shrink-0">
                         <span>Open</span>
                         <CornerDownLeft className="h-3 w-3" />
                       </div>
@@ -335,14 +337,14 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
         </div>
 
         {/* Footer shortcuts */}
-        <div className="flex items-center justify-between px-4 py-2 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30 text-[10px] font-mono text-zinc-400 dark:text-zinc-500 select-none">
+        <div className="flex items-center justify-between px-4 py-2 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30 text-[10px] font-mono text-zinc-500 dark:text-zinc-400 select-none">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
-              <span className="px-1 py-0.2 rounded border bg-white dark:bg-zinc-855 border-zinc-200 dark:border-zinc-700">↑↓</span>
+              <span className="px-1 py-0.2 rounded border bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">↑↓</span>
               Navigate
             </span>
             <span className="flex items-center gap-1">
-              <span className="px-1 py-0.2 rounded border bg-white dark:bg-zinc-855 border-zinc-200 dark:border-zinc-700">Enter</span>
+              <span className="px-1 py-0.2 rounded border bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">Enter</span>
               Select
             </span>
           </div>

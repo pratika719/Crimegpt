@@ -136,6 +136,7 @@ export function AuditDashboardClient({ initialData }: AuditDashboardClientProps)
 
   // Trigger search on filter changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1);
     fetchLogs(1);
   }, [caseId, moduleFilter, severityFilter, isAiFilter, startDate, endDate, sortOrder]);
@@ -222,7 +223,7 @@ export function AuditDashboardClient({ initialData }: AuditDashboardClientProps)
       {/* Metrics Section */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="relative overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-sm">
-          <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-zinc-400 dark:bg-zinc-650" />
+          <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-zinc-400 dark:bg-zinc-600" />
           <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400">
             <span className="text-[10px] font-mono tracking-wider uppercase">Total Audit Logs</span>
             <Database className="h-4 w-4 shrink-0 opacity-75" />
@@ -242,7 +243,7 @@ export function AuditDashboardClient({ initialData }: AuditDashboardClientProps)
             <Sparkles className="h-4 w-4 shrink-0 text-emerald-500 opacity-75" />
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-semibold font-mono tracking-tight text-emerald-655 dark:text-emerald-400">{stats.aiCount}</span>
+            <span className="text-3xl font-semibold font-mono tracking-tight text-emerald-600 dark:text-emerald-400">{stats.aiCount}</span>
             <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500">
               ({stats.totalCount > 0 ? Math.round((stats.aiCount / stats.totalCount) * 100) : 0}%)
             </span>
@@ -305,7 +306,7 @@ export function AuditDashboardClient({ initialData }: AuditDashboardClientProps)
                 "flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border transition-colors cursor-pointer",
                 showFilters || caseId !== "ALL" || moduleFilter !== "ALL" || severityFilter !== "ALL" || isAiFilter !== "ALL" || startDate || endDate
                   ? "bg-zinc-900 dark:bg-zinc-100 border-zinc-900 dark:border-zinc-100 text-white dark:text-black"
-                  : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-650 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-850"
+                  : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
               )}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -451,8 +452,8 @@ export function AuditDashboardClient({ initialData }: AuditDashboardClientProps)
           <div className="flex flex-col items-center justify-center py-24 text-center px-4">
             <AlertCircle className="h-10 w-10 text-zinc-350 dark:text-zinc-700 mb-3" />
             <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">No matching activities audited</h3>
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-450 max-w-sm">
-              We couldn't find any compliance trail records matching your active filters. Try adjusting your query or date filters.
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 max-w-sm">
+              We couldn&apos;t find any compliance trail records matching your active filters. Try adjusting your query or date filters.
             </p>
             {(search || caseId !== "ALL" || moduleFilter !== "ALL" || severityFilter !== "ALL" || isAiFilter !== "ALL" || startDate || endDate) && (
               <button
@@ -466,7 +467,7 @@ export function AuditDashboardClient({ initialData }: AuditDashboardClientProps)
         ) : (
           <div className="divide-y divide-zinc-200 dark:divide-zinc-800 font-sans">
             {/* Headers row */}
-            <div className="hidden md:grid grid-cols-[120px_1fr_120px_180px_100px] gap-4 px-6 py-3.5 bg-zinc-50/70 dark:bg-zinc-900/80 text-[10px] font-semibold text-zinc-450 dark:text-zinc-500 uppercase tracking-wider font-mono select-none">
+            <div className="hidden md:grid grid-cols-[120px_1fr_120px_180px_100px] gap-4 px-6 py-3.5 bg-zinc-50/70 dark:bg-zinc-900/80 text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider font-mono select-none">
               <span>Severity / Module</span>
               <span>Audited Compliance Action</span>
               <span>Case Dossier</span>
@@ -517,7 +518,7 @@ export function AuditDashboardClient({ initialData }: AuditDashboardClientProps)
                           )}>
                             {activity.severity}
                           </span>
-                          <span className="rounded bg-zinc-150 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-1.5 py-0.5 text-[8.5px] font-mono text-zinc-500 dark:text-zinc-400 font-semibold tracking-wide uppercase">
+                          <span className="rounded bg-zinc-200 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-1.5 py-0.5 text-[8.5px] font-mono text-zinc-500 dark:text-zinc-400 font-semibold tracking-wide uppercase">
                             {activity.module}
                           </span>
                         </div>
@@ -535,7 +536,7 @@ export function AuditDashboardClient({ initialData }: AuditDashboardClientProps)
                           </span>
                           {activity.isAi && (
                             <span className="inline-flex items-center gap-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-250/50 dark:border-emerald-900/30 px-1 py-0.2 text-[8px] font-mono font-medium text-emerald-700 dark:text-emerald-400">
-                              <Sparkles className="h-2 w-2 shrink-0 animate-pulse text-emerald-555" />
+                              <Sparkles className="h-2 w-2 shrink-0 animate-pulse text-emerald-500" />
                               AI GENERATED
                             </span>
                           )}
@@ -552,7 +553,7 @@ export function AuditDashboardClient({ initialData }: AuditDashboardClientProps)
 
                       {/* Timestamp (hidden on mobile, shown in subtitle) */}
                       <div className="hidden md:flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400 font-mono">
-                        <Clock className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-555 shrink-0" />
+                        <Clock className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500 shrink-0" />
                         {new Date(activity.createdAt).toLocaleString()}
                       </div>
 
@@ -566,7 +567,7 @@ export function AuditDashboardClient({ initialData }: AuditDashboardClientProps)
 
                     {/* Collapsible JSON Explorer details */}
                     {isExpanded && (
-                      <div className="px-6 pb-6 pt-1 border-t border-dashed border-zinc-150 dark:border-zinc-800 bg-zinc-50/30 dark:bg-zinc-950/20 text-xs animate-in slide-in-from-top-1 duration-150">
+                      <div className="px-6 pb-6 pt-1 border-t border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/30 dark:bg-zinc-950/20 text-xs animate-in slide-in-from-top-1 duration-150">
                         <div className="grid gap-6 md:grid-cols-[200px_1fr]">
                           {/* Log summary context metadata info boxes */}
                           <div className="space-y-4">
@@ -592,7 +593,7 @@ export function AuditDashboardClient({ initialData }: AuditDashboardClientProps)
 
                             <div className="space-y-1">
                               <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase font-mono">Event Type</span>
-                              <div className="font-mono text-[10px] text-zinc-650 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded px-1.5 py-0.5 inline-block">
+                              <div className="font-mono text-[10px] text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded px-1.5 py-0.5 inline-block">
                                 {activity.activityType}
                               </div>
                             </div>
@@ -629,7 +630,7 @@ export function AuditDashboardClient({ initialData }: AuditDashboardClientProps)
                                 <pre>{JSON.stringify(activity.metadata, null, 2)}</pre>
                               </div>
                             ) : (
-                              <div className="rounded-lg border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/20 p-4 text-center text-[10px] text-zinc-400 dark:text-zinc-550 font-mono">
+                              <div className="rounded-lg border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/20 p-4 text-center text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">
                                 No additional context metadata was recorded for this event.
                               </div>
                             )}
@@ -646,7 +647,7 @@ export function AuditDashboardClient({ initialData }: AuditDashboardClientProps)
 
         {/* Footer pagination bar */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 bg-zinc-50/70 dark:bg-zinc-900/60 border-t border-zinc-200 dark:border-zinc-800 select-none text-xs font-medium text-zinc-550 dark:text-zinc-400">
+          <div className="flex items-center justify-between px-6 py-4 bg-zinc-50/70 dark:bg-zinc-900/60 border-t border-zinc-200 dark:border-zinc-800 select-none text-xs font-medium text-zinc-500 dark:text-zinc-400">
             <div>
               Showing page <span className="font-mono text-zinc-800 dark:text-zinc-200">{page}</span> of <span className="font-mono text-zinc-800 dark:text-zinc-200">{totalPages}</span>
               <span className="hidden sm:inline"> (Total {totalCount} audits)</span>

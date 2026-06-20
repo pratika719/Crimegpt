@@ -208,7 +208,7 @@ export function exportDocumentToPDF(
       currentY += 5;
 
       // Draw background box for metadata
-      let blockHeight = Object.keys(val).length * 6 + 4;
+      const blockHeight = Object.keys(val).length * 6 + 4;
       ensureSpace(blockHeight);
       
       doc.setFillColor(244, 244, 245); // zinc-100

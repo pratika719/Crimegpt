@@ -66,7 +66,7 @@ export default function CaseMetadataSection({ caseId, metadata }: CaseMetadataSe
         {/* Dialog for editing/adding metadata */}
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger render={
-            <Button className="inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer border border-zinc-200 dark:border-zinc-850 hover:bg-zinc-50 dark:hover:bg-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 px-3 py-1.5 h-auto" />
+            <Button className="inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 px-3 py-1.5 h-auto" />
           }>
             {metadata ? (
               <>
@@ -97,8 +97,8 @@ export default function CaseMetadataSection({ caseId, metadata }: CaseMetadataSe
 
       {/* Onboarding / Empty State */}
       {!metadata ? (
-        <div className="rounded-xl border border-dashed border-zinc-250 dark:border-zinc-800 bg-zinc-50/10 p-8 text-center flex flex-col items-center justify-center space-y-4">
-          <FolderLock className="h-10 w-10 text-zinc-350 dark:text-zinc-650" />
+        <div className="rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/10 p-8 text-center flex flex-col items-center justify-center space-y-4">
+          <FolderLock className="h-10 w-10 text-zinc-350 dark:text-zinc-600" />
           <div className="space-y-1">
             <h4 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 font-sans">Structured metadata profile missing</h4>
             <p className="text-xs text-zinc-400 dark:text-zinc-500 max-w-sm mx-auto">
@@ -117,7 +117,7 @@ export default function CaseMetadataSection({ caseId, metadata }: CaseMetadataSe
         /* Metadata Profile summary cards */
         <div className="grid gap-4 sm:grid-cols-2">
           {/* Card 1: Incident Location & Time */}
-          <div className="rounded-xl border border-zinc-200 dark:border-zinc-850 bg-white dark:bg-zinc-900 p-4 space-y-3.5 shadow-sm transition-all hover:shadow-md">
+          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3.5 shadow-sm transition-all hover:shadow-md">
             <h4 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-mono flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5 text-zinc-400" />
               Incident Details
@@ -139,7 +139,7 @@ export default function CaseMetadataSection({ caseId, metadata }: CaseMetadataSe
           </div>
 
           {/* Card 2: Involved Parties */}
-          <div className="rounded-xl border border-zinc-200 dark:border-zinc-850 bg-white dark:bg-zinc-900 p-4 space-y-3.5 shadow-sm transition-all hover:shadow-md">
+          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3.5 shadow-sm transition-all hover:shadow-md">
             <h4 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-mono flex items-center gap-1.5">
               <UserCheck className="h-3.5 w-3.5 text-zinc-400" />
               Key Parties Involved
@@ -163,30 +163,30 @@ export default function CaseMetadataSection({ caseId, metadata }: CaseMetadataSe
           </div>
 
           {/* Card 3: Evidence & Statements */}
-          <div className="sm:col-span-2 rounded-xl border border-zinc-200 dark:border-zinc-850 bg-white dark:bg-zinc-900 p-5 space-y-4 shadow-sm transition-all hover:shadow-md">
+          <div className="sm:col-span-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 space-y-4 shadow-sm transition-all hover:shadow-md">
             <h4 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-mono flex items-center gap-1.5">
               <ClipboardList className="h-3.5 w-3.5 text-zinc-400" />
               Evidentiary Files & Witness logs
             </h4>
             <div className="grid gap-4 md:grid-cols-3 font-sans text-xs">
               <div className="space-y-1 md:border-r md:border-zinc-100 dark:md:border-zinc-800/60 md:pr-4">
-                <span className="block text-[10px] font-semibold text-zinc-450 uppercase tracking-wider font-mono">Victim Statement Summary</span>
-                <p className="text-zinc-650 dark:text-zinc-450 leading-relaxed text-[11px] line-clamp-3">{metadata.victimStatement || "No statement logged."}</p>
+                <span className="block text-[10px] font-semibold text-zinc-400 uppercase tracking-wider font-mono">Victim Statement Summary</span>
+                <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-[11px] line-clamp-3">{metadata.victimStatement || "No statement logged."}</p>
               </div>
               <div className="space-y-1 md:border-r md:border-zinc-100 dark:md:border-zinc-800/60 md:px-4">
-                <span className="block text-[10px] font-semibold text-zinc-450 uppercase tracking-wider font-mono">Witness Records</span>
-                <p className="text-zinc-650 dark:text-zinc-450 leading-relaxed text-[11px] line-clamp-3">{metadata.witnessInformation || "No witness details logged."}</p>
+                <span className="block text-[10px] font-semibold text-zinc-400 uppercase tracking-wider font-mono">Witness Records</span>
+                <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-[11px] line-clamp-3">{metadata.witnessInformation || "No witness details logged."}</p>
               </div>
               <div className="space-y-1 md:pl-4">
-                <span className="block text-[10px] font-semibold text-zinc-450 uppercase tracking-wider font-mono">Evidence Checklist</span>
-                <p className="text-zinc-650 dark:text-zinc-450 leading-relaxed text-[11px] line-clamp-3">{metadata.evidenceSummary || "No evidence checklists compiled."}</p>
+                <span className="block text-[10px] font-semibold text-zinc-400 uppercase tracking-wider font-mono">Evidence Checklist</span>
+                <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-[11px] line-clamp-3">{metadata.evidenceSummary || "No evidence checklists compiled."}</p>
               </div>
             </div>
           </div>
 
           {/* Card 4: Officer Notes */}
           {metadata.officerNotes && (
-            <div className="sm:col-span-2 rounded-xl border border-zinc-200 dark:border-zinc-850 bg-zinc-50/10 p-5 space-y-2">
+            <div className="sm:col-span-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/10 p-5 space-y-2">
               <h4 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-mono flex items-center gap-1.5">
                 <Shield className="h-3.5 w-3.5 text-zinc-400" />
                 Station House Officer Notes

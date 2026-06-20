@@ -2,12 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { checklistService } from "@/services/checklist/checklist.service";
+import { auth } from "@/auth";
 
 /**
  * Server action to create a new checklist item under a case.
  */
 export async function createChecklistItemAction(caseId: string, title: string) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+    const userId = session.user.id;
+
     if (!caseId) {
       return { success: false, message: "Case ID is required." };
     }
@@ -15,7 +22,7 @@ export async function createChecklistItemAction(caseId: string, title: string) {
       return { success: false, message: "Task title is required." };
     }
 
-    const item = await checklistService.createChecklistItem(caseId, { title: title.trim() });
+    const item = await checklistService.createChecklistItem(caseId, userId, { title: title.trim() });
     revalidatePath(`/case/${caseId}`);
 
     return {
@@ -36,11 +43,17 @@ export async function createChecklistItemAction(caseId: string, title: string) {
  */
 export async function toggleChecklistItemAction(id: string, caseId: string, completed: boolean) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+    const userId = session.user.id;
+
     if (!id || !caseId) {
       return { success: false, message: "ID and Case ID are required." };
     }
 
-    const item = await checklistService.updateChecklistItem(id, { completed });
+    const item = await checklistService.updateChecklistItem(id, userId, { completed });
     revalidatePath(`/case/${caseId}`);
 
     return {
@@ -61,11 +74,17 @@ export async function toggleChecklistItemAction(id: string, caseId: string, comp
  */
 export async function deleteChecklistItemAction(id: string, caseId: string) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+    const userId = session.user.id;
+
     if (!id || !caseId) {
       return { success: false, message: "ID and Case ID are required." };
     }
 
-    const item = await checklistService.deleteChecklistItem(id);
+    const item = await checklistService.deleteChecklistItem(id, userId);
     revalidatePath(`/case/${caseId}`);
 
     return {

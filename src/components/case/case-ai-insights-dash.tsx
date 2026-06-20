@@ -135,7 +135,7 @@ export default function CaseAIInsightsDash({ caseId }: CaseAIInsightsDashProps) 
         {/* Informative Header Strip */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-100 dark:border-zinc-800/60 pb-5">
           <div className="space-y-1">
-            <h4 className="text-sm font-bold text-zinc-850 dark:text-zinc-200 tracking-tight flex items-center gap-2">
+            <h4 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 tracking-tight flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-indigo-500" />
               Automated Case Insights & Analysis
             </h4>
@@ -157,10 +157,10 @@ export default function CaseAIInsightsDash({ caseId }: CaseAIInsightsDashProps) 
           <div className="grid gap-6 md:grid-cols-6 relative">
             
             {/* Widget 1: Risk Level (md:col-span-2) */}
-            <div className="md:col-span-2 rounded-xl border border-zinc-150 dark:border-zinc-800/60 bg-zinc-50/10 dark:bg-zinc-950/10 p-5 flex flex-col justify-between space-y-4">
+            <div className="md:col-span-2 rounded-xl border border-zinc-200 dark:border-zinc-800/60 bg-zinc-50/10 dark:bg-zinc-950/10 p-5 flex flex-col justify-between space-y-4">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-450 dark:text-zinc-500">01. Prosecution Risk Level</span>
+                  <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">01. Prosecution Risk Level</span>
                   <ShieldAlert className="h-4 w-4 text-rose-500" />
                 </div>
                 
@@ -181,10 +181,10 @@ export default function CaseAIInsightsDash({ caseId }: CaseAIInsightsDashProps) 
             </div>
 
             {/* Widget 2: Evidence Completeness (md:col-span-4) */}
-            <div className="md:col-span-4 rounded-xl border border-zinc-150 dark:border-zinc-800/60 bg-zinc-50/10 dark:bg-zinc-950/10 p-5 flex flex-col justify-between space-y-4">
+            <div className="md:col-span-4 rounded-xl border border-zinc-200 dark:border-zinc-800/60 bg-zinc-50/10 dark:bg-zinc-950/10 p-5 flex flex-col justify-between space-y-4">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-450 dark:text-zinc-500">02. Evidence Completeness Audit</span>
+                  <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">02. Evidence Completeness Audit</span>
                   <FileCheck className="h-4 w-4 text-emerald-500" />
                 </div>
 
@@ -193,7 +193,7 @@ export default function CaseAIInsightsDash({ caseId }: CaseAIInsightsDashProps) 
                   <div className="space-y-2 col-span-1">
                     <span className="text-[10px] font-bold text-zinc-400 uppercase">Score Matrix</span>
                     <div className="flex items-end gap-2">
-                      <span className="text-3xl font-mono font-bold leading-none text-zinc-850 dark:text-zinc-100">
+                      <span className="text-3xl font-mono font-bold leading-none text-zinc-800 dark:text-zinc-100">
                         {diagnostics.evidenceCompleteness.score}%
                       </span>
                     </div>
@@ -208,7 +208,7 @@ export default function CaseAIInsightsDash({ caseId }: CaseAIInsightsDashProps) 
 
                   {/* Assessment/Gaps columns */}
                   <div className="space-y-2 md:col-span-2">
-                    <span className="text-[10px] font-bold text-zinc-450 dark:text-zinc-400 uppercase">Gaps Detected</span>
+                    <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-400 uppercase">Gaps Detected</span>
                     {diagnostics.evidenceCompleteness.gaps && diagnostics.evidenceCompleteness.gaps.length > 0 ? (
                       <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[10px] text-zinc-500">
                         {diagnostics.evidenceCompleteness.gaps.map((gap, idx) => (
@@ -236,16 +236,16 @@ export default function CaseAIInsightsDash({ caseId }: CaseAIInsightsDashProps) 
             </div>
 
             {/* Widget 3: Suggested Next Steps (md:col-span-3) */}
-            <div className="md:col-span-3 rounded-xl border border-zinc-150 dark:border-zinc-800/60 bg-zinc-50/10 dark:bg-zinc-950/10 p-5 flex flex-col justify-between space-y-4">
+            <div className="md:col-span-3 rounded-xl border border-zinc-200 dark:border-zinc-800/60 bg-zinc-50/10 dark:bg-zinc-950/10 p-5 flex flex-col justify-between space-y-4">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-455 dark:text-zinc-500">03. Suggested Next Steps</span>
+                  <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">03. Suggested Next Steps</span>
                   <Zap className="h-4 w-4 text-amber-500 animate-pulse" />
                 </div>
 
                 <div className="space-y-2.5 max-h-[200px] overflow-y-auto pr-1">
                   {diagnostics.suggestedNextSteps.steps.map((step, idx) => (
-                    <div key={idx} className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800/50 space-y-1 shadow-sm">
+                    <div key={idx} className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/50 space-y-1 shadow-sm">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-[10px] font-bold text-zinc-800 dark:text-zinc-200 truncate">{step.task}</span>
                         {getPriorityBadge(step.priority)}
@@ -261,23 +261,23 @@ export default function CaseAIInsightsDash({ caseId }: CaseAIInsightsDashProps) 
                 </div>
               </div>
 
-              <div className="text-[9px] text-zinc-450 dark:text-zinc-500 uppercase tracking-tighter">
+              <div className="text-[9px] text-zinc-400 dark:text-zinc-500 uppercase tracking-tighter">
                 Prioritized procedural actions list
               </div>
             </div>
 
             {/* Widget 4: Applicable Legal Sections (md:col-span-3) */}
-            <div className="md:col-span-3 rounded-xl border border-zinc-150 dark:border-zinc-800/60 bg-zinc-50/10 dark:bg-zinc-950/10 p-5 flex flex-col justify-between space-y-4">
+            <div className="md:col-span-3 rounded-xl border border-zinc-200 dark:border-zinc-800/60 bg-zinc-50/10 dark:bg-zinc-950/10 p-5 flex flex-col justify-between space-y-4">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-455 dark:text-zinc-500">04. Applicable Legal Sections</span>
+                  <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">04. Applicable Legal Sections</span>
                   <Scale className="h-4 w-4 text-indigo-500" />
                 </div>
 
                 <div className="space-y-2.5 max-h-[200px] overflow-y-auto pr-1">
                   {diagnostics.applicableLegalSections.sections && diagnostics.applicableLegalSections.sections.length > 0 ? (
                     diagnostics.applicableLegalSections.sections.map((sect, idx) => (
-                      <div key={idx} className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800/50 space-y-1 shadow-sm">
+                      <div key={idx} className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/50 space-y-1 shadow-sm">
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-[10px] font-mono font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 border border-indigo-150 dark:border-indigo-900/50 px-1.5 py-0.5 rounded truncate">
                             {sect.section}
@@ -298,16 +298,16 @@ export default function CaseAIInsightsDash({ caseId }: CaseAIInsightsDashProps) 
                 </div>
               </div>
 
-              <div className="text-[9px] text-zinc-450 dark:text-zinc-500 uppercase tracking-tighter">
+              <div className="text-[9px] text-zinc-400 dark:text-zinc-500 uppercase tracking-tighter">
                 Mapped against Indian Penal Code (IPC) / Bharatiya Nyaya Sanhita (BNS)
               </div>
             </div>
 
             {/* Widget 5: Missing Case Information (md:col-span-6) */}
-            <div className="md:col-span-6 rounded-xl border border-zinc-150 dark:border-zinc-800/60 bg-zinc-50/10 dark:bg-zinc-950/10 p-5 flex flex-col justify-between space-y-4">
+            <div className="md:col-span-6 rounded-xl border border-zinc-200 dark:border-zinc-800/60 bg-zinc-50/10 dark:bg-zinc-950/10 p-5 flex flex-col justify-between space-y-4">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-455 dark:text-zinc-500">05. Missing Case Information</span>
+                  <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">05. Missing Case Information</span>
                   <FileQuestion className="h-4 w-4 text-amber-500" />
                 </div>
 
@@ -335,7 +335,7 @@ export default function CaseAIInsightsDash({ caseId }: CaseAIInsightsDashProps) 
                   {/* Reasoning Column */}
                   <div className="md:col-span-3 space-y-2">
                     <span className="text-[10px] font-bold text-zinc-400 uppercase block">Prosecution Impairment Risk</span>
-                    <div className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed bg-white/50 dark:bg-zinc-950/20 p-3.5 rounded-lg border border-zinc-150 dark:border-zinc-800/40">
+                    <div className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed bg-white/50 dark:bg-zinc-950/20 p-3.5 rounded-lg border border-zinc-200 dark:border-zinc-800/40">
                       {diagnostics.missingInformation.reasoning}
                     </div>
                   </div>
@@ -352,17 +352,17 @@ export default function CaseAIInsightsDash({ caseId }: CaseAIInsightsDashProps) 
           <div className="grid gap-4 md:grid-cols-3 relative">
             {/* Skeletons when awaiting run */}
             {[1, 2, 3].map((idx) => (
-              <div key={idx} className="rounded-xl border border-zinc-150 dark:border-zinc-800/60 bg-zinc-50/10 dark:bg-zinc-950/10 p-5 space-y-4 filter blur-[0.5px] select-none opacity-60">
+              <div key={idx} className="rounded-xl border border-zinc-200 dark:border-zinc-800/60 bg-zinc-50/10 dark:bg-zinc-950/10 p-5 space-y-4 filter blur-[0.5px] select-none opacity-60">
                 <div className="flex items-center justify-between text-zinc-400">
                   <span className="text-[9px] font-mono font-bold uppercase tracking-wider">0{idx}. Standby Module</span>
                   <BrainCircuit className="h-3.5 w-3.5" />
                 </div>
                 <div className="space-y-2">
-                  <div className="h-3 bg-zinc-150 dark:bg-zinc-800 rounded w-3/4" />
-                  <div className="h-2.5 bg-zinc-150 dark:bg-zinc-800 rounded w-full" />
-                  <div className="h-2.5 bg-zinc-150 dark:bg-zinc-800 rounded w-5/6" />
+                  <div className="h-3 bg-zinc-200 dark:bg-zinc-800 rounded w-3/4" />
+                  <div className="h-2.5 bg-zinc-200 dark:bg-zinc-800 rounded w-full" />
+                  <div className="h-2.5 bg-zinc-200 dark:bg-zinc-800 rounded w-5/6" />
                 </div>
-                <div className="pt-2 border-t border-zinc-100 dark:border-zinc-805 text-[10px] text-zinc-450 flex items-center justify-between">
+                <div className="pt-2 border-t border-zinc-100 dark:border-zinc-805 text-[10px] text-zinc-400 flex items-center justify-between">
                   <span>Engine Diagnostic Check</span>
                   <RefreshCcw className="h-3 w-3" />
                 </div>
@@ -381,10 +381,10 @@ export default function CaseAIInsightsDash({ caseId }: CaseAIInsightsDashProps) 
                 </div>
                 
                 <div className="space-y-2">
-                  <h5 className="text-sm font-bold text-zinc-850 dark:text-zinc-200 font-sans tracking-tight">
+                  <h5 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 font-sans tracking-tight">
                     {isPending ? "Executing AI Insights Engine..." : "Compile AI Insights Dashboard"}
                   </h5>
-                  <p className="text-xs text-zinc-450 dark:text-zinc-500 leading-relaxed">
+                  <p className="text-xs text-zinc-400 dark:text-zinc-500 leading-relaxed">
                     {isPending 
                       ? "Scanning narrative logs, cross-referencing statements, assessing evidence completeness, and mapping legal applicability..."
                       : "Run a live case audit. Compute prosecution risks, identify critical missing dossier details, and generate procedural next steps."}

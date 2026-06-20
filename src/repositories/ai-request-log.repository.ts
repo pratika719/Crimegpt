@@ -5,7 +5,7 @@ export class AIRequestLogRepository {
   /**
    * Persists an AI request/RAG observability log.
    */
-  async create(data: {
+  async create(userId: string, data: {
     requestType: AIRequestType;
     prompt: string;
     retrievedContext?: string;
@@ -15,6 +15,15 @@ export class AIRequestLogRepository {
     tokenUsage?: number;
     caseId?: string;
   }) {
+    if (data.caseId) {
+      const c = await prisma.case.findFirst({
+        where: { id: data.caseId, userId },
+      });
+      if (!c) {
+        throw new Error("Unauthorized: Case not found or access denied.");
+      }
+    }
+
     return prisma.aIRequestLog.create({
       data,
     });

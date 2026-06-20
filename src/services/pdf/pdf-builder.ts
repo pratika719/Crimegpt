@@ -1,4 +1,4 @@
-// @ts-ignore
+// @ts-expect-error: import from jsPDF es build directly for specific bundler compatibility
 import { jsPDF } from "jspdf/dist/jspdf.es.min.js";
 
 export class PDFBuilder {
@@ -247,7 +247,7 @@ export class PDFBuilder {
     this.ensureSpace(12);
 
     let startX = this.margin;
-    let maxRowHeight = 6;
+    const maxRowHeight = 6;
 
     this.doc.setFont("helvetica", "bold");
     this.doc.setFontSize(8);
@@ -372,7 +372,7 @@ export class PDFBuilder {
     // Draw rows
     data.forEach((row, rowIndex) => {
       // Find maximum row height needed based on wrapping columns
-      let rowLines: string[][] = [];
+      const rowLines: string[][] = [];
       let maxLines = 1;
 
       columns.forEach((colKey, colIdx) => {

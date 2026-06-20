@@ -2,7 +2,17 @@ import { prisma } from "@/lib/prisma";
 import { CreatePersonInput, UpdatePersonInput } from "@/schema/person.schema";
 
 export class PersonRepository {
-  async create(caseId: string, data: Omit<CreatePersonInput, "caseId">) {
+  private async checkCaseOwnership(caseId: string, userId: string) {
+    const c = await prisma.case.findFirst({
+      where: { id: caseId, userId },
+    });
+    if (!c) {
+      throw new Error("Unauthorized: Case not found or access denied.");
+    }
+  }
+
+  async create(caseId: string, userId: string, data: Omit<CreatePersonInput, "caseId">) {
+    await this.checkCaseOwnership(caseId, userId);
     return prisma.person.create({
       data: {
         name: data.name,
@@ -16,20 +26,32 @@ export class PersonRepository {
     });
   }
 
-  async findById(id: string) {
-    return prisma.person.findUnique({
-      where: { id },
+  async findById(id: string, userId: string) {
+    return prisma.person.findFirst({
+      where: {
+        id,
+        case: { userId },
+      },
     });
   }
 
-  async findByCaseId(caseId: string) {
+  async findByCaseId(caseId: string, userId: string) {
+    await this.checkCaseOwnership(caseId, userId);
     return prisma.person.findMany({
-      where: { caseId },
+      where: {
+        caseId,
+        case: { userId },
+      },
       orderBy: { createdAt: "desc" },
     });
   }
 
-  async update(id: string, data: UpdatePersonInput) {
+  async update(id: string, userId: string, data: UpdatePersonInput) {
+    const existing = await this.findById(id, userId);
+    if (!existing) {
+      throw new Error("Unauthorized: Person not found or access denied.");
+    }
+
     return prisma.person.update({
       where: { id },
       data: {
@@ -43,7 +65,12 @@ export class PersonRepository {
     });
   }
 
-  async delete(id: string) {
+  async delete(id: string, userId: string) {
+    const existing = await this.findById(id, userId);
+    if (!existing) {
+      throw new Error("Unauthorized: Person not found or access denied.");
+    }
+
     return prisma.person.delete({
       where: { id },
     });

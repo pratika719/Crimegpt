@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { firService } from "@/services/fir/fir.service";
+import { auth } from "@/auth";
 
 /**
  * Server action to generate an FIR document for a case using RAG.
@@ -11,6 +12,12 @@ import { firService } from "@/services/fir/fir.service";
  */
 export async function generateFIRAction(caseId: string) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+    const userId = session.user.id;
+
     if (!caseId) {
       return {
         success: false,
@@ -18,7 +25,7 @@ export async function generateFIRAction(caseId: string) {
       };
     }
 
-    await firService.generateFIR(caseId);
+    await firService.generateFIR(caseId, userId);
 
     // Revalidate the case detail page so the UI displays the new FIR document and updated status
     revalidatePath(`/case/${caseId}`);

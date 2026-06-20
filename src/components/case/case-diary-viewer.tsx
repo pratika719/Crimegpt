@@ -50,7 +50,7 @@ export default function CaseDiaryViewer({ diary, version, createdAt }: CaseDiary
         {/* Officer & Case info grid */}
         <div className="grid gap-6 md:grid-cols-3">
           <div className="flex items-start gap-3 rounded-lg border border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/20 p-4">
-            <User className="h-5 w-5 text-zinc-450 mt-0.5 flex-shrink-0" />
+            <User className="h-5 w-5 text-zinc-400 mt-0.5 flex-shrink-0" />
             <div className="space-y-1 text-xs">
               <span className="block uppercase font-bold text-zinc-400 font-mono tracking-widest">
                 Investigating Officer
@@ -62,7 +62,7 @@ export default function CaseDiaryViewer({ diary, version, createdAt }: CaseDiary
           </div>
 
           <div className="flex items-start gap-3 rounded-lg border border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/20 p-4">
-            <FileText className="h-5 w-5 text-zinc-450 mt-0.5 flex-shrink-0" />
+            <FileText className="h-5 w-5 text-zinc-400 mt-0.5 flex-shrink-0" />
             <div className="space-y-1 text-xs">
               <span className="block uppercase font-bold text-zinc-400 font-mono tracking-widest">
                 FIR Reference
@@ -74,7 +74,7 @@ export default function CaseDiaryViewer({ diary, version, createdAt }: CaseDiary
           </div>
 
           <div className="flex items-start gap-3 rounded-lg border border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/20 p-4">
-            <Calendar className="h-5 w-5 text-zinc-450 mt-0.5 flex-shrink-0" />
+            <Calendar className="h-5 w-5 text-zinc-400 mt-0.5 flex-shrink-0" />
             <div className="space-y-1 text-xs">
               <span className="block uppercase font-bold text-zinc-400 font-mono tracking-widest">
                 Diary Registration Date
@@ -95,7 +95,7 @@ export default function CaseDiaryViewer({ diary, version, createdAt }: CaseDiary
             </h3>
           </div>
           
-          <div className="rounded-lg border border-zinc-150 dark:border-zinc-800 bg-zinc-50/10 p-6 md:p-8 font-mono text-xs leading-relaxed text-zinc-800 dark:text-zinc-300 whitespace-pre-wrap relative min-h-[300px] shadow-inner overflow-hidden">
+          <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/10 p-6 md:p-8 font-mono text-xs leading-relaxed text-zinc-800 dark:text-zinc-300 whitespace-pre-wrap relative min-h-[300px] shadow-inner overflow-hidden">
             {/* Lined paper effect styling */}
             <div className="absolute inset-0 bg-grid-zinc-100/40 dark:bg-grid-zinc-900/10 pointer-events-none" />
             <span className="relative z-10 block pl-2 border-l border-red-500/30 dark:border-red-900/30">
@@ -116,7 +116,7 @@ export default function CaseDiaryViewer({ diary, version, createdAt }: CaseDiary
             {nextSteps.map((step, idx) => (
               <div 
                 key={idx}
-                className="rounded-lg border border-zinc-150 dark:border-zinc-850 bg-zinc-50/10 dark:bg-zinc-950/10 p-4 text-xs text-zinc-700 dark:text-zinc-300 font-semibold flex items-center gap-3 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
+                className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/10 dark:bg-zinc-950/10 p-4 text-xs text-zinc-700 dark:text-zinc-300 font-semibold flex items-center gap-3 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
               >
                 <div className="h-2 w-2 rounded-full bg-indigo-500" />
                 <span>{step}</span>
@@ -127,7 +127,7 @@ export default function CaseDiaryViewer({ diary, version, createdAt }: CaseDiary
 
         {/* Digital Signature */}
         <div className="pt-6 border-t border-zinc-200 dark:border-zinc-800 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="text-xs text-zinc-450 italic max-w-lg">
+          <div className="text-xs text-zinc-400 italic max-w-lg">
             This entry constitutes a formal record under section 172 of the Code of Criminal Procedure (CrPC).
           </div>
           <div className="flex flex-col items-center justify-center border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 bg-zinc-50/10 dark:bg-zinc-900/30 w-full md:w-64">

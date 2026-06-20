@@ -12,15 +12,16 @@ export interface SearchRawResult {
 export class SearchRepository {
   /**
    * Executes database-level search matches across Cases, Documents, Evidence,
-   * Persons, Activities, and Investigation Profiles in parallel.
+   * Persons, Activities, and Investigation Profiles in parallel, scoped by userId.
    */
-  async searchAll(query: string): Promise<SearchRawResult> {
+  async searchAll(userId: string, query: string): Promise<SearchRawResult> {
     const likeQuery = `%${query}%`;
 
     const [cases, evidence, persons, activities, profiles, rawDocs] = await Promise.all([
       // 1. Cases
       prisma.case.findMany({
         where: {
+          userId,
           OR: [
             { title: { contains: query, mode: "insensitive" } },
             { narrative: { contains: query, mode: "insensitive" } },
@@ -32,6 +33,7 @@ export class SearchRepository {
       // 2. Evidence
       prisma.evidence.findMany({
         where: {
+          case: { userId },
           OR: [
             { title: { contains: query, mode: "insensitive" } },
             { description: { contains: query, mode: "insensitive" } },
@@ -45,6 +47,7 @@ export class SearchRepository {
       // 3. Persons
       prisma.person.findMany({
         where: {
+          case: { userId },
           OR: [
             { name: { contains: query, mode: "insensitive" } },
             { statement: { contains: query, mode: "insensitive" } },
@@ -58,6 +61,7 @@ export class SearchRepository {
       // 4. Activities
       prisma.caseActivity.findMany({
         where: {
+          case: { userId },
           description: { contains: query, mode: "insensitive" },
         },
         include: { case: true },
@@ -67,6 +71,7 @@ export class SearchRepository {
       // 5. Investigation Profiles
       prisma.investigationProfile.findMany({
         where: {
+          case: { userId },
           OR: [
             { firNumber: { contains: query, mode: "insensitive" } },
             { policeStation: { contains: query, mode: "insensitive" } },
@@ -80,13 +85,13 @@ export class SearchRepository {
         take: 10,
       }),
 
-      // 6. Generated Documents (Cast JSON content to text dynamically in PostgreSQL to perform search)
+      // 6. Generated Documents
       prisma.$queryRaw<any[]>`
         SELECT gd.id, gd.type, gd.title, gd.version, gd."caseId", gd."createdAt", c.title as "caseTitle"
         FROM "GeneratedDocument" gd
         JOIN "Case" c ON gd."caseId" = c.id
-        WHERE gd.title ILIKE ${likeQuery} 
-           OR gd.content::text ILIKE ${likeQuery}
+        WHERE c."userId" = ${userId}
+          AND (gd.title ILIKE ${likeQuery} OR gd.content::text ILIKE ${likeQuery})
         LIMIT 10
       `,
     ]);

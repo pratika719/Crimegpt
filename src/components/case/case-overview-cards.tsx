@@ -78,7 +78,7 @@ export default function CaseOverviewCards({
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className={`h-2.5 w-2.5 rounded-full ${statusConfig.dotColor} animate-pulse`} />
-            <span className="text-sm font-bold text-zinc-900 dark:text-zinc-55">
+            <span className="text-sm font-bold text-zinc-900 dark:text-zinc-50">
               {statusConfig.label}
             </span>
           </div>
@@ -97,7 +97,7 @@ export default function CaseOverviewCards({
           <Percent className="h-4.5 w-4.5 text-zinc-400" />
         </div>
         <div className="space-y-2">
-          <div className="text-xl font-bold text-zinc-900 dark:text-zinc-55 tracking-tight flex items-baseline gap-1">
+          <div className="text-xl font-bold text-zinc-900 dark:text-zinc-50 tracking-tight flex items-baseline gap-1">
             {completenessPercent}%
             <span className="text-[10px] font-mono font-normal text-zinc-400">coverage</span>
           </div>
@@ -120,13 +120,13 @@ export default function CaseOverviewCards({
         </div>
         <div className="flex items-center gap-4 text-zinc-800 dark:text-zinc-200">
           <div className="flex items-center gap-1.5">
-            <Users className="h-4 w-4 text-zinc-450" />
+            <Users className="h-4 w-4 text-zinc-400" />
             <span className="text-sm font-bold">{totalPersons}</span>
             <span className="text-[9px] font-mono text-zinc-400 uppercase">Parties</span>
           </div>
           <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
           <div className="flex items-center gap-1.5">
-            <Paperclip className="h-4 w-4 text-zinc-450" />
+            <Paperclip className="h-4 w-4 text-zinc-400" />
             <span className="text-sm font-bold">{totalEvidence}</span>
             <span className="text-[9px] font-mono text-zinc-400 uppercase">Evidence</span>
           </div>
@@ -142,7 +142,7 @@ export default function CaseOverviewCards({
           <CheckSquare className="h-4.5 w-4.5 text-zinc-400" />
         </div>
         <div className="space-y-2">
-          <div className="text-xl font-bold text-zinc-900 dark:text-zinc-55 tracking-tight flex items-baseline gap-1">
+          <div className="text-xl font-bold text-zinc-900 dark:text-zinc-50 tracking-tight flex items-baseline gap-1">
             {checklistCompleted} / {checklistTotal}
             <span className="text-[10px] font-mono font-normal text-zinc-400 uppercase">Tasks ({checklistPercent}%)</span>
           </div>

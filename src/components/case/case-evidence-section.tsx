@@ -91,14 +91,14 @@ export default function CaseEvidenceSection({ caseId, initialEvidence }: CaseEvi
       },
       OTHER: {
         icon: FileBox,
-        colorClass: "bg-zinc-550/10 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-350 dark:border-zinc-700",
+        colorClass: "bg-zinc-500/10 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-350 dark:border-zinc-700",
         label: "Evidence Asset",
       },
     };
 
     return configs[type] || {
       icon: FileBox,
-      colorClass: "bg-zinc-550/10 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-350 dark:border-zinc-700",
+      colorClass: "bg-zinc-500/10 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-350 dark:border-zinc-700",
       label: "Evidence Asset",
     };
   };
@@ -116,7 +116,7 @@ export default function CaseEvidenceSection({ caseId, initialEvidence }: CaseEvi
 
         <Button 
           onClick={handleAddEvidence}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer border border-zinc-200 dark:border-zinc-855 hover:bg-zinc-50 dark:hover:bg-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 px-3 py-1.5 h-auto shadow-sm"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 px-3 py-1.5 h-auto shadow-sm"
         >
           <Plus className="h-3.5 w-3.5" />
           Register Evidence
@@ -125,11 +125,11 @@ export default function CaseEvidenceSection({ caseId, initialEvidence }: CaseEvi
 
       {/* Grid of Evidence Cards */}
       {initialEvidence.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-zinc-250 dark:border-zinc-800 bg-zinc-50/10 p-8 text-center flex flex-col items-center justify-center space-y-4">
-          <Paperclip className="h-10 w-10 text-zinc-350 dark:text-zinc-650 animate-pulse" />
+        <div className="rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/10 p-8 text-center flex flex-col items-center justify-center space-y-4">
+          <Paperclip className="h-10 w-10 text-zinc-350 dark:text-zinc-600 animate-pulse" />
           <div className="space-y-1">
             <h4 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 font-sans">Evidentiary records missing</h4>
-            <p className="text-xs text-zinc-455 dark:text-zinc-500 max-w-sm mx-auto">
+            <p className="text-xs text-zinc-400 dark:text-zinc-500 max-w-sm mx-auto">
               Add call logs, CCTV footage, documents, and screenshots to establish a detailed evidence profile.
             </p>
           </div>
@@ -155,7 +155,7 @@ export default function CaseEvidenceSection({ caseId, initialEvidence }: CaseEvi
               <div 
                 key={item.id}
                 onClick={() => handleViewDetails(item)}
-                className="group relative rounded-xl border border-zinc-200 dark:border-zinc-850 bg-white dark:bg-zinc-900 p-4 space-y-3.5 shadow-sm transition-all hover:shadow-md hover:border-zinc-350 dark:hover:border-zinc-750 cursor-pointer"
+                className="group relative rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3.5 shadow-sm transition-all hover:shadow-md hover:border-zinc-350 dark:hover:border-zinc-750 cursor-pointer"
               >
                 {/* Header info */}
                 <div className="flex items-center justify-between gap-2">
@@ -171,7 +171,7 @@ export default function CaseEvidenceSection({ caseId, initialEvidence }: CaseEvi
                   <h4 className="font-semibold text-xs text-zinc-900 dark:text-zinc-100 font-sans tracking-tight line-clamp-1 leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                     {item.title}
                   </h4>
-                  <p className="text-[10px] text-zinc-450 dark:text-zinc-500 line-clamp-2 leading-relaxed">
+                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 line-clamp-2 leading-relaxed">
                     {item.description || "No description provided."}
                   </p>
                 </div>

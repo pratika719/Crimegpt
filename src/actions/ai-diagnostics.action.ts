@@ -2,12 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { aiDiagnosticsService } from "@/services/case/ai-diagnostics.service";
+import { auth } from "@/auth";
 
 /**
  * Server action to trigger AI diagnostics for a case.
  */
 export async function runAIDiagnosticsAction(caseId: string) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, message: "Unauthorized" };
+    }
+    const userId = session.user.id;
+
     if (!caseId) {
       return {
         success: false,
@@ -15,7 +22,7 @@ export async function runAIDiagnosticsAction(caseId: string) {
       };
     }
 
-    const result = await aiDiagnosticsService.runDiagnostics(caseId);
+    const result = await aiDiagnosticsService.runDiagnostics(caseId, userId);
 
     return {
       success: true,
@@ -29,4 +36,3 @@ export async function runAIDiagnosticsAction(caseId: string) {
     };
   }
 }
-

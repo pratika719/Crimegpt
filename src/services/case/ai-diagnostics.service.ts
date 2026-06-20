@@ -7,18 +7,18 @@ import { unifiedContextService } from "@/services/case/unified-context.service";
 export class AIDiagnosticsService {
   private caseRepository = new CaseRepository();
 
-  async runDiagnostics(caseId: string) {
-    console.log(`🧠 [AIDiagnosticsService] Fetching full case data for ID: ${caseId}`);
+  async runDiagnostics(caseId: string, userId: string) {
+    console.log(`🧠 [AIDiagnosticsService] Fetching full case data for ID: ${caseId} by user: ${userId}`);
     
     // 1. Fetch comprehensive case details
-    const caseItem = await this.caseRepository.findById(caseId);
+    const caseItem = await this.caseRepository.findById(caseId, userId);
     if (!caseItem) {
       throw new Error(`Case not found for ID: ${caseId}`);
     }
 
     // 2. Execute the Diagnostics Chain with Unified Case Context
     console.log(`🧠 [AIDiagnosticsService] Building unified case context...`);
-    const context = await unifiedContextService.buildUnifiedCaseContext(caseId);
+    const context = await unifiedContextService.buildUnifiedCaseContext(caseId, userId);
 
     console.log(`🧠 [AIDiagnosticsService] Launching AI Diagnostics chain...`);
     const chainOutput = await aiDiagnosticsChain.execute(context);
@@ -26,7 +26,7 @@ export class AIDiagnosticsService {
     // 3. Log observability (Telemetry for the LLM request)
     console.log(`🧠 [AIDiagnosticsService] Storing AI request logs...`);
     try {
-      await aiObservabilityService.logRequest({
+      await aiObservabilityService.logRequest(userId, {
         requestType: AIRequestType.AI_DIAGNOSTICS_GENERATION,
         prompt: chainOutput.promptText,
         retrievedContext: JSON.stringify(chainOutput.retrievedChunks),
@@ -46,4 +46,3 @@ export class AIDiagnosticsService {
 
 export const aiDiagnosticsService = new AIDiagnosticsService();
 export default aiDiagnosticsService;
-

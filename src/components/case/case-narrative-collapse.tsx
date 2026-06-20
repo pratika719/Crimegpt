@@ -52,13 +52,13 @@ export default function CaseNarrativeCollapse({ narrative }: CaseNarrativeCollap
         )}
         
         {/* Simulated Lined Investigation Paper */}
-        <div className="rounded-lg border border-zinc-150 dark:border-zinc-800/80 bg-zinc-50/20 dark:bg-zinc-950/20 p-5 md:p-6 font-mono text-xs md:text-sm leading-relaxed text-zinc-800 dark:text-zinc-350 whitespace-pre-wrap shadow-inner">
+        <div className="rounded-lg border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/20 dark:bg-zinc-950/20 p-5 md:p-6 font-mono text-xs md:text-sm leading-relaxed text-zinc-800 dark:text-zinc-350 whitespace-pre-wrap shadow-inner">
           {narrative}
         </div>
       </div>
 
       {isOpen && (
-        <div className="border-t border-zinc-100 dark:border-zinc-850 px-6 py-3 flex items-center justify-between text-[10px] font-mono text-zinc-450 dark:text-zinc-500 bg-zinc-50/20 dark:bg-zinc-950/10">
+        <div className="border-t border-zinc-100 dark:border-zinc-800 px-6 py-3 flex items-center justify-between text-[10px] font-mono text-zinc-400 dark:text-zinc-500 bg-zinc-50/20 dark:bg-zinc-950/10">
           <span>Words: {wordCount}</span>
           <span>Characters: {charCount}</span>
         </div>

@@ -18,11 +18,11 @@ export class DocumentGeneratorService {
    * The core unified AI document generation pipeline.
    * Works for any registered document type.
    */
-  async generateDocument(caseId: string, type: DocumentType) {
-    console.log(`🤖 [DocumentGeneratorService] Initiating generation for case: ${caseId}, type: ${type}`);
+  async generateDocument(caseId: string, userId: string, type: DocumentType) {
+    console.log(`🤖 [DocumentGeneratorService] Initiating generation for case: ${caseId}, type: ${type} by user: ${userId}`);
     
     // 1. Fetch case details
-    const caseItem = await this.caseRepository.findById(caseId);
+    const caseItem = await this.caseRepository.findById(caseId, userId);
     if (!caseItem) {
       throw new Error(`Case not found for ID: ${caseId}`);
     }
@@ -31,12 +31,12 @@ export class DocumentGeneratorService {
     const config = DocumentRegistry.getConfig(type);
 
     // 3. Retrieve the next version number
-    const nextVersion = await documentVersionService.getNextVersion(caseId, type);
+    const nextVersion = await documentVersionService.getNextVersion(caseId, userId, type);
     console.log(`🤖 [DocumentGeneratorService] Next version will be: v${nextVersion}`);
 
     // 4. Build the Unified Case Context
     console.log(`🤖 [DocumentGeneratorService] Loading unified case context...`);
-    let context = await unifiedContextService.buildUnifiedCaseContext(caseId);
+    let context = await unifiedContextService.buildUnifiedCaseContext(caseId, userId);
 
     // Enrich context with fallback defaults to ensure AI generation succeeds even with partial profile data
     context = this.enrichContext(context);
@@ -74,7 +74,7 @@ export class DocumentGeneratorService {
     // 9. Save GeneratedDocument to the database
     const documentTitle = `${config.titlePrefix} - v${nextVersion}`;
     console.log(`🤖 [DocumentGeneratorService] Persisting GeneratedDocument: "${documentTitle}"`);
-    const document = await generatedDocumentService.saveDocument({
+    const document = await generatedDocumentService.saveDocument(userId, {
       caseId,
       type,
       title: documentTitle,
@@ -84,7 +84,7 @@ export class DocumentGeneratorService {
 
     // 10. Store AIRequestLog for observability
     console.log(`🤖 [DocumentGeneratorService] Creating AIRequestLog...`);
-    await aiObservabilityService.logRequest({
+    await aiObservabilityService.logRequest(userId, {
       requestType: config.aiRequestType,
       prompt: promptText,
       retrievedContext: retrievedChunks.length > 0 ? JSON.stringify(retrievedChunks) : undefined,
@@ -115,7 +115,7 @@ export class DocumentGeneratorService {
     // Let's also transition case status from OPEN to UNDER_INVESTIGATION upon FIR generation
     if (type === DocumentType.FIR && caseItem.status === "OPEN") {
       console.log(`🤖 [DocumentGeneratorService] Upgrading case status to UNDER_INVESTIGATION...`);
-      await this.caseRepository.updateStatus(caseId, "UNDER_INVESTIGATION");
+      await this.caseRepository.updateStatus(caseId, userId, "UNDER_INVESTIGATION");
     }
 
     console.log(`🤖 [DocumentGeneratorService] Generation complete.`);

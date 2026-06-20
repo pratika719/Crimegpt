@@ -21,12 +21,42 @@ import {
   History,
   Lock,
   BookOpen,
-  FileDown
+  Pencil,
+  Trash2,
+  MoreHorizontal
 } from "lucide-react";
 import { toast } from "sonner";
 import { generateDocumentAction, logDocumentActivityAction } from "@/actions/document-generation.action";
+import { renameDocumentAction, deleteDocumentAction } from "@/actions/document.action";
 import { analyzeCaseAction } from "@/actions/legal-analysis.action";
 import { DocumentType } from "@/services/pdf/pdf-template-registry";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 
 // Import viewers
 import FIRDocumentViewer from "./fir-document-viewer";
@@ -143,6 +173,9 @@ export default function CaseAnalysisPanel({
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [typeFilter, setTypeFilter] = useState<string>("ALL");
   const [actionType, setActionType] = useState<string | null>(null);
+  const [renamingDoc, setRenamingDoc] = useState<GeneratedDocument | null>(null);
+  const [deletingDoc, setDeletingDoc] = useState<GeneratedDocument | null>(null);
+  const [renameTitle, setRenameTitle] = useState("");
   
   // Custom version state for each document type
   const [customVersion, setCustomVersion] = useState<Record<string, number>>({});
@@ -260,6 +293,41 @@ export default function CaseAnalysisPanel({
       toast.error("Failed to generate PDF download.");
       console.error(err);
     }
+  };
+
+  const openRenameDialog = (doc: GeneratedDocument) => {
+    setRenamingDoc(doc);
+    setRenameTitle(doc.title);
+  };
+
+  const handleRenameDocument = () => {
+    if (!renamingDoc || !renameTitle.trim()) return;
+
+    startTransition(async () => {
+      const response = await renameDocumentAction(renamingDoc.id, caseId, renameTitle.trim());
+      if (response.success) {
+        toast.success("Document renamed.");
+        setRenamingDoc(null);
+        router.refresh();
+      } else {
+        toast.error(response.message || "Failed to rename document.");
+      }
+    });
+  };
+
+  const handleDeleteDocument = () => {
+    if (!deletingDoc) return;
+
+    startTransition(async () => {
+      const response = await deleteDocumentAction(deletingDoc.id, caseId);
+      if (response.success) {
+        toast.success("Generated document deleted.");
+        setDeletingDoc(null);
+        router.refresh();
+      } else {
+        toast.error(response.message || "Failed to delete document.");
+      }
+    });
   };
 
   const activeMeta = DOCUMENT_TYPES_METADATA.find((m) => m.type === activeType)!;
@@ -445,6 +513,30 @@ export default function CaseAnalysisPanel({
 
                   {/* Right Side: Actions */}
                   <div className="flex items-center gap-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={
+                          <button
+                            type="button"
+                            className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                            aria-label="Document actions"
+                          />
+                        }
+                      >
+                        <MoreHorizontal className="h-3.5 w-3.5" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => openRenameDialog(activeDoc)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                          <span>Rename Document</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem destructive onClick={() => setDeletingDoc(activeDoc)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span>Delete Document</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     <button
                       onClick={() => handleGenerate(activeType, true)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
@@ -621,6 +713,73 @@ export default function CaseAnalysisPanel({
           )}
         </div>
       </div>
+
+      <Dialog open={!!renamingDoc} onOpenChange={(open) => !open && setRenamingDoc(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rename Generated Document</DialogTitle>
+            <DialogDescription>
+              Update the stored document title. Existing content will not be regenerated.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            value={renameTitle}
+            onChange={(e) => setRenameTitle(e.target.value)}
+            disabled={isPending}
+            maxLength={200}
+          />
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isPending}
+              onClick={() => setRenamingDoc(null)}
+              className="text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={isPending || !renameTitle.trim()}
+              onClick={handleRenameDocument}
+              className="text-xs"
+            >
+              {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={!!deletingDoc}
+        onOpenChange={(open) => {
+          if (!open && !isPending) setDeletingDoc(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Generated Document?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The generated document will be
+              removed, but investigation data will remain unchanged.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteDocument} disabled={isPending}>
+              {isPending ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Document"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

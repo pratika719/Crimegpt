@@ -1,5 +1,7 @@
 import {
   CreateCaseInput,
+  UpdateCaseSchema,
+  UpdateCaseInput,
 } from "@/schema/case.schema";
 
 import { CaseRepository } from "@/repositories/case.repository";
@@ -33,5 +35,38 @@ export class CaseService {
     }
 
     return found;
+  }
+
+  async updateCase(id: string, userId: string, input: UpdateCaseInput) {
+    const parsed = UpdateCaseSchema.parse(input);
+
+    // Get existing case to build a meaningful activity description
+    const existing = await this.getCaseById(id, userId);
+
+    console.log(`💼 [CaseService] Updating case ID: ${id} by user: ${userId}`);
+    const result = await this.repository.update(id, userId, parsed);
+
+    // Build change description for activity log
+    const changes: string[] = [];
+    if (parsed.title && parsed.title !== existing.title) changes.push("title");
+    if (parsed.narrative && parsed.narrative !== existing.narrative) changes.push("narrative");
+    if (parsed.status && parsed.status !== existing.status) changes.push(`status → ${parsed.status}`);
+
+    if (changes.length > 0) {
+      await activityService.logCaseUpdated(id, changes.join(", "));
+    }
+
+    return result;
+  }
+
+  async deleteCase(id: string, userId: string) {
+    // Verify ownership before deletion
+    const existing = await this.getCaseById(id, userId);
+
+    console.log(`💼 [CaseService] Deleting case: ${existing.title} (ID: ${id}) by user: ${userId}`);
+
+    // Note: Activity logs are cascade-deleted with the case,
+    // so logging CASE_DELETED here would be pointless.
+    return this.repository.delete(id, userId);
   }
 }

@@ -5,8 +5,6 @@ import {
   ArrowLeft, 
   Calendar, 
   Clock, 
-  Download, 
-  Briefcase
 } from "lucide-react";
 import CaseAnalysisPanel from "@/components/case/case-analysis-panel";
 import CaseMetadataSection from "@/components/case/case-metadata-section";
@@ -18,6 +16,7 @@ import CaseNarrativeCollapse from "@/components/case/case-narrative-collapse";
 import CaseOverviewCards from "@/components/case/case-overview-cards";
 import CaseAIInsightsDash from "@/components/case/case-ai-insights-dash";
 import CaseInvestigationProfileSection from "@/components/case/case-investigation-profile-section";
+import CaseHeaderActions from "@/components/case/case-header-actions";
 
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
@@ -145,24 +144,12 @@ export default async function CaseDetailPage({
           </div>
 
           {/* Quick Actions Action Bar */}
-          <div className="flex flex-wrap items-center gap-2">
-            <button 
-              type="button"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-3 py-1.5 text-xs font-semibold shadow-sm transition-all cursor-pointer"
-            >
-              <Download className="h-3.5 w-3.5 text-zinc-400" />
-              <span>Export Briefing</span>
-            </button>
-
-            <button 
-              type="button"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-3 py-1.5 text-xs font-semibold shadow-sm transition-all cursor-pointer"
-            >
-              <Briefcase className="h-3.5 w-3.5 text-zinc-400" />
-              <span>Draft Charge Sheet</span>
-              <span className="rounded bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 text-[8px] font-mono text-zinc-400 uppercase">AI Tool</span>
-            </button>
-          </div>
+          <CaseHeaderActions
+            caseId={caseItem.id}
+            caseTitle={caseItem.title}
+            caseNarrative={caseItem.narrative}
+            caseStatus={caseItem.status}
+          />
 
         </div>
 
@@ -226,6 +213,7 @@ export default async function CaseDetailPage({
 
       {/* 9. Chronological Activity Timeline */}
       <CaseTimeline 
+        caseId={caseItem.id}
         activities={caseItem.activities ? JSON.parse(JSON.stringify(caseItem.activities)) : []} 
       />
 

@@ -22,6 +22,16 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 
 import {
   PoliceAndIncidentDialog,
@@ -80,6 +90,11 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
   const [selectedCourt, setSelectedCourt] = useState<any | null>(null);
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    name: string;
+    type: TabType;
+  } | null>(null);
 
   const profile = caseData.investigationProfile || null;
   const victims = caseData.victims || [];
@@ -90,24 +105,26 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
   const medicalInfos = caseData.medicalInfos || [];
   const courtInfos = caseData.courtInfos || [];
 
-  const handleDelete = (id: string, name: string, type: TabType) => {
-    if (!confirm(`Are you sure you want to delete ${name}?`)) return;
+  const handleDelete = () => {
+    if (!deleteTarget) return;
 
-    setDeletingId(id);
+    const target = deleteTarget;
+    setDeletingId(target.id);
     startTransition(async () => {
       let response;
-      if (type === "victims") response = await deleteVictimAction(id, caseId);
-      else if (type === "accused") response = await deleteAccusedAction(id, caseId);
-      else if (type === "witnesses") response = await deleteWitnessAction(id, caseId);
-      else if (type === "vehicles") response = await deleteVehicleAction(id, caseId);
-      else if (type === "seized") response = await deleteSeizedItemAction(id, caseId);
-      else if (type === "medical") response = await deleteMedicalInfoAction(id, caseId);
-      else if (type === "court") response = await deleteCourtInfoAction(id, caseId);
+      if (target.type === "victims") response = await deleteVictimAction(target.id, caseId);
+      else if (target.type === "accused") response = await deleteAccusedAction(target.id, caseId);
+      else if (target.type === "witnesses") response = await deleteWitnessAction(target.id, caseId);
+      else if (target.type === "vehicles") response = await deleteVehicleAction(target.id, caseId);
+      else if (target.type === "seized") response = await deleteSeizedItemAction(target.id, caseId);
+      else if (target.type === "medical") response = await deleteMedicalInfoAction(target.id, caseId);
+      else if (target.type === "court") response = await deleteCourtInfoAction(target.id, caseId);
 
       if (response && !response.success) {
-        toast.error(response.message || `Failed to delete ${name}.`);
+        toast.error(response.message || `Failed to delete ${target.name}.`);
       } else {
-        toast.success(`${name} has been deleted successfully.`);
+        toast.success(`${target.name} has been deleted successfully.`);
+        setDeleteTarget(null);
       }
       setDeletingId(null);
     });
@@ -291,7 +308,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
                       <button onClick={() => { setSelectedVictim(v); setIsVictimOpen(true); }} className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer">
                         <Edit2 className="h-3 w-3" />
                       </button>
-                      <button onClick={() => handleDelete(v.id, v.person.name, "victims")} disabled={deletingId === v.id} className="p-1 rounded text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer">
+                      <button onClick={() => setDeleteTarget({ id: v.id, name: v.person.name, type: "victims" })} disabled={deletingId === v.id} className="p-1 rounded text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer">
                         {deletingId === v.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
                       </button>
                     </div>
@@ -361,7 +378,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
                       <button onClick={() => { setSelectedAccused(a); setIsAccusedOpen(true); }} className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer">
                         <Edit2 className="h-3 w-3" />
                       </button>
-                      <button onClick={() => handleDelete(a.id, a.person.name, "accused")} disabled={deletingId === a.id} className="p-1 rounded text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer">
+                      <button onClick={() => setDeleteTarget({ id: a.id, name: a.person.name, type: "accused" })} disabled={deletingId === a.id} className="p-1 rounded text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer">
                         {deletingId === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
                       </button>
                     </div>
@@ -431,7 +448,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
                       <button onClick={() => { setSelectedWitness(w); setIsWitnessOpen(true); }} className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer">
                         <Edit2 className="h-3 w-3" />
                       </button>
-                      <button onClick={() => handleDelete(w.id, w.person.name, "witnesses")} disabled={deletingId === w.id} className="p-1 rounded text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer">
+                      <button onClick={() => setDeleteTarget({ id: w.id, name: w.person.name, type: "witnesses" })} disabled={deletingId === w.id} className="p-1 rounded text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer">
                         {deletingId === w.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
                       </button>
                     </div>
@@ -501,7 +518,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
                       <button onClick={() => { setSelectedVehicle(vh); setIsVehicleOpen(true); }} className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer">
                         <Edit2 className="h-3 w-3" />
                       </button>
-                      <button onClick={() => handleDelete(vh.id, vh.licensePlate || "Vehicle", "vehicles")} disabled={deletingId === vh.id} className="p-1 rounded text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer">
+                      <button onClick={() => setDeleteTarget({ id: vh.id, name: vh.licensePlate || "Vehicle", type: "vehicles" })} disabled={deletingId === vh.id} className="p-1 rounded text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer">
                         {deletingId === vh.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
                       </button>
                     </div>
@@ -572,7 +589,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
                       <button onClick={() => { setSelectedSeized(si); setIsSeizedOpen(true); }} className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer">
                         <Edit2 className="h-3 w-3" />
                       </button>
-                      <button onClick={() => handleDelete(si.id, si.itemName, "seized")} disabled={deletingId === si.id} className="p-1 rounded text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer">
+                      <button onClick={() => setDeleteTarget({ id: si.id, name: si.itemName, type: "seized" })} disabled={deletingId === si.id} className="p-1 rounded text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer">
                         {deletingId === si.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
                       </button>
                     </div>
@@ -658,7 +675,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
                       <button onClick={() => { setSelectedMedical(m); setIsMedicalOpen(true); }} className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer">
                         <Edit2 className="h-3 w-3" />
                       </button>
-                      <button onClick={() => handleDelete(m.id, m.medicalReportNo || "Medical Info", "medical")} disabled={deletingId === m.id} className="p-1 rounded text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer">
+                      <button onClick={() => setDeleteTarget({ id: m.id, name: m.medicalReportNo || "Medical Info", type: "medical" })} disabled={deletingId === m.id} className="p-1 rounded text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer">
                         {deletingId === m.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
                       </button>
                     </div>
@@ -736,7 +753,7 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
                       <button onClick={() => { setSelectedCourt(c); setIsCourtOpen(true); }} className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer">
                         <Edit2 className="h-3 w-3" />
                       </button>
-                      <button onClick={() => handleDelete(c.id, c.caseNumber || "Court Entry", "court")} disabled={deletingId === c.id} className="p-1 rounded text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer">
+                      <button onClick={() => setDeleteTarget({ id: c.id, name: c.caseNumber || "Court Entry", type: "court" })} disabled={deletingId === c.id} className="p-1 rounded text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer">
                         {deletingId === c.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
                       </button>
                     </div>
@@ -844,6 +861,36 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
         caseId={caseId}
         courtInfo={selectedCourt}
       />
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open && !deletingId) setDeleteTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Investigation Record?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The selected record will be
+              permanently removed from this case investigation profile.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!deletingId}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={!!deletingId}>
+              {deletingId ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Record"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
   );

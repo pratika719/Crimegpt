@@ -402,6 +402,91 @@ export class ActivityService {
       metadata: { caseNumber },
     });
   }
+
+  async logDocumentRenamed(caseId: string, oldTitle: string, newTitle: string) {
+    return this.repository.create({
+      caseId,
+      activityType: ActivityType.DOCUMENT_RENAMED,
+      description: `Renamed document "${oldTitle}" → "${newTitle}".`,
+      metadata: { oldTitle, newTitle },
+    });
+  }
+
+  async logDocumentDeletedSingle(caseId: string, title: string, type: string) {
+    return this.repository.create({
+      caseId,
+      activityType: ActivityType.DOCUMENT_DELETED_SINGLE,
+      description: `Deleted generated document: "${title}" (${type}).`,
+      metadata: { title, type },
+    });
+  }
+
+  async logChecklistItemRenamed(caseId: string, oldTitle: string, newTitle: string) {
+    return this.repository.create({
+      caseId,
+      activityType: ActivityType.CHECKLIST_ITEM_RENAMED,
+      description: `Renamed checklist task "${oldTitle}" → "${newTitle}".`,
+      metadata: { oldTitle, newTitle },
+    });
+  }
+
+  async logChecklistItemDeleted(caseId: string, title: string) {
+    return this.repository.create({
+      caseId,
+      activityType: ActivityType.CHECKLIST_ITEM_DELETED,
+      description: `Removed checklist task: "${title}".`,
+      metadata: { title },
+    });
+  }
+
+  async updateTimelineEvent(
+    id: string,
+    caseId: string,
+    userId: string,
+    description: string
+  ) {
+    const cleanDescription = description.trim();
+    if (!cleanDescription) {
+      throw new Error("Timeline description is required.");
+    }
+    if (cleanDescription.length > 1000) {
+      throw new Error("Timeline description cannot exceed 1,000 characters.");
+    }
+
+    const result = await this.repository.update(id, caseId, userId, {
+      description: cleanDescription,
+    });
+
+    await this.repository.create({
+      caseId,
+      activityType: ActivityType.CASE_UPDATED,
+      description: "Timeline entry edited.",
+      metadata: { activityId: id },
+    });
+
+    return result;
+  }
+
+  async deleteTimelineEvent(id: string, caseId: string, userId: string) {
+    const existing = await this.repository.findById(id, caseId, userId);
+    if (!existing) {
+      throw new Error("Timeline event not found or access denied.");
+    }
+
+    const result = await this.repository.delete(id, caseId, userId);
+
+    await this.repository.create({
+      caseId,
+      activityType: ActivityType.CASE_UPDATED,
+      description: "Timeline entry removed.",
+      metadata: {
+        activityId: id,
+        removedDescription: existing.description,
+      },
+    });
+
+    return result;
+  }
 }
 
 export const activityService = new ActivityService();

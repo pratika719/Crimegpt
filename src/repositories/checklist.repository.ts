@@ -22,10 +22,11 @@ export class ChecklistRepository {
     });
   }
 
-  async findById(id: string, userId: string) {
+  async findById(id: string, userId: string, caseId?: string) {
     return prisma.checklistItem.findFirst({
       where: {
         id,
+        ...(caseId ? { caseId } : {}),
         case: { userId },
       },
     });
@@ -42,8 +43,8 @@ export class ChecklistRepository {
     });
   }
 
-  async update(id: string, userId: string, data: UpdateChecklistItemInput) {
-    const existing = await this.findById(id, userId);
+  async update(id: string, userId: string, data: UpdateChecklistItemInput, caseId?: string) {
+    const existing = await this.findById(id, userId, caseId);
     if (!existing) {
       throw new Error("Unauthorized: Checklist item not found or access denied.");
     }
@@ -58,8 +59,8 @@ export class ChecklistRepository {
     });
   }
 
-  async delete(id: string, userId: string) {
-    const existing = await this.findById(id, userId);
+  async delete(id: string, userId: string, caseId?: string) {
+    const existing = await this.findById(id, userId, caseId);
     if (!existing) {
       throw new Error("Unauthorized: Checklist item not found or access denied.");
     }

@@ -26,10 +26,11 @@ export class PersonRepository {
     });
   }
 
-  async findById(id: string, userId: string) {
+  async findById(id: string, userId: string, caseId?: string) {
     return prisma.person.findFirst({
       where: {
         id,
+        ...(caseId ? { caseId } : {}),
         case: { userId },
       },
     });
@@ -46,8 +47,8 @@ export class PersonRepository {
     });
   }
 
-  async update(id: string, userId: string, data: UpdatePersonInput) {
-    const existing = await this.findById(id, userId);
+  async update(id: string, userId: string, data: UpdatePersonInput, caseId?: string) {
+    const existing = await this.findById(id, userId, caseId);
     if (!existing) {
       throw new Error("Unauthorized: Person not found or access denied.");
     }
@@ -65,8 +66,8 @@ export class PersonRepository {
     });
   }
 
-  async delete(id: string, userId: string) {
-    const existing = await this.findById(id, userId);
+  async delete(id: string, userId: string, caseId?: string) {
+    const existing = await this.findById(id, userId, caseId);
     if (!existing) {
       throw new Error("Unauthorized: Person not found or access denied.");
     }

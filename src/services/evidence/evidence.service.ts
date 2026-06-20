@@ -26,8 +26,8 @@ export class EvidenceService {
   /**
    * Retrieves an evidence item by ID. Throws error if not found or unauthorized.
    */
-  async getEvidenceById(id: string, userId: string) {
-    const evidence = await this.repository.findById(id, userId);
+  async getEvidenceById(id: string, userId: string, caseId?: string) {
+    const evidence = await this.repository.findById(id, userId, caseId);
     if (!evidence) {
       throw new Error("Evidence record not found or access denied.");
     }
@@ -44,12 +44,12 @@ export class EvidenceService {
   /**
    * Updates details for an evidence item. Validates input and logs EVIDENCE_UPDATED timeline log.
    */
-  async updateEvidence(id: string, userId: string, input: UpdateEvidenceInput) {
+  async updateEvidence(id: string, userId: string, input: UpdateEvidenceInput, caseId?: string) {
     const parsed = UpdateEvidenceSchema.parse(input);
-    const existing = await this.getEvidenceById(id, userId);
+    const existing = await this.getEvidenceById(id, userId, caseId);
 
     console.log(`💼 [EvidenceService] Updating evidence details for ID: ${id} by user: ${userId}`);
-    const result = await this.repository.update(id, userId, parsed);
+    const result = await this.repository.update(id, userId, parsed, caseId);
     
     // Log timeline activity
     await activityService.logEvidenceUpdated(existing.caseId, result.title, result.type);
@@ -60,11 +60,11 @@ export class EvidenceService {
   /**
    * Deletes an evidence item. Logs EVIDENCE_DELETED timeline log.
    */
-  async deleteEvidence(id: string, userId: string) {
-    const existing = await this.getEvidenceById(id, userId);
+  async deleteEvidence(id: string, userId: string, caseId?: string) {
+    const existing = await this.getEvidenceById(id, userId, caseId);
     
     console.log(`💼 [EvidenceService] Deleting evidence record: ${existing.title} (ID: ${id}) by user: ${userId}`);
-    const result = await this.repository.delete(id, userId);
+    const result = await this.repository.delete(id, userId, caseId);
     
     // Log timeline activity
     await activityService.logEvidenceDeleted(existing.caseId, existing.title, existing.type);

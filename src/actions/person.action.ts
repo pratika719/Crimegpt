@@ -58,7 +58,7 @@ export async function updatePersonAction(
       return { success: false, message: "ID and Case ID are required." };
     }
 
-    const person = await personService.updatePerson(id, userId, data);
+    const person = await personService.updatePerson(id, userId, data, caseId);
     revalidatePath(`/case/${caseId}`);
 
     return {
@@ -89,7 +89,7 @@ export async function deletePersonAction(id: string, caseId: string) {
       return { success: false, message: "ID and Case ID are required." };
     }
 
-    const person = await personService.deletePerson(id, userId);
+    const person = await personService.deletePerson(id, userId, caseId);
     revalidatePath(`/case/${caseId}`);
 
     return {

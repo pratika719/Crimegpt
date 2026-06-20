@@ -20,6 +20,16 @@ import {
 } from "lucide-react";
 import { deleteEvidenceAction } from "@/actions/evidence.action";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 
 interface Evidence {
   id: string;
@@ -48,6 +58,7 @@ export default function EvidenceDetailsSheet({
 }: EvidenceDetailsSheetProps) {
   const [isPending, startTransition] = useTransition();
   const [isMounted, setIsMounted] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   // Animate drawer slide-in
   useEffect(() => {
@@ -65,9 +76,6 @@ export default function EvidenceDetailsSheet({
 
   const handleDelete = () => {
     if (!evidence) return;
-    if (!confirm(`Are you sure you want to remove the evidence record "${evidence.title}" from this case dossier?`)) {
-      return;
-    }
 
     startTransition(async () => {
       const response = await deleteEvidenceAction(evidence.id, caseId);
@@ -75,6 +83,7 @@ export default function EvidenceDetailsSheet({
         toast.error(response.message || "Failed to remove evidence record.");
       } else {
         toast.success(`Removed evidence record: ${evidence.title}`);
+        setIsDeleteOpen(false);
         onClose();
       }
     });
@@ -260,7 +269,7 @@ export default function EvidenceDetailsSheet({
         {evidence && (
           <div className="border-t border-zinc-200 dark:border-zinc-800 px-6 py-4 flex items-center justify-between gap-4 bg-zinc-50/50 dark:bg-zinc-900/50 mt-auto">
             <button
-              onClick={handleDelete}
+              onClick={() => setIsDeleteOpen(true)}
               disabled={isPending}
               className="inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer border border-red-200 dark:border-red-950/20 text-red-600 dark:text-red-400 bg-white dark:bg-zinc-900 hover:bg-red-50 dark:hover:bg-red-950/10 px-4 py-2 rounded-lg transition-all h-9"
             >
@@ -283,6 +292,31 @@ export default function EvidenceDetailsSheet({
           </div>
         )}
       </div>
+
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Evidence Record?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. Only the evidence database record
+              will be removed; linked file storage is not deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={isPending}>
+              {isPending ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Evidence"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

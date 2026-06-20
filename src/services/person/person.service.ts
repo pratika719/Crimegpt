@@ -26,8 +26,8 @@ export class PersonService {
   /**
    * Retrieves a person by ID. Throws error if not found or unauthorized.
    */
-  async getPersonById(id: string, userId: string) {
-    const person = await this.repository.findById(id, userId);
+  async getPersonById(id: string, userId: string, caseId?: string) {
+    const person = await this.repository.findById(id, userId, caseId);
     if (!person) {
       throw new Error("Person not found or access denied.");
     }
@@ -44,12 +44,12 @@ export class PersonService {
   /**
    * Updates details for a person. Validates input and logs a PERSON_UPDATED timeline event.
    */
-  async updatePerson(id: string, userId: string, input: UpdatePersonInput) {
+  async updatePerson(id: string, userId: string, input: UpdatePersonInput, caseId?: string) {
     const parsed = UpdatePersonSchema.parse(input);
-    const existing = await this.getPersonById(id, userId);
+    const existing = await this.getPersonById(id, userId, caseId);
 
     console.log(`💼 [PersonService] Updating person details for ID: ${id} by user: ${userId}`);
-    const result = await this.repository.update(id, userId, parsed);
+    const result = await this.repository.update(id, userId, parsed, caseId);
     
     // Log timeline activity
     await activityService.logPersonUpdated(existing.caseId, result.name, result.role);
@@ -60,11 +60,11 @@ export class PersonService {
   /**
    * Deletes a person by ID. Logs a PERSON_DELETED timeline event.
    */
-  async deletePerson(id: string, userId: string) {
-    const existing = await this.getPersonById(id, userId);
+  async deletePerson(id: string, userId: string, caseId?: string) {
+    const existing = await this.getPersonById(id, userId, caseId);
     
     console.log(`💼 [PersonService] Deleting person: ${existing.name} (ID: ${id}) by user: ${userId}`);
-    const result = await this.repository.delete(id, userId);
+    const result = await this.repository.delete(id, userId, caseId);
     
     // Log timeline activity
     await activityService.logPersonDeleted(existing.caseId, existing.name, existing.role);

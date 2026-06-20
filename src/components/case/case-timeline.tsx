@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import { 
   PlusCircle, 
   Edit3, 
@@ -15,8 +16,43 @@ import {
   UserMinus,
   Paperclip,
   Trash2,
-  CheckSquare
+  CheckSquare,
+  MoreHorizontal,
+  Pencil,
+  Loader2
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
+import {
+  updateTimelineEventAction,
+  deleteTimelineEventAction,
+} from "@/actions/case-activity.action";
+import { toast } from "sonner";
 
 interface CaseActivity {
   id: string;
@@ -27,6 +63,7 @@ interface CaseActivity {
 }
 
 interface CaseTimelineProps {
+  caseId: string;
   activities: CaseActivity[];
 }
 
@@ -58,7 +95,50 @@ function formatRelativeTime(dateInput: Date | string) {
   });
 }
 
-export default function CaseTimeline({ activities }: CaseTimelineProps) {
+export default function CaseTimeline({ caseId, activities }: CaseTimelineProps) {
+  const [editingActivity, setEditingActivity] = useState<CaseActivity | null>(null);
+  const [deletingActivity, setDeletingActivity] = useState<CaseActivity | null>(null);
+  const [editDescription, setEditDescription] = useState("");
+  const [isPending, startTransition] = useTransition();
+
+  const openEditDialog = (activity: CaseActivity) => {
+    setEditingActivity(activity);
+    setEditDescription(activity.description);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingActivity || !editDescription.trim()) return;
+
+    startTransition(async () => {
+      const response = await updateTimelineEventAction(
+        editingActivity.id,
+        caseId,
+        editDescription.trim()
+      );
+
+      if (response.success) {
+        toast.success("Timeline entry updated.");
+        setEditingActivity(null);
+      } else {
+        toast.error(response.message || "Failed to update timeline entry.");
+      }
+    });
+  };
+
+  const handleDelete = () => {
+    if (!deletingActivity) return;
+
+    startTransition(async () => {
+      const response = await deleteTimelineEventAction(deletingActivity.id, caseId);
+
+      if (response.success) {
+        toast.success("Timeline entry deleted.");
+        setDeletingActivity(null);
+      } else {
+        toast.error(response.message || "Failed to delete timeline entry.");
+      }
+    });
+  };
   
   // Icon and badge color mapping based on activity type
   const getActivityStyles = (type: string) => {
@@ -191,9 +271,35 @@ export default function CaseTimeline({ activities }: CaseTimelineProps) {
                         </span>
                       </div>
                       
-                      <div className="flex items-center gap-1 text-[10px] font-mono text-zinc-400 dark:text-zinc-500">
-                        <Clock className="h-3.5 w-3.5" />
-                        <span>{relativeTime}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 text-[10px] font-mono text-zinc-400 dark:text-zinc-500">
+                          <Clock className="h-3.5 w-3.5" />
+                          <span>{relativeTime}</span>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
+                            render={
+                              <button
+                                type="button"
+                                className="opacity-0 group-hover:opacity-100 inline-flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition-all"
+                                aria-label="Timeline actions"
+                              />
+                            }
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem onClick={() => openEditDialog(activity)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                              <span>Edit Entry</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem destructive onClick={() => setDeletingActivity(activity)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                              <span>Delete Entry</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
 
@@ -207,6 +313,74 @@ export default function CaseTimeline({ activities }: CaseTimelineProps) {
           </div>
         )}
       </div>
+
+      <Dialog open={!!editingActivity} onOpenChange={(open) => !open && setEditingActivity(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Timeline Entry</DialogTitle>
+            <DialogDescription>
+              Update the visible description for this activity timeline entry.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={editDescription}
+            onChange={(e) => setEditDescription(e.target.value)}
+            disabled={isPending}
+            className="min-h-[120px]"
+            maxLength={1000}
+          />
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isPending}
+              onClick={() => setEditingActivity(null)}
+              className="text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={isPending || !editDescription.trim()}
+              onClick={handleSaveEdit}
+              className="text-xs"
+            >
+              {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={!!deletingActivity}
+        onOpenChange={(open) => {
+          if (!open && !isPending) setDeletingActivity(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Timeline Entry?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The selected activity entry will be
+              permanently removed from the case timeline.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={isPending}>
+              {isPending ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Entry"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -55,6 +55,48 @@ export class DocumentRepository {
       },
     });
   }
+
+  /**
+   * Finds a single document by ID with ownership verification.
+   */
+  async findById(id: string, userId: string, caseId?: string) {
+    return prisma.generatedDocument.findFirst({
+      where: {
+        id,
+        ...(caseId ? { caseId } : {}),
+        case: { userId },
+      },
+    });
+  }
+
+  /**
+   * Updates the title of a generated document.
+   */
+  async updateTitle(id: string, userId: string, title: string, caseId?: string) {
+    const existing = await this.findById(id, userId, caseId);
+    if (!existing) {
+      throw new Error("Unauthorized: Document not found or access denied.");
+    }
+
+    return prisma.generatedDocument.update({
+      where: { id },
+      data: { title },
+    });
+  }
+
+  /**
+   * Deletes a single generated document by ID.
+   */
+  async deleteById(id: string, userId: string, caseId?: string) {
+    const existing = await this.findById(id, userId, caseId);
+    if (!existing) {
+      throw new Error("Unauthorized: Document not found or access denied.");
+    }
+
+    return prisma.generatedDocument.delete({
+      where: { id },
+    });
+  }
 }
 
 export const documentRepository = new DocumentRepository();

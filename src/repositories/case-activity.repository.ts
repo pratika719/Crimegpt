@@ -41,6 +41,47 @@ export class CaseActivityRepository {
     });
   }
 
+  async findById(id: string, caseId: string, userId: string) {
+    return prisma.caseActivity.findFirst({
+      where: {
+        id,
+        caseId,
+        case: { userId },
+      },
+    });
+  }
+
+  async update(
+    id: string,
+    caseId: string,
+    userId: string,
+    data: {
+      description: string;
+      metadata?: any;
+    }
+  ) {
+    const existing = await this.findById(id, caseId, userId);
+    if (!existing) {
+      throw new Error("Unauthorized: Timeline event not found or access denied.");
+    }
+
+    return prisma.caseActivity.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async delete(id: string, caseId: string, userId: string) {
+    const existing = await this.findById(id, caseId, userId);
+    if (!existing) {
+      throw new Error("Unauthorized: Timeline event not found or access denied.");
+    }
+
+    return prisma.caseActivity.delete({
+      where: { id },
+    });
+  }
+
   /**
    * Finds the latest activities for a case.
    */

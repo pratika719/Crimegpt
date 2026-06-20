@@ -2,8 +2,8 @@
 
 import { useState, useTransition, FormEvent } from "react";
 import { 
-  CheckSquare, 
   Trash2, 
+  Pencil,
   Plus, 
   Loader2, 
   ClipboardCheck, 
@@ -14,9 +14,28 @@ import { Input } from "@/components/ui/input";
 import { 
   createChecklistItemAction, 
   toggleChecklistItemAction, 
-  deleteChecklistItemAction 
+  deleteChecklistItemAction,
+  renameChecklistItemAction
 } from "@/actions/checklist.action";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface ChecklistItem {
   id: string;
@@ -35,6 +54,9 @@ export default function CaseChecklistSection({ caseId, initialChecklist }: CaseC
   const [newTitle, setNewTitle] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ChecklistItem | null>(null);
+  const [editingTask, setEditingTask] = useState<ChecklistItem | null>(null);
+  const [editTitle, setEditTitle] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [, startTransition] = useTransition();
 
@@ -92,17 +114,44 @@ export default function CaseChecklistSection({ caseId, initialChecklist }: CaseC
     });
   };
 
-  const handleDeleteTask = (id: string, title: string) => {
-    if (!confirm(`Are you sure you want to remove the task "${title}"?`)) {
-      return;
-    }
+  const openEditTask = (item: ChecklistItem) => {
+    setEditingTask(item);
+    setEditTitle(item.title);
+  };
 
-    setDeletingId(id);
+  const handleRenameTask = () => {
+    if (!editingTask || !editTitle.trim()) return;
+
+    setUpdatingId(editingTask.id);
     startTransition(async () => {
       try {
-        const res = await deleteChecklistItemAction(id, caseId);
+        const res = await renameChecklistItemAction(editingTask.id, caseId, editTitle.trim());
+        if (res.success) {
+          toast.success("Checklist task renamed.");
+          setEditingTask(null);
+        } else {
+          toast.error(res.message || "Failed to rename task.");
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error("An error occurred while renaming the task.");
+      } finally {
+        setUpdatingId(null);
+      }
+    });
+  };
+
+  const handleDeleteTask = () => {
+    if (!deleteTarget) return;
+
+    const target = deleteTarget;
+    setDeletingId(target.id);
+    startTransition(async () => {
+      try {
+        const res = await deleteChecklistItemAction(target.id, caseId);
         if (res.success) {
           toast.success("Task removed from checklist.");
+          setDeleteTarget(null);
         } else {
           toast.error(res.message || "Failed to delete task.");
         }
@@ -246,7 +295,16 @@ export default function CaseChecklistSection({ caseId, initialChecklist }: CaseC
                   <button
                     type="button"
                     disabled={isUpdating || isDeleting}
-                    onClick={() => handleDeleteTask(item.id, item.title)}
+                    onClick={() => openEditTask(item)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer disabled:opacity-50"
+                    title="Rename Task"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isUpdating || isDeleting}
+                    onClick={() => setDeleteTarget(item)}
                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded text-zinc-400 hover:text-red-650 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer disabled:opacity-50"
                     title="Delete Task"
                   >
@@ -262,6 +320,73 @@ export default function CaseChecklistSection({ caseId, initialChecklist }: CaseC
           </div>
         )}
       </div>
+
+      <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rename Checklist Task</DialogTitle>
+            <DialogDescription>
+              Update the task name shown in the investigation checklist.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            disabled={!!updatingId}
+            maxLength={200}
+          />
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!!updatingId}
+              onClick={() => setEditingTask(null)}
+              className="text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={!!updatingId || !editTitle.trim()}
+              onClick={handleRenameTask}
+              className="text-xs"
+            >
+              {updatingId ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open && !deletingId) setDeleteTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Checklist Task?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The checklist task will be removed
+              from this investigation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!deletingId}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteTask} disabled={!!deletingId}>
+              {deletingId ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Task"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

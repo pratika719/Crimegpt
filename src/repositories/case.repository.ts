@@ -123,4 +123,32 @@ export class CaseRepository {
       data: { status },
     });
   }
+
+  async update(
+    id: string,
+    userId: string,
+    data: {
+      title?: string;
+      narrative?: string;
+      status?: "OPEN" | "UNDER_INVESTIGATION" | "CLOSED";
+    }
+  ) {
+    const c = await prisma.case.findFirst({ where: { id, userId } });
+    if (!c) throw new Error("Case not found or unauthorized");
+
+    return prisma.case.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async delete(id: string, userId: string) {
+    const c = await prisma.case.findFirst({ where: { id, userId } });
+    if (!c) throw new Error("Case not found or unauthorized");
+
+    // Prisma cascade handles all child records
+    return prisma.case.delete({
+      where: { id },
+    });
+  }
 }

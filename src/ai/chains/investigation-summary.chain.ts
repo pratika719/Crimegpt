@@ -43,7 +43,7 @@ export class InvestigationSummaryChain {
     // 3. Query Gemini Flash
     const modelUsed = geminiProvider.getModelName();
     console.log(`🤖 [InvestigationSummaryChain] Dispatching RAG prompt to ${modelUsed}...`);
-    const rawResponse = await geminiProvider.generateJSON(promptText);
+    const { text: rawResponse } = await geminiProvider.generateJSON(promptText);
 
     const latencyMs = Date.now() - startTime;
     console.log(`🤖 [InvestigationSummaryChain] Model responded in ${latencyMs}ms.`);

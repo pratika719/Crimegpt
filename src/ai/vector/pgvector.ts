@@ -1,5 +1,5 @@
 import { PGVectorStore } from "@langchain/pgvector";
-import { Pool } from "pg";
+import { pool as sharedPool } from "@/lib/prisma";
 import { embeddings } from "../embeddings/minilm.embeddings";
 import { BaseRetriever, BaseRetrieverInput } from "@langchain/core/retrievers";
 import { Document } from "@langchain/core/documents";
@@ -9,38 +9,14 @@ import dotenv from "dotenv";
 // Load environment variables for standalone scripts or Next.js boundary
 dotenv.config();
 
-let pool: Pool | null = null;
 let vectorStoreInstance: PGVectorStore | null = null;
 
 /**
- * Returns a configured pg.Pool connection singleton.
+ * Returns the shared pg.Pool instance (sourced from lib/prisma.ts).
+ * Kept for backwards compatibility with any callers that use getPool() directly.
  */
-export function getPool(): Pool {
-  if (!pool) {
-    const connectionString = process.env.DATABASE_URL;
-    if (!connectionString) {
-      throw new Error(
-        "DATABASE_URL is not defined in environment variables. Please check your .env file."
-      );
-    }
-
-    pool = new Pool({
-      connectionString,
-      // Production pool configurations
-      max: 10,                 // Maximum number of clients in the pool
-      idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-      connectionTimeoutMillis: 5000, // Timeout if connection takes more than 5s
-      ssl: connectionString.includes("sslmode=require") || connectionString.includes("neon.tech")
-        ? { rejectUnauthorized: false }
-        : false,
-    });
-
-    // Handle pool errors to prevent process crashes on transient network issues or pool teardown
-    pool.on("error", (err) => {
-      console.warn("⚠️ Database pool error:", err.message);
-    });
-  }
-  return pool;
+export function getPool() {
+  return sharedPool;
 }
 
 /**
@@ -55,7 +31,7 @@ export async function createVectorStore(): Promise<PGVectorStore> {
   }
 
   try {
-    const dbPool = getPool();
+    const dbPool = sharedPool;
 
     // Verify pgvector extension is enabled
     const client = await dbPool.connect();
@@ -156,7 +132,11 @@ export async function getRetriever(k = 4) {
  * @param query The search query string.
  * @param k The number of unique documents to return (default is 3).
  */
-export async function similaritySearchDeduplicated(query: string, k = 3): Promise<[Document, number][]> {
+export async function similaritySearchDeduplicated(
+  query: string, 
+  k = 3, 
+  minSimilarity = 0.35
+): Promise<[Document, number][]> {
   const store = await createVectorStore();
   
   // Retrieve k * 2 candidates to account for potential duplicates
@@ -166,6 +146,12 @@ export async function similaritySearchDeduplicated(query: string, k = 3): Promis
   const uniqueResults: [Document, number][] = [];
 
   for (const [doc, score] of results) {
+    // score returned is cosine distance. Cosine similarity = 1 - cosine distance.
+    const similarity = 1 - score;
+    if (similarity < minSimilarity) {
+      continue;
+    }
+
     const normalizedContent = doc.pageContent.replace(/\s+/g, " ").trim();
     if (!seen.has(normalizedContent)) {
       seen.add(normalizedContent);

@@ -47,24 +47,23 @@ enum AIRequestType {
 model Case {
   id String @id @default(cuid())
 
-  
-  title           String
-  narrative       String   @db.Text
+  title     String
+  narrative String @db.Text
 
-  status          CaseStatus @default(OPEN)
+  status CaseStatus @default(OPEN)
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  documents       GeneratedDocument[]
-  chatSessions    ChatSession[]
-  aiRequests      AIRequestLog[]
-  metadata        CaseMetadata?
-  activities      CaseActivity[]
-  persons         Person[]
-  evidence        Evidence[]
-  checklist       ChecklistItem[]
-  
+  documents    GeneratedDocument[]
+  chatSessions ChatSession[]
+  aiRequests   AIRequestLog[]
+  metadata     CaseMetadata?
+  activities   CaseActivity[]
+  persons      Person[]
+  evidence     Evidence[]
+  checklist    ChecklistItem[]
+
   investigationProfile InvestigationProfile?
   victims              Victim[]
   accused              Accused[]
@@ -74,102 +73,105 @@ model Case {
   medicalInfos         MedicalInformation[]
   courtInfos           CourtInformation[]
 
-  userId          String
-  user            User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([status])
   @@index([createdAt])
 }
+
 //
-model GeneratedDocument{
-   id              String @id @default(cuid())
+model GeneratedDocument {
+  id String @id @default(cuid())
 
-  type            DocumentType
+  type DocumentType
 
-  title           String
+  title String
 
-  content         Json
+  content Json
 
-  version         Int @default(1)
+  version Int @default(1)
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  caseId          String
-  case            Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  caseId String
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
   @@index([caseId])
   @@index([type])
+  @@index([caseId, type])
 }
 
-
 model ChatSession {
-  id              String @id @default(cuid())
+  id String @id @default(cuid())
 
-  title           String?
+  title String?
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  caseId          String
-  case            Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  caseId String
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
-  messages        ChatMessage[]
+  messages ChatMessage[]
 
   @@index([caseId])
 }
 
-
 model ChatMessage {
-  id              String @id @default(cuid())
+  id String @id @default(cuid())
 
-  role            MessageRole
+  role MessageRole
 
-  content         String @db.Text
+  content String @db.Text
 
-  createdAt       DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  sessionId       String
-  session         ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([sessionId])
 }
+
 model LegalChunk {
-  id          String @id @default(cuid())
+  id String @id @default(cuid())
 
   lawName     String
   sectionCode String
   title       String
   content     String @db.Text
 
-  source      String?
+  source String?
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 }
+
 model AIRequestLog {
-  id              String @id @default(cuid())
+  id String @id @default(cuid())
 
-  requestType     AIRequestType
+  requestType AIRequestType
 
-  prompt          String @db.Text
+  prompt String @db.Text
 
   retrievedContext String? @db.Text
 
-  response        String @db.Text
+  response String @db.Text
 
-  latencyMs       Int?
+  latencyMs Int?
 
-  modelUsed       String?
+  modelUsed String?
 
-  tokenUsage      Int?
+  tokenUsage Int?
 
-  createdAt       DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  caseId          String?
-  case            Case? @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  caseId String?
+  case   Case?   @relation(fields: [caseId], references: [id], onDelete: SetNull)
 
   @@index([requestType])
   @@index([createdAt])
+  @@index([caseId, requestType])
 }
 
 model CaseMetadata {
@@ -187,8 +189,8 @@ model CaseMetadata {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  caseId             String    @unique
-  case               Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  caseId String @unique
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
 }
 
 enum ActivityType {
@@ -259,15 +261,16 @@ model Person {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
-  caseId    String
-  case      Case       @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  caseId String
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
-  victim    Victim?
-  accused   Accused?
-  witness   Witness?
+  victim  Victim?
+  accused Accused?
+  witness Witness?
 
   @@index([caseId])
   @@index([role])
+  @@index([caseId, role])
 }
 
 model CaseActivity {
@@ -277,8 +280,8 @@ model CaseActivity {
   metadata     Json?
   createdAt    DateTime     @default(now())
 
-  caseId       String
-  case         Case         @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  caseId String
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
   @@index([caseId])
   @@index([createdAt])
@@ -304,8 +307,8 @@ model Evidence {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  caseId      String
-  case        Case         @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  caseId String
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
   @@index([caseId])
   @@index([type])
@@ -319,74 +322,74 @@ model ChecklistItem {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  caseId      String
-  case        Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  caseId String
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
   @@index([caseId])
 }
 
 model InvestigationProfile {
-  id                 String             @id @default(cuid())
-  caseId             String             @unique
-  case               Case               @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  
+  id     String @id @default(cuid())
+  caseId String @unique
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
   // Police Information
-  firNumber          String?
-  policeStation      String?
+  firNumber            String?
+  policeStation        String?
   investigatingOfficer String?
-  dateOfRegistration DateTime?
-  
+  dateOfRegistration   DateTime?
+
   // Incident details
-  incidentDateTime   DateTime?
-  incidentLocation   String?
-  incidentDescription String?          @db.Text
-  
+  incidentDateTime    DateTime?
+  incidentLocation    String?
+  incidentDescription String?   @db.Text
+
   // Notes
-  investigationNotes String?            @db.Text
-  
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  investigationNotes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Victim {
-  id             String   @id @default(cuid())
-  caseId         String
-  case           Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  personId       String   @unique
-  person         Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
-  injuryDetails  String?  @db.Text
-  status         String?  // e.g., Deceased, Injured, Stable, Unharmed
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
+  id            String   @id @default(cuid())
+  caseId        String
+  case          Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  personId      String   @unique
+  person        Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  injuryDetails String?  @db.Text
+  status        String? // e.g., Deceased, Injured, Stable, Unharmed
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
   @@index([caseId])
 }
 
 model Accused {
-  id             String   @id @default(cuid())
-  caseId         String
-  case           Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  personId       String   @unique
-  person         Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
-  arrestStatus   String?  // e.g., Absconding, Arrested, Custody, On Bail
-  bailDetails    String?  @db.Text
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
+  id           String   @id @default(cuid())
+  caseId       String
+  case         Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  personId     String   @unique
+  person       Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  arrestStatus String? // e.g., Absconding, Arrested, Custody, On Bail
+  bailDetails  String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
   @@index([caseId])
 }
 
 model Witness {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   caseId           String
-  case             Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  personId         String   @unique
-  person           Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  case             Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  personId         String    @unique
+  person           Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
   statementDate    DateTime?
-  credibilityScore String?  // e.g., High, Medium, Low
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  
+  credibilityScore String? // e.g., High, Medium, Low
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
   @@index([caseId])
 }
 
@@ -401,63 +404,63 @@ model Vehicle {
   licensePlate      String?
   registrationState String?
   ownerName         String?
-  seizureStatus     String?  // e.g., Seized, Released, Wanted
+  seizureStatus     String? // e.g., Seized, Released, Wanted
   notes             String?  @db.Text
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-  
+
   @@index([caseId])
 }
 
 model SeizedItem {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   caseId          String
-  case            Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  case            Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
   itemName        String
-  description     String?  @db.Text
+  description     String?   @db.Text
   serialNumber    String?
   seizureLocation String?
   seizureDate     DateTime?
   officerInCharge String?
   storageLocation String?
-  status          String?  // e.g., In Custody, Released, Destroyed
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  status          String? // e.g., In Custody, Released, Destroyed
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
   @@index([caseId])
 }
 
 model MedicalInformation {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   caseId           String
-  case             Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  case             Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
   hospitalName     String?
   doctorName       String?
   admissionDate    DateTime?
   injuryType       String?
   medicalReportNo  String?
-  treatmentDetails String?  @db.Text
-  severity         String?  // e.g., Critical, Severe, Moderate, Mild
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  
+  treatmentDetails String?   @db.Text
+  severity         String? // e.g., Critical, Severe, Moderate, Mild
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
   @@index([caseId])
 }
 
 model CourtInformation {
-  id                   String   @id @default(cuid())
+  id                   String    @id @default(cuid())
   caseId               String
-  case                 Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  case                 Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
   courtName            String?
   judgeName            String?
   caseNumber           String?
   nextHearingDate      DateTime?
   chargesheetFiledDate DateTime?
-  currentStatus        String?  // e.g., Trial, Hearing, Disposed
-  judgementDetails     String?  @db.Text
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-  
+  currentStatus        String? // e.g., Trial, Hearing, Disposed
+  judgementDetails     String?   @db.Text
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
   @@index([caseId])
 }
 
@@ -470,11 +473,11 @@ model User {
   accounts      Account[]
   sessions      Session[]
   cases         Case[]
- 
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
- 
+
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -488,30 +491,30 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
- 
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
- 
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
- 
+
   @@unique([provider, providerAccountId])
 }
- 
+
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
- 
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
- 
+
 model VerificationToken {
   identifier String
   token      String
   expires    DateTime
- 
+
   @@unique([identifier, token])
 }

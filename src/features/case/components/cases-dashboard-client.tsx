@@ -19,6 +19,79 @@ export function CasesDashboardClient({ initialCases }: CasesDashboardClientProps
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
 
+  if (initialCases.length === 0) {
+    return (
+      <div className="p-6 md:p-12 max-w-5xl mx-auto space-y-12 animate-fade-in">
+        {/* Header Hero Section with Premium Gradients */}
+        <div className="relative overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-gradient-to-br from-zinc-50 via-white to-zinc-100/50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900/50 p-8 md:p-12 shadow-xl">
+          {/* Background Ambient Glow */}
+          <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 dark:from-blue-500/20 dark:to-indigo-500/20 blur-3xl rounded-full pointer-events-none" />
+          
+          <div className="relative max-w-2xl space-y-6">
+            <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+              <span className="flex h-1.5 w-1.5 rounded-full bg-blue-500 animate-ping" />
+              Introducing CrimeGPT Dossier Intelligence
+            </div>
+            
+            <h1 className="text-3xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-600 dark:from-white dark:via-zinc-200 dark:to-zinc-400 bg-clip-text text-transparent">
+              Elevate Your Legal & Incident Analysis
+            </h1>
+            
+            <p className="text-xs md:text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
+              CrimeGPT is a comprehensive incident intelligence and automated drafting suite. Streamline police record indexing, analyze witness statements, check statutory legal compliance, and draft professional court-ready files in minutes.
+            </p>
+            
+            <div className="pt-2">
+              <CreateCaseDialog 
+                triggerClass="flex items-center gap-2 px-6 py-3.5 text-xs font-semibold bg-blue-600 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400 text-white rounded-xl shadow-lg hover:shadow-blue-500/20 transition-all hover:-translate-y-0.5 cursor-pointer"
+                triggerText="Create Your First Case"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Workflow Timeline / Feature Grid */}
+        <div className="space-y-6">
+          <div className="text-center md:text-left">
+            <h2 className="text-base font-semibold tracking-tight">Structured Case Workflow</h2>
+            <p className="text-xs text-zinc-500 mt-1">Get started in four simple steps to build a complete case portfolio.</p>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <StepCard 
+              step="1"
+              title="Narrative Intake"
+              description="Input the raw incident report or victim statement. CrimeGPT processes semantic concepts."
+              colorClass="border-blue-500/20 dark:border-blue-500/10"
+              icon={<FolderOpen className="h-5 w-5 text-blue-500" />}
+            />
+            <StepCard 
+              step="2"
+              title="Dossier Building"
+              description="Add structured profiles for victims, suspects, witnesses, seized weapons/vehicles, and medical evidence."
+              colorClass="border-amber-500/20 dark:border-amber-500/10"
+              icon={<AlertCircle className="h-5 w-5 text-amber-500" />}
+            />
+            <StepCard 
+              step="3"
+              title="Statutory Analysis"
+              description="Run similarity search against pgvector to map incident facts to actual IPC/BNS statutory codes."
+              colorClass="border-emerald-500/20 dark:border-emerald-500/10"
+              icon={<Search className="h-5 w-5 text-emerald-500" />}
+            />
+            <StepCard 
+              step="4"
+              title="Draft Reports"
+              description="Generate prosecution-ready FIRs, Chargesheets, Case Diaries, and Remand Applications using structured context."
+              colorClass="border-purple-500/20 dark:border-purple-500/10"
+              icon={<Calendar className="h-5 w-5 text-purple-500" />}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Dynamically calculate stats based on initial raw data
   const stats = useMemo(() => {
     const total = initialCases.length;
@@ -239,6 +312,37 @@ function EmptyState({
           <CreateCaseDialog />
         )}
       </div>
+    </div>
+  );
+}
+
+function StepCard({
+  step,
+  title,
+  description,
+  colorClass,
+  icon,
+}: {
+  step: string;
+  title: string;
+  description: string;
+  colorClass: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className={`relative overflow-hidden rounded-xl border bg-white dark:bg-zinc-900 p-5 shadow-sm hover:shadow-md transition-all hover:scale-[1.02] ${colorClass}`}>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-50 dark:bg-zinc-800/50">
+          {icon}
+        </div>
+        <span className="text-2xl font-bold font-mono text-zinc-300 dark:text-zinc-700/80">0{step}</span>
+      </div>
+      <h3 className="mt-4 text-xs font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider font-mono">
+        {title}
+      </h3>
+      <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+        {description}
+      </p>
     </div>
   );
 }

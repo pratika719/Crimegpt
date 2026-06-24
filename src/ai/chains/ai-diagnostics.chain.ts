@@ -28,7 +28,7 @@ export class AIDiagnosticsChain {
     // 3. Query Gemini
     const modelUsed = geminiProvider.getModelName();
     console.log(`🤖 [AIDiagnosticsChain] Dispatching diagnostics prompt to ${modelUsed}...`);
-    const rawResponse = await geminiProvider.generateJSON(promptText);
+    const { text: rawResponse } = await geminiProvider.generateJSON(promptText);
 
     const latencyMs = Date.now() - startTime;
     console.log(`🤖 [AIDiagnosticsChain] Model responded in ${latencyMs}ms.`);

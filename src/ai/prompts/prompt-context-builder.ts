@@ -105,34 +105,48 @@ export function formatUnifiedContextForPrompt(context: UnifiedCaseContext): stri
 
   return `--- POLICE INFORMATION ---
 ${policeInfo}
-
+ 
 --- INCIDENT DETAILS ---
 ${incidentInfo}
-
+ 
 --- VICTIMS ---
 ${victimsList}
-
+ 
 --- ACCUSED ---
 ${accusedList}
-
+ 
 --- WITNESSES ---
 ${witnessesList}
-
+ 
 --- VEHICLES ---
 ${vehiclesList}
-
+ 
 --- SEIZED PROPERTY ---
 ${seizedItemsList}
-
+ 
 --- MEDICAL REPORTS ---
 ${medicalList}
-
+ 
 --- COURT PROCEEDINGS ---
 ${courtList}
-
+ 
 --- EVIDENCE ASSETS ---
 ${evidenceList}
-
+ 
 --- CHRONOLOGICAL ACTIVITIES ---
 ${activitiesTimeline}`;
+}
+
+/**
+ * Sanitizes user case narratives before injecting them into LLM prompts.
+ * Escapes triple-quote sequences and limits character length.
+ */
+export function sanitizeUserNarrative(narrative: string | null | undefined): string {
+  if (!narrative) {
+    return "No case narrative provided.";
+  }
+  // Escape triple-quote block delimiters to prevent prompt injection escapes
+  const escaped = narrative.replace(/"""/g, '\\"\\"\\"');
+  // Limit total length to prevent huge injection payloads (10,000 characters)
+  return escaped.substring(0, 10000);
 }

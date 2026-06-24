@@ -13,14 +13,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-export function CreateCaseDialog() {
+export function CreateCaseDialog({ triggerClass, triggerText }: { triggerClass?: string; triggerText?: string }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger render={<Button className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer" />}>
+      <DialogTrigger render={<Button className={triggerClass || "flex items-center gap-1.5 text-xs font-semibold cursor-pointer"} />}>
         <Plus className="h-4 w-4" />
-        Create Case Dossier
+        {triggerText || "Create Case Dossier"}
       </DialogTrigger>
       
       <DialogContent className="sm:max-w-lg p-6">

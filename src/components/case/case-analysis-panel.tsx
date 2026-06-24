@@ -180,6 +180,45 @@ export default function CaseAnalysisPanel({
   // Custom version state for each document type
   const [customVersion, setCustomVersion] = useState<Record<string, number>>({});
 
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generationStep, setGenerationStep] = useState<"analyzing" | "generating" | "saving" | "completed">("analyzing");
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isPending) {
+      setGenerationProgress(0);
+      setGenerationStep("analyzing");
+      
+      const startTime = Date.now();
+      // Simulate progress over roughly 15 seconds
+      interval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        let progress = Math.min((elapsed / 15000) * 100, 95);
+        
+        // Add minor random variance to make it feel natural
+        progress += Math.random() * 2;
+        progress = Math.min(progress, 95);
+        
+        setGenerationProgress(progress);
+        
+        if (progress < 30) {
+          setGenerationStep("analyzing");
+        } else if (progress < 80) {
+          setGenerationStep("generating");
+        } else {
+          setGenerationStep("saving");
+        }
+      }, 300);
+    } else {
+      setGenerationProgress(100);
+      setGenerationStep("completed");
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isPending]);
+
   // Filter types based on search and type filter
   const filteredDocTypes = DOCUMENT_TYPES_METADATA.filter((docMeta) => {
     const matchesSearch = docMeta.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -463,15 +502,76 @@ export default function CaseAnalysisPanel({
         <div className="lg:col-span-8 space-y-4">
           {/* Active Generation Loading State */}
           {isPending && (
-            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/30 dark:bg-zinc-950/10 p-12 flex flex-col items-center justify-center text-center space-y-4 animate-pulse">
-              <Cpu className="h-10 w-10 text-zinc-500 dark:text-zinc-400 animate-spin" />
-              <div className="space-y-1">
-                <h4 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-                  {actionType === "REGENERATE" ? "Regenerating Document..." : "Drafting Police Document..."}
-                </h4>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm">
-                  Analyzing structured context pool, running Gemini {activeMeta.requiresRAG ? "with vector laws" : ""} reasoning, and validating output schema.
-                </p>
+            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 md:p-12 shadow-sm space-y-8 animate-fade-in">
+              <div className="flex flex-col items-center justify-center text-center space-y-3">
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-full bg-blue-500/20 blur-md animate-pulse" />
+                  <Loader2 className="h-10 w-10 text-blue-500 animate-spin relative" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    {actionType === "REGENERATE" ? "Regenerating Document..." : "Drafting Police Document..."}
+                  </h4>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm">
+                    {generationStep === "analyzing" && "Structuring incident context, mapping facts, and compiling dossier profiles..."}
+                    {generationStep === "generating" && `Querying PGVector legal database & running Gemini ${activeMeta.requiresRAG ? "RAG" : ""} reasoning...`}
+                    {generationStep === "saving" && "Validating document JSON output, committing database transaction, and logging activities..."}
+                  </p>
+                </div>
+              </div>
+
+              {/* Progress Bar Container */}
+              <div className="space-y-2 max-w-md mx-auto">
+                <div className="flex items-center justify-between text-[10px] font-mono font-bold text-zinc-500 dark:text-zinc-400">
+                  <span>PROGRESS</span>
+                  <span>{Math.round(generationProgress)}%</span>
+                </div>
+                <div className="h-2 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden border border-zinc-200/50 dark:border-zinc-700/50">
+                  <div 
+                    className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-full transition-all duration-300 ease-out" 
+                    style={{ width: `${generationProgress}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Step Indicators */}
+              <div className="max-w-md mx-auto grid grid-cols-3 gap-4 pt-2 border-t border-zinc-100 dark:border-zinc-800/80">
+                <div className="flex flex-col items-center text-center space-y-1">
+                  <div className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold border transition-colors ${
+                    generationProgress > 30 
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500"
+                      : "bg-blue-500/10 border-blue-500/30 text-blue-500 animate-pulse"
+                  }`}>
+                    {generationProgress > 30 ? "✓" : "1"}
+                  </div>
+                  <span className="text-[10px] font-medium text-zinc-700 dark:text-zinc-300">Intake Analysis</span>
+                </div>
+
+                <div className="flex flex-col items-center text-center space-y-1">
+                  <div className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold border transition-colors ${
+                    generationProgress > 80 
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500"
+                      : generationProgress > 30 
+                        ? "bg-blue-500/10 border-blue-500/30 text-blue-500 animate-pulse"
+                        : "bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-400"
+                  }`}>
+                    {generationProgress > 80 ? "✓" : "2"}
+                  </div>
+                  <span className="text-[10px] font-medium text-zinc-700 dark:text-zinc-300">Gemini Generation</span>
+                </div>
+
+                <div className="flex flex-col items-center text-center space-y-1">
+                  <div className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold border transition-colors ${
+                    generationProgress >= 95 
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500"
+                      : generationProgress > 80 
+                        ? "bg-blue-500/10 border-blue-500/30 text-blue-500 animate-pulse"
+                        : "bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-400"
+                  }`}>
+                    {generationProgress >= 95 ? "✓" : "3"}
+                  </div>
+                  <span className="text-[10px] font-medium text-zinc-700 dark:text-zinc-300">Commit Transaction</span>
+                </div>
               </div>
             </div>
           )}

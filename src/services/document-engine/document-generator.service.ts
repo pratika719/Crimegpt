@@ -38,6 +38,26 @@ export class DocumentGeneratorService {
     // Enrich context with fallback defaults to ensure AI generation succeeds even with partial profile data
     context = this.enrichContext(context);
 
+    if (type === DocumentType.CHARGE_SHEET) {
+      const hasAccused = (context.persons || []).some((p: any) => p.role === "SUSPECT") || 
+                         (context.accused && context.accused.length > 0);
+      if (!hasAccused) {
+        throw new Error("Validation Failed: Cannot generate a Charge Sheet without at least one identified Accused person.");
+      }
+    }
+
+    if (type === DocumentType.FIR) {
+      const hasVictim = (context.persons || []).some((p: any) => p.role === "VICTIM") || 
+                        (context.victims && context.victims.length > 0);
+      if (!hasVictim) {
+        throw new Error("Validation Failed: Cannot generate an FIR without an identified Victim or Complainant.");
+      }
+    }
+    // ==========================================
+
+    // Enrich context with fallback defaults...
+    context = this.enrichContext(context)
+
     // 4. Retrieve legal context from PGVector if required
     let retrievedChunks: any[] = [];
     if (config.requiresRAG) {
@@ -53,7 +73,7 @@ export class DocumentGeneratorService {
     const modelUsed = geminiProvider.getModelName();
     const startTime = Date.now();
     console.log(`🤖 [DocumentGeneratorService] Dispatching prompt to ${modelUsed}...`);
-    const rawResponse = await geminiProvider.generateJSON(promptText);
+    const { text: rawResponse, tokenUsage } = await geminiProvider.generateJSON(promptText);
     const latencyMs = Date.now() - startTime;
     console.log(`🤖 [DocumentGeneratorService] AI responded in ${latencyMs}ms.`);
 
@@ -96,6 +116,7 @@ export class DocumentGeneratorService {
         response: rawResponse,
         latencyMs,
         modelUsed,
+        tokenUsage,
         caseId,
       }, tx);
 

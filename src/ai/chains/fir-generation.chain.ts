@@ -39,7 +39,7 @@ export class FIRGenerationChain {
     // 3. Query Gemini Flash
     const modelUsed = geminiProvider.getModelName();
     console.log(`🤖 [FIRGenerationChain] Dispatching RAG prompt to ${modelUsed}...`);
-    const rawResponse = await geminiProvider.generateJSON(promptText);
+    const { text: rawResponse } = await geminiProvider.generateJSON(promptText);
 
     const latencyMs = Date.now() - startTime;
     console.log(`🤖 [FIRGenerationChain] Model responded in ${latencyMs}ms.`);

@@ -118,7 +118,7 @@ export function SettingsClient({ user }: { user: any }) {
           <div>
             <label className="block text-[10px] font-mono text-zinc-400 dark:text-zinc-500 uppercase">Operator ID Reference</label>
             <div className="mt-1 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 px-3 py-2 text-xs font-mono text-zinc-500 dark:text-zinc-400 select-all truncate">
-              {user.id || "N/A"}
+              {user.email ? `OP-${user.email.split("@")[0].toUpperCase()}` : "N/A"}
             </div>
           </div>
 

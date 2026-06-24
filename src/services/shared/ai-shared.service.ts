@@ -24,6 +24,7 @@ export class AIObservabilityService {
     response: string;
     latencyMs?: number;
     modelUsed?: string;
+    tokenUsage?: number;
     caseId?: string;
   }, tx?: any) {
     return aiRequestLogRepository.create(userId, data, tx);
@@ -51,7 +52,7 @@ export class PromptExecutionHelper {
    */
   formatLawsContext(
     laws: CleanedLawReference[], 
-    fallbackText = "No direct law references found in the database. Apply general legal reasoning."
+    fallbackText = "No direct law references found in the database. Do NOT cite any IPC/BNS sections. Mark confidence as LOW and explain that no legal references were found."
   ): string {
     return laws.length > 0 
       ? laws.map((law, index) => `

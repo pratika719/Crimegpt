@@ -2,8 +2,9 @@ import { prisma } from "@/lib/prisma";
 import { DocumentType } from "@/generated/prisma/client";
 
 export class DocumentRepository {
-  private async checkCaseOwnership(caseId: string, userId: string) {
-    const c = await prisma.case.findFirst({
+  private async checkCaseOwnership(caseId: string, userId: string, tx?: any) {
+    const client = tx || prisma;
+    const c = await client.case.findFirst({
       where: { id: caseId, userId },
     });
     if (!c) {
@@ -20,9 +21,10 @@ export class DocumentRepository {
     title: string;
     content: any; // Stored as Json in Prisma
     version?: number;
-  }) {
-    await this.checkCaseOwnership(data.caseId, userId);
-    return prisma.generatedDocument.create({
+  }, tx?: any) {
+    await this.checkCaseOwnership(data.caseId, userId, tx);
+    const client = tx || prisma;
+    return client.generatedDocument.create({
       data,
     });
   }
@@ -30,9 +32,10 @@ export class DocumentRepository {
   /**
    * Fetches the latest generated document of a specific type for a case.
    */
-  async findLatestByType(caseId: string, userId: string, type: DocumentType) {
-    await this.checkCaseOwnership(caseId, userId);
-    return prisma.generatedDocument.findFirst({
+  async findLatestByType(caseId: string, userId: string, type: DocumentType, tx?: any) {
+    await this.checkCaseOwnership(caseId, userId, tx);
+    const client = tx || prisma;
+    return client.generatedDocument.findFirst({
       where: {
         caseId,
         type,

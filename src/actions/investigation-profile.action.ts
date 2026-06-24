@@ -3,6 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { investigationProfileService } from "@/services/investigation-profile/investigation-profile.service";
 import { auth } from "@/auth";
+import {
+  InvestigationProfileSchema,
+  VictimSchema,
+  AccusedSchema,
+  WitnessSchema,
+  VehicleSchema,
+  SeizedItemSchema,
+  MedicalInformationSchema,
+  CourtInformationSchema,
+} from "@/schema/investigation-profile.schema";
 
 async function getSessionUserId() {
   const session = await auth();
@@ -15,7 +25,16 @@ async function getSessionUserId() {
 export async function upsertInvestigationProfileAction(caseId: string, data: any) {
   try {
     const userId = await getSessionUserId();
-    await investigationProfileService.upsertProfile(caseId, userId, data);
+    const parsed = InvestigationProfileSchema.parse(data);
+    
+    // Parse date fields if they are strings
+    const formattedData = {
+      ...parsed,
+      dateOfRegistration: parsed.dateOfRegistration ? new Date(parsed.dateOfRegistration) : null,
+      incidentDateTime: parsed.incidentDateTime ? new Date(parsed.incidentDateTime) : null,
+    };
+
+    await investigationProfileService.upsertProfile(caseId, userId, formattedData);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -27,7 +46,8 @@ export async function upsertInvestigationProfileAction(caseId: string, data: any
 export async function addVictimAction(caseId: string, data: any) {
   try {
     const userId = await getSessionUserId();
-    await investigationProfileService.addVictim(caseId, userId, data);
+    const parsed = VictimSchema.parse(data);
+    await investigationProfileService.addVictim(caseId, userId, parsed);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -38,7 +58,8 @@ export async function addVictimAction(caseId: string, data: any) {
 export async function updateVictimAction(victimId: string, caseId: string, data: any) {
   try {
     const userId = await getSessionUserId();
-    await investigationProfileService.updateVictim(victimId, userId, data);
+    const parsed = VictimSchema.partial().parse(data);
+    await investigationProfileService.updateVictim(victimId, userId, parsed);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -61,7 +82,8 @@ export async function deleteVictimAction(victimId: string, caseId: string) {
 export async function addAccusedAction(caseId: string, data: any) {
   try {
     const userId = await getSessionUserId();
-    await investigationProfileService.addAccused(caseId, userId, data);
+    const parsed = AccusedSchema.parse(data);
+    await investigationProfileService.addAccused(caseId, userId, parsed);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -72,7 +94,8 @@ export async function addAccusedAction(caseId: string, data: any) {
 export async function updateAccusedAction(accusedId: string, caseId: string, data: any) {
   try {
     const userId = await getSessionUserId();
-    await investigationProfileService.updateAccused(accusedId, userId, data);
+    const parsed = AccusedSchema.partial().parse(data);
+    await investigationProfileService.updateAccused(accusedId, userId, parsed);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -95,7 +118,14 @@ export async function deleteAccusedAction(accusedId: string, caseId: string) {
 export async function addWitnessAction(caseId: string, data: any) {
   try {
     const userId = await getSessionUserId();
-    await investigationProfileService.addWitness(caseId, userId, data);
+    const parsed = WitnessSchema.parse(data);
+
+    const formattedData = {
+      ...parsed,
+      statementDate: parsed.statementDate ? new Date(parsed.statementDate) : null,
+    };
+
+    await investigationProfileService.addWitness(caseId, userId, formattedData);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -106,7 +136,14 @@ export async function addWitnessAction(caseId: string, data: any) {
 export async function updateWitnessAction(witnessId: string, caseId: string, data: any) {
   try {
     const userId = await getSessionUserId();
-    await investigationProfileService.updateWitness(witnessId, userId, data);
+    const parsed = WitnessSchema.partial().parse(data);
+
+    const formattedData = {
+      ...parsed,
+      statementDate: parsed.statementDate ? new Date(parsed.statementDate) : undefined,
+    };
+
+    await investigationProfileService.updateWitness(witnessId, userId, formattedData);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -129,7 +166,8 @@ export async function deleteWitnessAction(witnessId: string, caseId: string) {
 export async function addVehicleAction(caseId: string, data: any) {
   try {
     const userId = await getSessionUserId();
-    await investigationProfileService.addVehicle(caseId, userId, data);
+    const parsed = VehicleSchema.parse(data);
+    await investigationProfileService.addVehicle(caseId, userId, parsed);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -140,7 +178,8 @@ export async function addVehicleAction(caseId: string, data: any) {
 export async function updateVehicleAction(vehicleId: string, caseId: string, data: any) {
   try {
     const userId = await getSessionUserId();
-    await investigationProfileService.updateVehicle(vehicleId, userId, data);
+    const parsed = VehicleSchema.partial().parse(data);
+    await investigationProfileService.updateVehicle(vehicleId, userId, parsed);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -163,7 +202,14 @@ export async function deleteVehicleAction(vehicleId: string, caseId: string) {
 export async function addSeizedItemAction(caseId: string, data: any) {
   try {
     const userId = await getSessionUserId();
-    await investigationProfileService.addSeizedItem(caseId, userId, data);
+    const parsed = SeizedItemSchema.parse(data);
+
+    const formattedData = {
+      ...parsed,
+      seizureDate: parsed.seizureDate ? new Date(parsed.seizureDate) : null,
+    };
+
+    await investigationProfileService.addSeizedItem(caseId, userId, formattedData);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -174,7 +220,14 @@ export async function addSeizedItemAction(caseId: string, data: any) {
 export async function updateSeizedItemAction(itemId: string, caseId: string, data: any) {
   try {
     const userId = await getSessionUserId();
-    await investigationProfileService.updateSeizedItem(itemId, userId, data);
+    const parsed = SeizedItemSchema.partial().parse(data);
+
+    const formattedData = {
+      ...parsed,
+      seizureDate: parsed.seizureDate ? new Date(parsed.seizureDate) : undefined,
+    };
+
+    await investigationProfileService.updateSeizedItem(itemId, userId, formattedData);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -197,7 +250,14 @@ export async function deleteSeizedItemAction(itemId: string, caseId: string) {
 export async function addMedicalInfoAction(caseId: string, data: any) {
   try {
     const userId = await getSessionUserId();
-    await investigationProfileService.addMedicalInfo(caseId, userId, data);
+    const parsed = MedicalInformationSchema.parse(data);
+
+    const formattedData = {
+      ...parsed,
+      admissionDate: parsed.admissionDate ? new Date(parsed.admissionDate) : null,
+    };
+
+    await investigationProfileService.addMedicalInfo(caseId, userId, formattedData);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -208,7 +268,14 @@ export async function addMedicalInfoAction(caseId: string, data: any) {
 export async function updateMedicalInfoAction(medicalInfoId: string, caseId: string, data: any) {
   try {
     const userId = await getSessionUserId();
-    await investigationProfileService.updateMedicalInfo(medicalInfoId, userId, data);
+    const parsed = MedicalInformationSchema.partial().parse(data);
+
+    const formattedData = {
+      ...parsed,
+      admissionDate: parsed.admissionDate ? new Date(parsed.admissionDate) : undefined,
+    };
+
+    await investigationProfileService.updateMedicalInfo(medicalInfoId, userId, formattedData);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -231,7 +298,15 @@ export async function deleteMedicalInfoAction(medicalInfoId: string, caseId: str
 export async function addCourtInfoAction(caseId: string, data: any) {
   try {
     const userId = await getSessionUserId();
-    await investigationProfileService.addCourtInfo(caseId, userId, data);
+    const parsed = CourtInformationSchema.parse(data);
+
+    const formattedData = {
+      ...parsed,
+      nextHearingDate: parsed.nextHearingDate ? new Date(parsed.nextHearingDate) : null,
+      chargesheetFiledDate: parsed.chargesheetFiledDate ? new Date(parsed.chargesheetFiledDate) : null,
+    };
+
+    await investigationProfileService.addCourtInfo(caseId, userId, formattedData);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {
@@ -242,7 +317,15 @@ export async function addCourtInfoAction(caseId: string, data: any) {
 export async function updateCourtInfoAction(courtInfoId: string, caseId: string, data: any) {
   try {
     const userId = await getSessionUserId();
-    await investigationProfileService.updateCourtInfo(courtInfoId, userId, data);
+    const parsed = CourtInformationSchema.partial().parse(data);
+
+    const formattedData = {
+      ...parsed,
+      nextHearingDate: parsed.nextHearingDate ? new Date(parsed.nextHearingDate) : undefined,
+      chargesheetFiledDate: parsed.chargesheetFiledDate ? new Date(parsed.chargesheetFiledDate) : undefined,
+    };
+
+    await investigationProfileService.updateCourtInfo(courtInfoId, userId, formattedData);
     revalidatePath(`/case/${caseId}`);
     return { success: true };
   } catch (error: any) {

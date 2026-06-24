@@ -34,9 +34,9 @@ export class CaseMetadataService {
 
     // Log the corresponding activity
     if (existing) {
-      await activityService.logMetadataUpdated(caseId);
+      await activityService.logMetadataUpdated(caseId, userId);
     } else {
-      await activityService.logMetadataCreated(caseId);
+      await activityService.logMetadataCreated(caseId, userId);
     }
 
     return result;

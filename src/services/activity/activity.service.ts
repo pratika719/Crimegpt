@@ -7,9 +7,10 @@ export class ActivityService {
   /**
    * Logs activity when a case profile is created.
    */
-  async logCaseCreated(caseId: string, caseTitle: string) {
+  async logCaseCreated(caseId: string, userId: string, caseTitle: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.CASE_CREATED,
       description: `Case dossier "${caseTitle}" was created and registered in directory.`,
       metadata: { caseTitle },
@@ -19,9 +20,10 @@ export class ActivityService {
   /**
    * Logs activity when general case information is updated.
    */
-  async logCaseUpdated(caseId: string, details: string) {
+  async logCaseUpdated(caseId: string, userId: string, details: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.CASE_UPDATED,
       description: `Case dossier profile updated: ${details}`,
     });
@@ -30,9 +32,10 @@ export class ActivityService {
   /**
    * Logs activity when case metadata is initialized.
    */
-  async logMetadataCreated(caseId: string) {
+  async logMetadataCreated(caseId: string, userId: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.METADATA_CREATED,
       description: "Case investigation metadata profile established.",
     });
@@ -41,9 +44,10 @@ export class ActivityService {
   /**
    * Logs activity when case metadata is updated.
    */
-  async logMetadataUpdated(caseId: string) {
+  async logMetadataUpdated(caseId: string, userId: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.METADATA_UPDATED,
       description: "Case investigation metadata profile updated.",
     });
@@ -52,7 +56,7 @@ export class ActivityService {
   /**
    * Logs activity when an AI document is successfully generated.
    */
-  async logDocumentGenerated(caseId: string, docType: string, docTitle: string, version?: number) {
+  async logDocumentGenerated(caseId: string, userId: string, docType: string, docTitle: string, version?: number, tx?: any) {
     let activityType: ActivityType = ActivityType.DOCUMENT_CREATED;
     let description = `Generated document "${docTitle}" for case.`;
 
@@ -81,20 +85,22 @@ export class ActivityService {
 
     return this.repository.create({
       caseId,
+      userId,
       activityType,
       description,
       metadata: { docTitle, version },
-    });
+    }, tx);
   }
 
   /**
    * Logs activity when a document is downloaded as PDF.
    */
-  async logDocumentDownloaded(caseId: string, docType: string, docTitle: string, version: number) {
+  async logDocumentDownloaded(caseId: string, userId: string, docType: string, docTitle: string, version: number) {
     // Standardize descriptive prefix: e.g. "Downloaded FIR"
     const actionDesc = `Downloaded ${docType === "FIR" ? "FIR" : docType === "CHARGE_SHEET" ? "Charge Sheet" : docType === "REMAND_REQUEST" ? "Remand Request" : docType === "INVESTIGATION_SUMMARY" ? "Investigation Summary" : docType === "CASE_DIARY" ? "Case Diary" : "document"}`;
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.DOCUMENT_DOWNLOADED,
       description: `${actionDesc} (v${version}) as PDF.`,
       metadata: { docType, docTitle, version },
@@ -104,10 +110,11 @@ export class ActivityService {
   /**
    * Logs activity when a document is regenerated.
    */
-  async logDocumentRegenerated(caseId: string, docType: string, docTitle: string, version: number) {
+  async logDocumentRegenerated(caseId: string, userId: string, docType: string, docTitle: string, version: number) {
     const actionDesc = `Regenerated ${docType === "FIR" ? "FIR" : docType === "CHARGE_SHEET" ? "Charge Sheet" : docType === "REMAND_REQUEST" ? "Remand Request" : docType === "INVESTIGATION_SUMMARY" ? "Investigation Summary" : docType === "CASE_DIARY" ? "Case Diary" : "document"}`;
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.DOCUMENT_REGENERATED,
       description: `${actionDesc} v${version} successfully.`,
       metadata: { docType, docTitle, version },
@@ -124,30 +131,33 @@ export class ActivityService {
     return map[role] || role;
   }
 
-  async logPersonAdded(caseId: string, name: string, role: string) {
+  async logPersonAdded(caseId: string, userId: string, name: string, role: string) {
     const formattedRole = this.formatRole(role);
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.PERSON_ADDED,
       description: `Added ${formattedRole} "${name}" to case dossier.`,
       metadata: { name, role },
     });
   }
 
-  async logPersonUpdated(caseId: string, name: string, role: string) {
+  async logPersonUpdated(caseId: string, userId: string, name: string, role: string) {
     const formattedRole = this.formatRole(role);
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.PERSON_UPDATED,
       description: `Updated details for ${formattedRole} "${name}".`,
       metadata: { name, role },
     });
   }
 
-  async logPersonDeleted(caseId: string, name: string, role: string) {
+  async logPersonDeleted(caseId: string, userId: string, name: string, role: string) {
     const formattedRole = this.formatRole(role);
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.PERSON_DELETED,
       description: `Removed ${formattedRole} "${name}" from case dossier.`,
       metadata: { name, role },
@@ -167,272 +177,302 @@ export class ActivityService {
     return map[type] || type;
   }
 
-  async logEvidenceAdded(caseId: string, title: string, type: string) {
+  async logEvidenceAdded(caseId: string, userId: string, title: string, type: string) {
     const formattedType = this.formatEvidenceType(type);
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.EVIDENCE_ADDED,
       description: `Registered new ${formattedType} evidence: "${title}"`,
       metadata: { title, type },
     });
   }
 
-  async logEvidenceUpdated(caseId: string, title: string, type: string) {
+  async logEvidenceUpdated(caseId: string, userId: string, title: string, type: string) {
     const formattedType = this.formatEvidenceType(type);
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.EVIDENCE_UPDATED,
       description: `Updated details for ${formattedType} evidence: "${title}"`,
       metadata: { title, type },
     });
   }
 
-  async logEvidenceDeleted(caseId: string, title: string, type: string) {
+  async logEvidenceDeleted(caseId: string, userId: string, title: string, type: string) {
     const formattedType = this.formatEvidenceType(type);
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.EVIDENCE_DELETED,
       description: `Removed ${formattedType} evidence: "${title}"`,
       metadata: { title, type },
     });
   }
 
-  async logChecklistItemCompleted(caseId: string, title: string) {
+  async logChecklistItemCompleted(caseId: string, userId: string, title: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.CHECKLIST_ITEM_COMPLETED,
       description: `Completed checklist task: "${title}"`,
       metadata: { title },
     });
   }
 
-  async logInvestigationProfileUpdated(caseId: string) {
+  async logInvestigationProfileUpdated(caseId: string, userId: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.INVESTIGATION_PROFILE_UPDATED,
       description: "Updated Case Investigation Profile.",
     });
   }
 
-  async logVictimAdded(caseId: string, name: string) {
+  async logVictimAdded(caseId: string, userId: string, name: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.VICTIM_ADDED,
       description: `Added Victim "${name}" to case dossier.`,
       metadata: { name },
     });
   }
 
-  async logVictimUpdated(caseId: string, name: string) {
+  async logVictimUpdated(caseId: string, userId: string, name: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.VICTIM_UPDATED,
       description: `Updated Victim "${name}" details.`,
       metadata: { name },
     });
   }
 
-  async logVictimDeleted(caseId: string, name: string) {
+  async logVictimDeleted(caseId: string, userId: string, name: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.VICTIM_DELETED,
       description: `Removed Victim "${name}" from case dossier.`,
       metadata: { name },
     });
   }
 
-  async logAccusedAdded(caseId: string, name: string) {
+  async logAccusedAdded(caseId: string, userId: string, name: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.ACCUSED_ADDED,
       description: `Added Accused "${name}" to case dossier.`,
       metadata: { name },
     });
   }
 
-  async logAccusedUpdated(caseId: string, name: string) {
+  async logAccusedUpdated(caseId: string, userId: string, name: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.ACCUSED_UPDATED,
       description: `Updated Accused "${name}" details.`,
       metadata: { name },
     });
   }
 
-  async logAccusedDeleted(caseId: string, name: string) {
+  async logAccusedDeleted(caseId: string, userId: string, name: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.ACCUSED_DELETED,
       description: `Removed Accused "${name}" from case dossier.`,
       metadata: { name },
     });
   }
 
-  async logWitnessAdded(caseId: string, name: string) {
+  async logWitnessAdded(caseId: string, userId: string, name: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.WITNESS_ADDED,
       description: `Added Witness "${name}" to case dossier.`,
       metadata: { name },
     });
   }
 
-  async logWitnessUpdated(caseId: string, name: string) {
+  async logWitnessUpdated(caseId: string, userId: string, name: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.WITNESS_UPDATED,
       description: `Updated Witness "${name}" details.`,
       metadata: { name },
     });
   }
 
-  async logWitnessDeleted(caseId: string, name: string) {
+  async logWitnessDeleted(caseId: string, userId: string, name: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.WITNESS_DELETED,
       description: `Removed Witness "${name}" from case dossier.`,
       metadata: { name },
     });
   }
 
-  async logVehicleAdded(caseId: string, licensePlate: string) {
+  async logVehicleAdded(caseId: string, userId: string, licensePlate: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.VEHICLE_ADDED,
       description: `Added Vehicle (Plate: ${licensePlate || "N/A"}) to case dossier.`,
       metadata: { licensePlate },
     });
   }
 
-  async logVehicleUpdated(caseId: string, licensePlate: string) {
+  async logVehicleUpdated(caseId: string, userId: string, licensePlate: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.VEHICLE_UPDATED,
       description: `Updated Vehicle (Plate: ${licensePlate || "N/A"}) details.`,
       metadata: { licensePlate },
     });
   }
 
-  async logVehicleDeleted(caseId: string, licensePlate: string) {
+  async logVehicleDeleted(caseId: string, userId: string, licensePlate: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.VEHICLE_DELETED,
       description: `Removed Vehicle (Plate: ${licensePlate || "N/A"}) from case dossier.`,
       metadata: { licensePlate },
     });
   }
 
-  async logSeizedItemAdded(caseId: string, itemName: string) {
+  async logSeizedItemAdded(caseId: string, userId: string, itemName: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.SEIZED_ITEM_ADDED,
       description: `Registered new Seized Property: "${itemName}"`,
       metadata: { itemName },
     });
   }
 
-  async logSeizedItemUpdated(caseId: string, itemName: string) {
+  async logSeizedItemUpdated(caseId: string, userId: string, itemName: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.SEIZED_ITEM_UPDATED,
       description: `Updated Seized Property details: "${itemName}"`,
       metadata: { itemName },
     });
   }
 
-  async logSeizedItemDeleted(caseId: string, itemName: string) {
+  async logSeizedItemDeleted(caseId: string, userId: string, itemName: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.SEIZED_ITEM_DELETED,
       description: `Removed Seized Property: "${itemName}"`,
       metadata: { itemName },
     });
   }
 
-  async logMedicalInfoAdded(caseId: string, doctorName: string) {
+  async logMedicalInfoAdded(caseId: string, userId: string, doctorName: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.MEDICAL_INFO_ADDED,
       description: `Added Medical Report by Dr. ${doctorName || "N/A"}.`,
       metadata: { doctorName },
     });
   }
 
-  async logMedicalInfoUpdated(caseId: string, doctorName: string) {
+  async logMedicalInfoUpdated(caseId: string, userId: string, doctorName: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.MEDICAL_INFO_UPDATED,
       description: `Updated Medical Report by Dr. ${doctorName || "N/A"}.`,
       metadata: { doctorName },
     });
   }
 
-  async logMedicalInfoDeleted(caseId: string, doctorName: string) {
+  async logMedicalInfoDeleted(caseId: string, userId: string, doctorName: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.MEDICAL_INFO_DELETED,
       description: `Removed Medical Report by Dr. ${doctorName || "N/A"}.`,
       metadata: { doctorName },
     });
   }
 
-  async logCourtInfoAdded(caseId: string, caseNumber: string) {
+  async logCourtInfoAdded(caseId: string, userId: string, caseNumber: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.COURT_INFO_ADDED,
       description: `Established Court Case Registry (Ref: ${caseNumber || "N/A"}).`,
       metadata: { caseNumber },
     });
   }
 
-  async logCourtInfoUpdated(caseId: string, caseNumber: string) {
+  async logCourtInfoUpdated(caseId: string, userId: string, caseNumber: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.COURT_INFO_UPDATED,
       description: `Updated Court Case Registry (Ref: ${caseNumber || "N/A"}).`,
       metadata: { caseNumber },
     });
   }
 
-  async logCourtInfoDeleted(caseId: string, caseNumber: string) {
+  async logCourtInfoDeleted(caseId: string, userId: string, caseNumber: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.COURT_INFO_DELETED,
       description: `Removed Court Case Registry (Ref: ${caseNumber || "N/A"}).`,
       metadata: { caseNumber },
     });
   }
 
-  async logDocumentRenamed(caseId: string, oldTitle: string, newTitle: string) {
+  async logDocumentRenamed(caseId: string, userId: string, oldTitle: string, newTitle: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.DOCUMENT_RENAMED,
       description: `Renamed document "${oldTitle}" → "${newTitle}".`,
       metadata: { oldTitle, newTitle },
     });
   }
 
-  async logDocumentDeletedSingle(caseId: string, title: string, type: string) {
+  async logDocumentDeletedSingle(caseId: string, userId: string, title: string, type: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.DOCUMENT_DELETED_SINGLE,
       description: `Deleted generated document: "${title}" (${type}).`,
       metadata: { title, type },
     });
   }
 
-  async logChecklistItemRenamed(caseId: string, oldTitle: string, newTitle: string) {
+  async logChecklistItemRenamed(caseId: string, userId: string, oldTitle: string, newTitle: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.CHECKLIST_ITEM_RENAMED,
       description: `Renamed checklist task "${oldTitle}" → "${newTitle}".`,
       metadata: { oldTitle, newTitle },
     });
   }
 
-  async logChecklistItemDeleted(caseId: string, title: string) {
+  async logChecklistItemDeleted(caseId: string, userId: string, title: string) {
     return this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.CHECKLIST_ITEM_DELETED,
       description: `Removed checklist task: "${title}".`,
       metadata: { title },
@@ -459,6 +499,7 @@ export class ActivityService {
 
     await this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.CASE_UPDATED,
       description: "Timeline entry edited.",
       metadata: { activityId: id },
@@ -477,6 +518,7 @@ export class ActivityService {
 
     await this.repository.create({
       caseId,
+      userId,
       activityType: ActivityType.CASE_UPDATED,
       description: "Timeline entry removed.",
       metadata: {

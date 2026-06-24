@@ -63,7 +63,7 @@ export class LegalAnalysisService {
     });
 
     // Log Document Generated Activity
-    await activityService.logDocumentGenerated(caseId, DocumentType.LEGAL_ANALYSIS, document.title);
+    await activityService.logDocumentGenerated(caseId, userId, DocumentType.LEGAL_ANALYSIS, document.title);
 
     // 6. Automatically transition Case status from OPEN to UNDER_INVESTIGATION
     if (caseItem.status === "OPEN") {

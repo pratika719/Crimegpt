@@ -16,7 +16,7 @@ export class CaseService {
     input: CreateCaseInput
   ) {
     const caseItem = await this.repository.create(userId, input);
-    await activityService.logCaseCreated(caseItem.id, caseItem.title);
+    await activityService.logCaseCreated(caseItem.id, userId, caseItem.title);
     return caseItem;
   }
 
@@ -53,7 +53,7 @@ export class CaseService {
     if (parsed.status && parsed.status !== existing.status) changes.push(`status → ${parsed.status}`);
 
     if (changes.length > 0) {
-      await activityService.logCaseUpdated(id, changes.join(", "));
+      await activityService.logCaseUpdated(id, userId, changes.join(", "));
     }
 
     return result;

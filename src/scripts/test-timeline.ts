@@ -12,9 +12,18 @@ async function main() {
   console.log("🚀 Starting Case Activity Timeline End-to-End Test...");
 
   try {
+    // 0. Create test user
+    console.log("📂 Step 0: Creating test user...");
+    const testUser = await prisma.user.create({
+      data: {
+        email: `test-timeline-${Date.now()}@example.com`,
+        name: "Test Timeline User",
+      },
+    });
+
     // 1. Create case dossier
     console.log("📂 Step 1: Registering case dossier (should trigger CASE_CREATED)...");
-    const testCase = await service.createCase({
+    const testCase = await service.createCase(testUser.id, {
       title: "Test Dossier: Impersonation & Wallet Theft",
       narrative: 
         "Yesterday evening at 8:00 PM near Sector 15 market, a man in a replica police uniform stopped me " +
@@ -25,7 +34,7 @@ async function main() {
 
     // 2. Create metadata profile
     console.log("📂 Step 2: Creating metadata profile (should trigger METADATA_CREATED)...");
-    await caseMetadataService.upsertMetadata(testCase.id, {
+    await caseMetadataService.upsertMetadata(testCase.id, testUser.id, {
       incidentDate: new Date(),
       incidentLocation: "Sector 15 Market",
       victimName: "John Doe",
@@ -33,7 +42,7 @@ async function main() {
 
     // 3. Update metadata profile
     console.log("📂 Step 3: Updating metadata profile (should trigger METADATA_UPDATED)...");
-    await caseMetadataService.upsertMetadata(testCase.id, {
+    await caseMetadataService.upsertMetadata(testCase.id, testUser.id, {
       incidentDate: new Date(),
       incidentLocation: "Sector 15 Market Main Entrance",
       victimName: "John Doe",
@@ -42,16 +51,16 @@ async function main() {
 
     // 4. Generate Investigation Summary
     console.log("📂 Step 4: Compiling summary document (should trigger INVESTIGATION_SUMMARY_GENERATED)...");
-    await investigationSummaryService.generateSummary(testCase.id);
+    await investigationSummaryService.generateSummary(testCase.id, testUser.id);
 
     // 5. Query and display logged timeline activities
     console.log("\n📊 Step 5: Querying database CaseActivity logs...");
-    const logs = await caseActivityRepository.findByCaseId(testCase.id);
+    const logs = await caseActivityRepository.findByCaseId(testCase.id, testUser.id);
     
     console.log(`\n==================================================`);
     console.log(`FOUND ${logs.length} TIMELINE LOG ENTRIES:`);
     console.log(`==================================================`);
-    logs.forEach((log, i) => {
+    logs.forEach((log:any, i:any) => {
       console.log(`[Event ${i + 1}] Type: ${log.activityType}`);
       console.log(`   Description: ${log.description}`);
       console.log(`   Timestamp:   ${log.createdAt.toLocaleTimeString()}`);
@@ -60,13 +69,13 @@ async function main() {
     console.log(`==================================================`);
 
     // 6. Clean up
-    console.log("\n🧹 Step 6: Purging test case and cascading records...");
-    await prisma.case.delete({
+    console.log("\n🧹 Step 6: Purging test user and cascading records...");
+    await prisma.user.delete({
       where: {
-        id: testCase.id,
+        id: testUser.id,
       },
     });
-    console.log("   Dossier deleted successfully.");
+    console.log("   Test data deleted successfully.");
 
     process.exit(0);
   } catch (error) {

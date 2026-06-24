@@ -18,7 +18,7 @@ export class EvidenceService {
     const result = await this.repository.create(caseId, userId, parsed);
     
     // Log timeline activity
-    await activityService.logEvidenceAdded(caseId, result.title, result.type);
+    await activityService.logEvidenceAdded(caseId, userId, result.title, result.type);
     
     return result;
   }
@@ -52,7 +52,7 @@ export class EvidenceService {
     const result = await this.repository.update(id, userId, parsed, caseId);
     
     // Log timeline activity
-    await activityService.logEvidenceUpdated(existing.caseId, result.title, result.type);
+    await activityService.logEvidenceUpdated(existing.caseId, userId, result.title, result.type);
     
     return result;
   }
@@ -67,7 +67,7 @@ export class EvidenceService {
     const result = await this.repository.delete(id, userId, caseId);
     
     // Log timeline activity
-    await activityService.logEvidenceDeleted(existing.caseId, existing.title, existing.type);
+    await activityService.logEvidenceDeleted(existing.caseId, userId, existing.title, existing.type);
     
     return result;
   }

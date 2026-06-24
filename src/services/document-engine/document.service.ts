@@ -32,7 +32,7 @@ export class DocumentService {
     const result = await this.repository.updateTitle(id, userId, trimmedTitle, caseId);
 
     // Log activity
-    await activityService.logDocumentRenamed(existing.caseId, oldTitle, trimmedTitle);
+    await activityService.logDocumentRenamed(existing.caseId, userId, oldTitle, trimmedTitle);
 
     return result;
   }
@@ -50,7 +50,7 @@ export class DocumentService {
     console.log(`📄 [DocumentService] Deleting document: ${existing.title} (ID: ${id}) by user: ${userId}`);
 
     // Log activity BEFORE deletion (so we have the caseId)
-    await activityService.logDocumentDeletedSingle(existing.caseId, existing.title, existing.type);
+    await activityService.logDocumentDeletedSingle(existing.caseId, userId, existing.title, existing.type);
 
     const result = await this.repository.deleteById(id, userId, caseId);
 

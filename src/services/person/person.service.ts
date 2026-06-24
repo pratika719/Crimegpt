@@ -18,7 +18,7 @@ export class PersonService {
     const result = await this.repository.create(caseId, userId, parsed);
     
     // Log timeline activity
-    await activityService.logPersonAdded(caseId, result.name, result.role);
+    await activityService.logPersonAdded(caseId, userId, result.name, result.role);
     
     return result;
   }
@@ -52,7 +52,7 @@ export class PersonService {
     const result = await this.repository.update(id, userId, parsed, caseId);
     
     // Log timeline activity
-    await activityService.logPersonUpdated(existing.caseId, result.name, result.role);
+    await activityService.logPersonUpdated(existing.caseId, userId, result.name, result.role);
     
     return result;
   }
@@ -67,7 +67,7 @@ export class PersonService {
     const result = await this.repository.delete(id, userId, caseId);
     
     // Log timeline activity
-    await activityService.logPersonDeleted(existing.caseId, existing.name, existing.role);
+    await activityService.logPersonDeleted(existing.caseId, userId, existing.name, existing.role);
     
     return result;
   }

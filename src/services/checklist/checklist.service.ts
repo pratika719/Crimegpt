@@ -73,11 +73,11 @@ export class ChecklistService {
 
     // If transitioned from false to true, log timeline activity
     if (completed && !existing.completed) {
-      await activityService.logChecklistItemCompleted(existing.caseId, result.title);
+      await activityService.logChecklistItemCompleted(existing.caseId, userId, result.title);
     }
 
     if (parsed.title !== undefined && parsed.title !== existing.title) {
-      await activityService.logChecklistItemRenamed(existing.caseId, existing.title, result.title);
+      await activityService.logChecklistItemRenamed(existing.caseId, userId, existing.title, result.title);
     }
 
     return result;
@@ -90,7 +90,7 @@ export class ChecklistService {
     const existing = await this.getChecklistItemById(id, userId, caseId);
     console.log(`📋 [ChecklistService] Deleting checklist item ID: ${id} by user: ${userId}`);
     const result = await this.repository.delete(id, userId, caseId);
-    await activityService.logChecklistItemDeleted(existing.caseId, existing.title);
+    await activityService.logChecklistItemDeleted(existing.caseId, userId, existing.title);
     return result;
   }
 }

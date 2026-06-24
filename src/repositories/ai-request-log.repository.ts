@@ -14,9 +14,10 @@ export class AIRequestLogRepository {
     modelUsed?: string;
     tokenUsage?: number;
     caseId?: string;
-  }) {
+  }, tx?: any) {
+    const client = tx || prisma;
     if (data.caseId) {
-      const c = await prisma.case.findFirst({
+      const c = await client.case.findFirst({
         where: { id: data.caseId, userId },
       });
       if (!c) {
@@ -24,7 +25,7 @@ export class AIRequestLogRepository {
       }
     }
 
-    return prisma.aIRequestLog.create({
+    return client.aIRequestLog.create({
       data,
     });
   }

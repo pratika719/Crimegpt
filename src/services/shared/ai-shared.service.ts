@@ -25,8 +25,8 @@ export class AIObservabilityService {
     latencyMs?: number;
     modelUsed?: string;
     caseId?: string;
-  }) {
-    return aiRequestLogRepository.create(userId, data);
+  }, tx?: any) {
+    return aiRequestLogRepository.create(userId, data, tx);
   }
 }
 
@@ -40,8 +40,8 @@ export class GeneratedDocumentService {
     title: string;
     content: any;
     version?: number;
-  }) {
-    return documentRepository.create(userId, data);
+  }, tx?: any) {
+    return documentRepository.create(userId, data, tx);
   }
 }
 

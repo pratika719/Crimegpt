@@ -35,7 +35,7 @@ export async function generateDocumentAction(caseId: string, type: string, isReg
 
     // If it's a regeneration, also log a specific activity entry
     if (isRegenerate) {
-      await activityService.logDocumentRegenerated(caseId, docType, document.title, document.version);
+      await activityService.logDocumentRegenerated(caseId, userId, docType, document.title, document.version);
     }
 
     // Revalidate the case detail page so the UI displays the new document
@@ -78,9 +78,9 @@ export async function logDocumentActivityAction(
     }
 
     if (actionType === "DOWNLOAD") {
-      await activityService.logDocumentDownloaded(caseId, docType, docTitle, version);
+      await activityService.logDocumentDownloaded(caseId, userId, docType, docTitle, version);
     } else if (actionType === "REGENERATE") {
-      await activityService.logDocumentRegenerated(caseId, docType, docTitle, version);
+      await activityService.logDocumentRegenerated(caseId, userId, docType, docTitle, version);
     }
     revalidatePath(`/case/${caseId}`);
     return { success: true };

@@ -48,5 +48,9 @@ export class AIDiagnosticsChain {
   }
 }
 
+//can add token counting
+//add error handling
+
+
 export const aiDiagnosticsChain = new AIDiagnosticsChain();
 export default aiDiagnosticsChain;

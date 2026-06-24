@@ -80,7 +80,7 @@ model Case {
   @@index([status])
   @@index([createdAt])
 }
-
+//
 model GeneratedDocument{
    id              String @id @default(cuid())
 

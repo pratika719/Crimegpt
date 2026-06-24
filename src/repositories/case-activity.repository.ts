@@ -2,8 +2,9 @@ import { prisma } from "@/lib/prisma";
 import { ActivityType } from "@/generated/prisma/client";
 
 export class CaseActivityRepository {
-  private async checkCaseOwnership(caseId: string, userId: string) {
-    const c = await prisma.case.findFirst({
+  private async checkCaseOwnership(caseId: string, userId: string, tx?: any) {
+    const client = tx || prisma;
+    const c = await client.case.findFirst({
       where: { id: caseId, userId },
     });
     if (!c) {
@@ -11,18 +12,19 @@ export class CaseActivityRepository {
     }
   }
 
-  /**
-   * Creates a new case activity entry.
-   * This is triggered internally by services that have already validated case ownership.
-   */
   async create(data: {
     caseId: string;
     activityType: ActivityType;
     description: string;
     metadata?: any;
-  }) {
-    return prisma.caseActivity.create({
-      data,
+    userId: string;
+  }, tx?: any) {
+    await this.checkCaseOwnership(data.caseId, data.userId, tx);
+
+    const { userId, ...activityData } = data;
+    const client = tx || prisma;
+    return client.caseActivity.create({
+      data: activityData,
     });
   }
 

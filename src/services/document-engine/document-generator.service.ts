@@ -4,12 +4,13 @@ import { unifiedContextService } from "@/services/case/unified-context.service";
 import { lawRetriever } from "@/ai/retrievers/law.retriever";
 import { geminiProvider } from "@/ai/providers/gemini-provider";
 import { 
-  documentVersionService, 
   aiObservabilityService, 
   generatedDocumentService 
 } from "@/services/shared/ai-shared.service";
 import { activityService } from "@/services/activity/activity.service";
 import { DocumentRegistry } from "./document-registry";
+import { prisma } from "@/lib/prisma";
+import { documentRepository } from "@/repositories/document.repository";
 
 export class DocumentGeneratorService {
   private caseRepository = new CaseRepository();
@@ -30,18 +31,14 @@ export class DocumentGeneratorService {
     // 2. Fetch the configuration from registry
     const config = DocumentRegistry.getConfig(type);
 
-    // 3. Retrieve the next version number
-    const nextVersion = await documentVersionService.getNextVersion(caseId, userId, type);
-    console.log(`🤖 [DocumentGeneratorService] Next version will be: v${nextVersion}`);
-
-    // 4. Build the Unified Case Context
+    // 3. Build the Unified Case Context
     console.log(`🤖 [DocumentGeneratorService] Loading unified case context...`);
     let context = await unifiedContextService.buildUnifiedCaseContext(caseId, userId);
 
     // Enrich context with fallback defaults to ensure AI generation succeeds even with partial profile data
     context = this.enrichContext(context);
 
-    // 5. Retrieve legal context from PGVector if required
+    // 4. Retrieve legal context from PGVector if required
     let retrievedChunks: any[] = [];
     if (config.requiresRAG) {
       console.log(`🤖 [DocumentGeneratorService] Querying PGVector legal retrieval...`);
@@ -49,10 +46,10 @@ export class DocumentGeneratorService {
       console.log(`🤖 [DocumentGeneratorService] Retrieved ${retrievedChunks.length} law sections.`);
     }
 
-    // 6. Build the LLM prompt
+    // 5. Build the LLM prompt
     const promptText = config.buildPrompt(context, retrievedChunks);
 
-    // 7. Call Gemini Flash to generate JSON
+    // 6. Call Gemini Flash to generate JSON
     const modelUsed = geminiProvider.getModelName();
     const startTime = Date.now();
     console.log(`🤖 [DocumentGeneratorService] Dispatching prompt to ${modelUsed}...`);
@@ -60,7 +57,7 @@ export class DocumentGeneratorService {
     const latencyMs = Date.now() - startTime;
     console.log(`🤖 [DocumentGeneratorService] AI responded in ${latencyMs}ms.`);
 
-    // 8. Validate output using the registered Zod schema
+    // 7. Validate output using the registered Zod schema
     let result: any;
     try {
       const rawData = JSON.parse(rawResponse);
@@ -71,52 +68,48 @@ export class DocumentGeneratorService {
       throw new Error(`Failed to parse or validate ${type} AI output: ${err.message}`);
     }
 
-    // 9. Save GeneratedDocument to the database
-    const documentTitle = `${config.titlePrefix} - v${nextVersion}`;
-    console.log(`🤖 [DocumentGeneratorService] Persisting GeneratedDocument: "${documentTitle}"`);
-    const document = await generatedDocumentService.saveDocument(userId, {
-      caseId,
-      type,
-      title: documentTitle,
-      content: result,
-      version: nextVersion,
+    // 8. Execute all database writes atomically inside a single transaction
+    console.log(`🤖 [DocumentGeneratorService] Running database transaction for case: ${caseId}`);
+    const document = await prisma.$transaction(async (tx) => {
+      // a. Pessimistic lock on the Case row to serialize concurrent writes
+      await tx.$executeRaw`SELECT id FROM "Case" WHERE id = ${caseId} FOR UPDATE`;
+
+      // b. Query latest document version for this type under the case
+      const latestDoc = await documentRepository.findLatestByType(caseId, userId, type, tx);
+      const nextVer = latestDoc ? latestDoc.version + 1 : 1;
+
+      // c. Save the GeneratedDocument
+      const documentTitle = `${config.titlePrefix} - v${nextVer}`;
+      const doc = await generatedDocumentService.saveDocument(userId, {
+        caseId,
+        type,
+        title: documentTitle,
+        content: result,
+        version: nextVer,
+      }, tx);
+
+      // d. Store AIRequestLog for observability
+      await aiObservabilityService.logRequest(userId, {
+        requestType: config.aiRequestType,
+        prompt: promptText,
+        retrievedContext: retrievedChunks.length > 0 ? JSON.stringify(retrievedChunks) : undefined,
+        response: rawResponse,
+        latencyMs,
+        modelUsed,
+        caseId,
+      }, tx);
+
+      // e. Create Case Activity Log entry
+      await activityService.logDocumentGenerated(caseId, userId, type, doc.title, nextVer, tx);
+
+      // f. Transition case status from OPEN to UNDER_INVESTIGATION upon FIR generation
+      if (type === DocumentType.FIR && caseItem.status === "OPEN") {
+        console.log(`🤖 [DocumentGeneratorService] Upgrading case status to UNDER_INVESTIGATION inside transaction...`);
+        await this.caseRepository.updateStatus(caseId, userId, "UNDER_INVESTIGATION", tx);
+      }
+
+      return doc;
     });
-
-    // 10. Store AIRequestLog for observability
-    console.log(`🤖 [DocumentGeneratorService] Creating AIRequestLog...`);
-    await aiObservabilityService.logRequest(userId, {
-      requestType: config.aiRequestType,
-      prompt: promptText,
-      retrievedContext: retrievedChunks.length > 0 ? JSON.stringify(retrievedChunks) : undefined,
-      response: rawResponse,
-      latencyMs,
-      modelUsed,
-      caseId,
-    });
-
-    // 11. Create Activity Log entry (handling custom activity types mapped in registry)
-    console.log(`🤖 [DocumentGeneratorService] Logging case activity...`);
-    let activityDesc = `Generated "${documentTitle}" for case.`;
-    if (type === DocumentType.FIR) {
-      activityDesc = `First Information Report (FIR) v${nextVersion} generated successfully.`;
-    } else if (type === DocumentType.INVESTIGATION_SUMMARY) {
-      activityDesc = `Investigation Summary Report v${nextVersion} compiled successfully.`;
-    } else if (type === DocumentType.CHARGE_SHEET) {
-      activityDesc = `Charge Sheet (Final Report) v${nextVersion} generated successfully.`;
-    } else if (type === DocumentType.REMAND_REQUEST) {
-      activityDesc = `Remand Request Application v${nextVersion} compiled successfully.`;
-    } else if (type === DocumentType.CASE_DIARY) {
-      activityDesc = `Official Narrative Case Diary v${nextVersion} generated successfully.`;
-    }
-
-    await activityService.logDocumentGenerated(caseId, type, document.title, nextVersion);
-    
-    // Explicitly record custom activity description if needed, or update case state
-    // Let's also transition case status from OPEN to UNDER_INVESTIGATION upon FIR generation
-    if (type === DocumentType.FIR && caseItem.status === "OPEN") {
-      console.log(`🤖 [DocumentGeneratorService] Upgrading case status to UNDER_INVESTIGATION...`);
-      await this.caseRepository.updateStatus(caseId, userId, "UNDER_INVESTIGATION");
-    }
 
     console.log(`🤖 [DocumentGeneratorService] Generation complete.`);
     return document;
@@ -158,7 +151,7 @@ export class DocumentGeneratorService {
     // 2. Enrich Accused List (must have min 1)
     if (!enriched.accused || enriched.accused.length === 0) {
       const suspectPersons = (enriched.persons || []).filter(
-        (p: any) => p.role === "SUSPECT" || p.role === "SUSPECT"
+        (p: any) => p.role === "SUSPECT"
       );
       if (suspectPersons.length > 0) {
         enriched.accused = suspectPersons.map((p: any, idx: number) => ({
@@ -199,7 +192,7 @@ export class DocumentGeneratorService {
     // 3. Enrich Victims List (must have min 1)
     if (!enriched.victims || enriched.victims.length === 0) {
       const victimPersons = (enriched.persons || []).filter(
-        (p: any) => p.role === "VICTIM" || p.role === "VICTIM"
+        (p: any) => p.role === "VICTIM"
       );
       if (victimPersons.length > 0) {
         enriched.victims = victimPersons.map((p: any, idx: number) => ({
@@ -240,7 +233,7 @@ export class DocumentGeneratorService {
     // 4. Enrich Witnesses List
     if (!enriched.witnesses || enriched.witnesses.length === 0) {
       const witnessPersons = (enriched.persons || []).filter(
-        (p: any) => p.role === "WITNESS" || p.role === "WITNESS"
+        (p: any) => p.role === "WITNESS"
       );
       if (witnessPersons.length > 0) {
         enriched.witnesses = witnessPersons.map((p: any, idx: number) => ({

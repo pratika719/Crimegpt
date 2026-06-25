@@ -4,6 +4,7 @@ import { searchService } from "@/services/search/search.service";
 import { SearchResultDTO } from "@/types/search.types";
 import { auth } from "@/auth";
 
+
 /**
  * Server action to run global keyword search across all platforms elements.
  */

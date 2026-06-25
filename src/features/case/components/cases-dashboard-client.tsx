@@ -19,6 +19,53 @@ export function CasesDashboardClient({ initialCases }: CasesDashboardClientProps
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
 
+
+  const stats = useMemo(() => {
+  const total = initialCases.length;
+  const open = initialCases.filter((c) => c.status === "OPEN").length;
+  const active = initialCases.filter(
+    (c) => c.status === "UNDER_INVESTIGATION"
+  ).length;
+  const closed = initialCases.filter(
+    (c) => c.status === "CLOSED"
+  ).length;
+
+  return { total, open, active, closed };
+}, [initialCases]);
+
+const filteredAndSortedCases = useMemo(() => {
+  return initialCases
+    .filter((c) => {
+      const matchesSearch =
+        c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.narrative.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesStatus =
+        statusFilter === "ALL" || c.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      if (sortBy === "title") {
+        return a.title.localeCompare(b.title);
+      }
+
+      const dateA = a.createdAt
+        ? new Date(a.createdAt).getTime()
+        : 0;
+
+      const dateB = b.createdAt
+        ? new Date(b.createdAt).getTime()
+        : 0;
+
+      if (sortBy === "oldest") {
+        return dateA - dateB;
+      }
+
+      return dateB - dateA;
+    });
+}, [initialCases, searchQuery, statusFilter, sortBy]);
+
   if (initialCases.length === 0) {
     return (
       <div className="p-6 md:p-12 max-w-5xl mx-auto space-y-12 animate-fade-in">
@@ -93,46 +140,9 @@ export function CasesDashboardClient({ initialCases }: CasesDashboardClientProps
   }
 
   // Dynamically calculate stats based on initial raw data
-  const stats = useMemo(() => {
-    const total = initialCases.length;
-    const open = initialCases.filter((c) => c.status === "OPEN").length;
-    const active = initialCases.filter((c) => c.status === "UNDER_INVESTIGATION").length;
-    const closed = initialCases.filter((c) => c.status === "CLOSED").length;
-    
-    return { total, open, active, closed };
-  }, [initialCases]);
-
-  // Filter and sort cases
-  const filteredAndSortedCases = useMemo(() => {
-    return initialCases
-      .filter((c) => {
-        const matchesSearch = 
-          c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          c.narrative.toLowerCase().includes(searchQuery.toLowerCase());
+  
         
-        const matchesStatus = 
-          statusFilter === "ALL" || 
-          c.status === statusFilter;
-
-        return matchesSearch && matchesStatus;
-      })
-      .sort((a, b) => {
-        if (sortBy === "title") {
-          return a.title.localeCompare(b.title);
-        }
         
-        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        
-        if (sortBy === "oldest") {
-          return dateA - dateB;
-        }
-        
-        // newest default
-        return dateB - dateA;
-      });
-  }, [initialCases, searchQuery, statusFilter, sortBy]);
-
   return (
     <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
       {/* Top Banner Dashboard Actions */}

@@ -136,7 +136,6 @@ export function AuditDashboardClient({ initialData }: AuditDashboardClientProps)
 
   // Trigger search on filter changes
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1);
     fetchLogs(1);
   }, [caseId, moduleFilter, severityFilter, isAiFilter, startDate, endDate, sortOrder]);

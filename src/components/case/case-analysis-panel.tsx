@@ -238,7 +238,6 @@ export default function CaseAnalysisPanel({
   // Set default selected version when active type changes
   useEffect(() => {
     if (availableVersions.length > 0 && !customVersion[activeType]) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCustomVersion((prev) => ({ ...prev, [activeType]: availableVersions[0] }));
     }
   }, [activeType, availableVersions]);

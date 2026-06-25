@@ -95,7 +95,6 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
       const stored = localStorage.getItem("crimegpt:recent-searches");
       if (stored) {
         try {
-          // eslint-disable-next-line react-hooks/set-state-in-effect
           setRecentSearches(JSON.parse(stored));
         } catch (e) {
           console.error("Failed to parse recent searches", e);
@@ -109,7 +108,6 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   // Perform search when query changes
   useEffect(() => {
     if (!query.trim()) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResults([]);
       setSelectedIndex(0);
       return;

@@ -47,11 +47,9 @@ export default function DashboardLayoutClient({
     
     if (isDark) {
       document.documentElement.classList.add("dark");
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTheme("dark");
     } else {
       document.documentElement.classList.remove("dark");
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTheme("light");
     }
   }, []);

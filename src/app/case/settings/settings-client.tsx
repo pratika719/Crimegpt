@@ -10,7 +10,6 @@ export function SettingsClient({ user }: { user: any }) {
   useEffect(() => {
     const isDark = document.documentElement.classList.contains("dark") || 
                    localStorage.getItem("theme") === "dark";
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTheme(isDark ? "dark" : "light");
   }, []);
 

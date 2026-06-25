@@ -5,6 +5,14 @@ const nextConfig: NextConfig = {
     reactCompiler: true,
   },
   devIndicators: false,
+  serverExternalPackages: ["@huggingface/transformers", "onnxruntime-node"],
+  outputFileTracingExcludes: {
+    "*": [
+      "./node_modules/onnxruntime-node/bin/napi-v6/win32/**/*",
+      "./node_modules/onnxruntime-node/bin/napi-v6/darwin/**/*",
+      "./node_modules/onnxruntime-node/bin/napi-v6/linux/arm64/**/*",
+    ],
+  },
   async headers() {
     return [
       {

@@ -4,12 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
- "build": "prisma generate && next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
     "test-loader": "tsx src/scripts/test-loader.ts",
     "ingest:laws": "tsx src/ai/ingestion/ingest-laws.ts",
-    "test-retrieval": "tsx src/scripts/test-retrieval.ts"
+    "test-retrieval": "tsx src/scripts/test-retrieval.ts",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",

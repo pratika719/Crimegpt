@@ -53,7 +53,19 @@ import {
   deleteMedicalInfoAction,
   deleteCourtInfoAction
 } from "@/actions/investigation-profile.action";
+const formatSafeDate = (dateVal?: string | Date | null, includeTime = false) => {
+  if (!dateVal) return "Not Recorded";
+  const date = new Date(dateVal);
+  if (isNaN(date.getTime())) return "Not Recorded";
 
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    ...(includeTime && { hour: "2-digit", minute: "2-digit" }),
+    timeZone: "UTC", // <-- The magic bullet. Forces Node and Chrome to agree.
+  }).format(date);
+};
 interface CaseInvestigationProfileSectionProps {
   caseId: string;
   caseData: any; // Entire case object containing the loaded relations

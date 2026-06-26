@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { legalAnalysisService } from "@/services/case/legal-analysis.services";
 import { auth } from "@/auth";
 
 /**
@@ -25,6 +24,7 @@ export async function analyzeCaseAction(caseId: string) {
       };
     }
 
+    const { legalAnalysisService } = await import("@/services/case/legal-analysis.services");
     await legalAnalysisService.analyzeCase(caseId, userId);
 
     // Revalidate the case detail page so the UI displays the generated analysis document and new status

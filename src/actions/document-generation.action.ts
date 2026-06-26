@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { DocumentType } from "@/generated/prisma/client";
-import { documentGeneratorService } from "@/services/document-engine/document-generator.service";
 import { activityService } from "@/services/activity/activity.service";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -31,6 +30,7 @@ export async function generateDocumentAction(caseId: string, type: string, isReg
     }
 
     const docType = type as DocumentType;
+    const { documentGeneratorService } = await import("@/services/document-engine/document-generator.service");
     const document = await documentGeneratorService.generateDocument(caseId, userId, docType);
 
     // If it's a regeneration, also log a specific activity entry

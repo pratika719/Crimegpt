@@ -1,7 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { aiDiagnosticsService } from "@/services/case/ai-diagnostics.service";
 import { auth } from "@/auth";
 
 /**
@@ -22,6 +20,7 @@ export async function runAIDiagnosticsAction(caseId: string) {
       };
     }
 
+    const { aiDiagnosticsService } = await import("@/services/case/ai-diagnostics.service");
     const result = await aiDiagnosticsService.runDiagnostics(caseId, userId);
 
     return {

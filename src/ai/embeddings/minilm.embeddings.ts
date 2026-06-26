@@ -31,6 +31,9 @@ export class MiniLMEmbeddings extends Embeddings implements EmbeddingProvider {
       // Ensure we don't look for local ONNX files, directly pull from cache/hub
       env.allowLocalModels = false;
 
+      // Configure cache directory to a writable path in serverless environments
+      env.cacheDir = "/tmp/huggingface-cache";
+
       // Initialize feature-extraction pipeline for all-MiniLM-L6-v2
       this.pipelineInstancePromise = pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
     }

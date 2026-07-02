@@ -11,7 +11,8 @@ import { activityService } from "@/services/activity/activity.service";
 import { DocumentRegistry } from "./document-registry";
 import { prisma } from "@/lib/prisma";
 import { documentRepository } from "@/repositories/document.repository";
-
+import { redisKeys } from "@/lib/redis/redis-keys";
+import { withRedisLock } from "@/lib/redis/redis-lock";
 export class DocumentGeneratorService {
   private caseRepository = new CaseRepository();
 
@@ -20,6 +21,11 @@ export class DocumentGeneratorService {
    * Works for any registered document type.
    */
   async generateDocument(caseId: string, userId: string, type: DocumentType) {
+      const lockKey = redisKeys.lock.documentGeneration(caseId, type);
+
+  return withRedisLock(lockKey, 120_000, async () => {
+    // keep your existing generation logic here unchanged
+  
     console.log(`🤖 [DocumentGeneratorService] Initiating generation for case: ${caseId}, type: ${type} by user: ${userId}`);
     
     // 1. Fetch case details
@@ -134,6 +140,9 @@ export class DocumentGeneratorService {
 
     console.log(`🤖 [DocumentGeneratorService] Generation complete.`);
     return document;
+
+   
+})
   }
 
   /**

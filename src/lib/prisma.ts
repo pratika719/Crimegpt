@@ -16,12 +16,15 @@ if (!connectionString) {
   );
 }
 
-/**
- * Single pg.Pool shared across Prisma (via PrismaPg adapter) and PGVectorStore.
- * Max 10 connections — enough headroom for a single serverless instance while
- * staying well within managed-DB limits when shared.
- */
-export const pool = new Pool({
+// ---------------------------------------------------------------------------
+// Reusable Pg Pool singleton to avoid connection leaks during Next.js hot reloads.
+// ---------------------------------------------------------------------------
+declare const globalThis: {
+  prismaGlobal: PrismaClient;
+  pgPoolGlobal: Pool;
+} & typeof global;
+
+export const pool = globalThis.pgPoolGlobal ?? new Pool({
   connectionString,
   max: 10,
   idleTimeoutMillis: 30_000,
@@ -32,6 +35,10 @@ export const pool = new Pool({
       ? { rejectUnauthorized: false }
       : false,
 });
+
+if (process.env.NODE_ENV !== "production") {
+  globalThis.pgPoolGlobal = pool;
+}
 
 // Prevent unhandled pool errors from crashing the process on transient faults.
 pool.on("error", (err) => {
@@ -50,10 +57,6 @@ const prismaClientSingleton = () => {
   const adapter = new PrismaPg(pool);
   return new PrismaClient({ adapter });
 };
-
-declare const globalThis: {
-  prismaGlobal: ReturnType<typeof prismaClientSingleton>;
-} & typeof global;
 
 export const prisma = globalThis.prismaGlobal ?? prismaClientSingleton();
 

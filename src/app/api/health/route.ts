@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { connectRedis } from "@/lib/redis";
+import { connectBullMQRedis } from "@/lib/queue";
 
 export async function GET() {
   let databaseStatus = "disconnected";
   let redisStatus = "disconnected";
+  let bullmqStatus = "disconnected";
   let status = 200;
 
   try {
@@ -25,11 +27,21 @@ export async function GET() {
     status = 500;
   }
 
+  try {
+    const bullmqRedis = await connectBullMQRedis();
+    await bullmqRedis.ping();
+    bullmqStatus = "connected";
+  } catch (bullmqError) {
+    console.error("BullMQ connection check failed:", bullmqError);
+    status = 500;
+  }
+
   return NextResponse.json(
     {
       success: status === 200,
       database: databaseStatus,
       redis: redisStatus,
+      bullmq: bullmqStatus,
       timestamp: new Date().toISOString(),
     },
     {

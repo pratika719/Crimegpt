@@ -11,7 +11,7 @@ type CasesDashboardClientProps = {
   initialCases: Case[];
 };
 
-type StatusFilter = "ALL" | "OPEN" | "UNDER_INVESTIGATION" | "CLOSED";
+type StatusFilter = "ALL" | "OPEN" | "UNDER_INVESTIGATION" | "CLOSED" | "ARCHIVED";
 type SortOption = "newest" | "oldest" | "title";
 
 export function CasesDashboardClient({ initialCases }: CasesDashboardClientProps) {
@@ -191,7 +191,7 @@ const filteredAndSortedCases = useMemo(() => {
         <div className="flex flex-wrap items-center gap-2">
           {/* Status Tabs */}
           <div className="inline-flex items-center rounded-lg bg-zinc-100 dark:bg-zinc-800/80 p-1 border border-zinc-200/50 dark:border-zinc-700/30">
-            {(["ALL", "OPEN", "UNDER_INVESTIGATION", "CLOSED"] as const).map((status) => (
+            {(["ALL", "OPEN", "UNDER_INVESTIGATION", "CLOSED", "ARCHIVED"] as const).map((status) => (
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}

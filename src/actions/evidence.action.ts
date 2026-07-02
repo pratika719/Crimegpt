@@ -3,20 +3,20 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { evidenceService } from "@/services/evidence/evidence.service";
-import { CreateEvidenceInput, UpdateEvidenceInput, CreateEvidenceSchema, UpdateEvidenceSchema } from "@/schema/evidence.schema";
+import { CreateEvidenceInput, UpdateEvidenceInput, createEvidenceSchema, updateEvidenceSchema } from "@/schema/evidence.schema";
 import { auth } from "@/auth";
 import { validateActionInput } from "@/lib/validation/action-guard";
 import { actionSuccess, actionFailure } from "@/lib/action-response";
 
 const CreateEvidenceActionSchema = z.object({
   caseId: z.string().min(1, "Case ID is required"),
-  data: CreateEvidenceSchema.omit({ caseId: true }),
+  data: createEvidenceSchema.omit({ caseId: true }),
 });
 
 const UpdateEvidenceActionSchema = z.object({
   id: z.string().min(1, "Evidence ID is required"),
   caseId: z.string().min(1, "Case ID is required"),
-  data: UpdateEvidenceSchema,
+  data: updateEvidenceSchema,
 });
 
 const DeleteEvidenceActionSchema = z.object({

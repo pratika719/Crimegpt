@@ -16,6 +16,7 @@ enum CaseStatus {
   OPEN
   UNDER_INVESTIGATION
   CLOSED
+  ARCHIVED
 }
 
 enum DocumentType {
@@ -28,9 +29,33 @@ enum DocumentType {
   CASE_DIARY
 }
 
+enum GeneratedDocumentStatus {
+  DRAFT
+  GENERATING
+  COMPLETED
+  FAILED
+  ARCHIVED
+}
+
 enum MessageRole {
   USER
   ASSISTANT
+}
+
+enum AIRequestStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum EvidenceProcessingStatus {
+  NOT_STARTED
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
 }
 
 enum AIRequestType {
@@ -45,62 +70,65 @@ enum AIRequestType {
 }
 
 model Case {
-  id String @id @default(cuid())
+  id         String     @id @default(cuid())
+  title      String
+  narrative  String
+  status     CaseStatus @default(OPEN)
+  userId     String
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  archivedAt DateTime?
 
-  title     String
-  narrative String @db.Text
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  status CaseStatus @default(OPEN)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  documents    GeneratedDocument[]
-  chatSessions ChatSession[]
-  aiRequests   AIRequestLog[]
-  metadata     CaseMetadata?
-  activities   CaseActivity[]
-  persons      Person[]
-  evidence     Evidence[]
-  checklist    ChecklistItem[]
-
+  generatedDocuments   GeneratedDocument[]
+  chatSessions         ChatSession[]
+  aiRequestLogs        AIRequestLog[]
+  caseMetadata         CaseMetadata?
+  activities           CaseActivity[]
+  persons              Person[]
+  evidence             Evidence[]
+  checklistItems       ChecklistItem[]
   investigationProfile InvestigationProfile?
   victims              Victim[]
   accused              Accused[]
   witnesses            Witness[]
   vehicles             Vehicle[]
   seizedItems          SeizedItem[]
-  medicalInfos         MedicalInformation[]
-  courtInfos           CourtInformation[]
+  medicalInformation   MedicalInformation[]
+  courtInformation     CourtInformation[]
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  @@index([userId])
   @@index([status])
   @@index([createdAt])
+  @@index([updatedAt])
+  @@index([userId, status])
 }
 
 //
 model GeneratedDocument {
-  id String @id @default(cuid())
+  id             String                  @id @default(cuid())
+  caseId         String
+  type           DocumentType
+  title          String
+  content        Json
+  version        Int                     @default(1)
+  status         GeneratedDocumentStatus @default(COMPLETED)
+  errorMessage   String?
+  sourceSnapshot Json?
+  generatedBy    String?
+  generatedAt    DateTime?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
 
-  type DocumentType
-
-  title String
-
-  content Json
-
-  version Int @default(1)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  caseId String
-  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
   @@index([caseId])
   @@index([type])
+  @@index([status])
+  @@index([createdAt])
   @@index([caseId, type])
+  @@index([caseId, type, version])
 }
 
 model ChatSession {
@@ -148,30 +176,38 @@ model LegalChunk {
 }
 
 model AIRequestLog {
-  id String @id @default(cuid())
+  id               String          @id @default(cuid())
+  caseId           String?
+  userId           String
+  requestType      AIRequestType
+  status           AIRequestStatus @default(SUCCEEDED)
+  prompt           String?
+  retrievedContext String?
+  response         String?
+  modelUsed        String?
+  tokenUsage       Json?
+  latencyMs        Int?
+  errorCode        String?
+  errorMessage     String?
+  retryCount       Int             @default(0)
+  queueJobId       String?
+  inputHash        String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  startedAt        DateTime?
+  completedAt      DateTime?
 
-  requestType AIRequestType
+  case Case? @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  prompt String @db.Text
-
-  retrievedContext String? @db.Text
-
-  response String @db.Text
-
-  latencyMs Int?
-
-  modelUsed String?
-
-  tokenUsage Int?
-
-  createdAt DateTime @default(now())
-
-  caseId String?
-  case   Case?   @relation(fields: [caseId], references: [id], onDelete: SetNull)
-
+  @@index([caseId])
+  @@index([userId])
   @@index([requestType])
+  @@index([status])
   @@index([createdAt])
+  @@index([queueJobId])
   @@index([caseId, requestType])
+  @@index([userId, createdAt])
 }
 
 model CaseMetadata {
@@ -191,6 +227,8 @@ model CaseMetadata {
 
   caseId String @unique
   case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
 }
 
 enum ActivityType {
@@ -284,7 +322,9 @@ model CaseActivity {
   case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
   @@index([caseId])
+  @@index([activityType])
   @@index([createdAt])
+  @@index([caseId, createdAt])
 }
 
 enum EvidenceType {
@@ -298,20 +338,29 @@ enum EvidenceType {
 }
 
 model Evidence {
-  id          String       @id @default(cuid())
-  title       String
-  description String?      @db.Text
-  type        EvidenceType
-  notes       String?      @db.Text
-  fileUrl     String?      @db.Text
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id               String                   @id @default(cuid())
+  caseId           String
+  title            String
+  description      String?
+  type             EvidenceType
+  notes            String?
+  fileUrl          String?
+  mimeType         String?
+  fileSizeBytes    Int?
+  hashSha256       String?
+  extractedText    String?
+  processingStatus EvidenceProcessingStatus @default(NOT_STARTED)
+  processingError  String?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
 
-  caseId String
-  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
   @@index([caseId])
   @@index([type])
+  @@index([processingStatus])
+  @@index([hashSha256])
+  @@index([caseId, type])
 }
 
 model ChecklistItem {
@@ -326,6 +375,8 @@ model ChecklistItem {
   case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
   @@index([caseId])
+  @@index([completed])
+  @@index([caseId, completed])
 }
 
 model InvestigationProfile {
@@ -349,6 +400,8 @@ model InvestigationProfile {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([caseId])
 }
 
 model Victim {
@@ -410,6 +463,7 @@ model Vehicle {
   updatedAt         DateTime @updatedAt
 
   @@index([caseId])
+  @@index([licensePlate])
 }
 
 model SeizedItem {
@@ -428,6 +482,7 @@ model SeizedItem {
   updatedAt       DateTime  @updatedAt
 
   @@index([caseId])
+  @@index([status])
 }
 
 model MedicalInformation {
@@ -445,6 +500,7 @@ model MedicalInformation {
   updatedAt        DateTime  @updatedAt
 
   @@index([caseId])
+  @@index([severity])
 }
 
 model CourtInformation {
@@ -462,17 +518,19 @@ model CourtInformation {
   updatedAt            DateTime  @updatedAt
 
   @@index([caseId])
+  @@index([nextHearingDate])
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String         @id @default(cuid())
   name          String?
-  email         String?   @unique
+  email         String?        @unique
   emailVerified DateTime?
   image         String?
   accounts      Account[]
   sessions      Session[]
   cases         Case[]
+  aiRequestLogs AIRequestLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

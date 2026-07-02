@@ -10,8 +10,10 @@ import {
   Paperclip 
 } from "lucide-react";
 
+import type { CaseStatus } from "@/generated/prisma/client";
+
 interface CaseOverviewCardsProps {
-  status: "OPEN" | "UNDER_INVESTIGATION" | "CLOSED";
+  status: CaseStatus;
   completenessPercent: number;
   totalPersons: number;
   totalEvidence: number;
@@ -59,6 +61,24 @@ export default function CaseOverviewCards({
           borderColor: "border-emerald-200 dark:border-emerald-900/30",
           dotColor: "bg-emerald-500",
           description: "All legal filings generated and procedures finalized.",
+        };
+      case "ARCHIVED":
+        return {
+          label: "Archived Dossier",
+          bgColor: "bg-zinc-50/50 dark:bg-zinc-950/10",
+          textColor: "text-zinc-700 dark:text-zinc-400",
+          borderColor: "border-zinc-200 dark:border-zinc-900/30",
+          dotColor: "bg-zinc-500",
+          description: "This dossier is archived and marked as read-only.",
+        };
+      default:
+        return {
+          label: "Unknown Status",
+          bgColor: "bg-zinc-50/50 dark:bg-zinc-950/10",
+          textColor: "text-zinc-700 dark:text-zinc-400",
+          borderColor: "border-zinc-200 dark:border-zinc-900/30",
+          dotColor: "bg-zinc-500",
+          description: "Status is unrecognized.",
         };
     }
   };

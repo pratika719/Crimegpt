@@ -42,7 +42,7 @@ export default async function CaseDetailPage({
     notFound();
   }
 
-  const documents = caseItem.documents || [];
+  const documents = caseItem.generatedDocuments || [];
 
 
   // Calculate metadata completeness percentage
@@ -58,12 +58,12 @@ export default async function CaseDetailPage({
     "evidenceSummary",
     "officerNotes",
   ];
-  const filledFields = caseItem.metadata
+  const filledFields = caseItem.caseMetadata
     ? metadataFields.filter(
         (field) =>
-          caseItem.metadata?.[field as keyof typeof caseItem.metadata] !== null &&
-          caseItem.metadata?.[field as keyof typeof caseItem.metadata] !== undefined &&
-          String(caseItem.metadata?.[field as keyof typeof caseItem.metadata]).trim() !== ""
+          caseItem.caseMetadata?.[field as keyof typeof caseItem.caseMetadata] !== null &&
+          caseItem.caseMetadata?.[field as keyof typeof caseItem.caseMetadata] !== undefined &&
+          String(caseItem.caseMetadata?.[field as keyof typeof caseItem.caseMetadata]).trim() !== ""
       ).length
     : 0;
   const completenessPercent = Math.round((filledFields / metadataFields.length) * 100);
@@ -91,8 +91,8 @@ export default async function CaseDetailPage({
 
   const totalPersons = caseItem.persons?.length || 0;
   const totalEvidence = caseItem.evidence?.length || 0;
-  const checklistCompleted = caseItem.checklist?.filter(item => item.completed).length || 0;
-  const checklistTotal = caseItem.checklist?.length || 0;
+  const checklistCompleted = caseItem.checklistItems?.filter(item => item.completed).length || 0;
+  const checklistTotal = caseItem.checklistItems?.length || 0;
 
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-8">
@@ -181,7 +181,7 @@ export default async function CaseDetailPage({
       {/* 5. Metadata Profile Section */}
       <CaseMetadataSection 
         caseId={caseItem.id} 
-        metadata={caseItem.metadata ? JSON.parse(JSON.stringify(caseItem.metadata)) : null} 
+        metadata={caseItem.caseMetadata ? JSON.parse(JSON.stringify(caseItem.caseMetadata)) : null} 
       />
 
       {/* 5. Persons/Parties Profile Section */}
@@ -199,14 +199,14 @@ export default async function CaseDetailPage({
       {/* 7. Checklist / Procedures Section */}
       <CaseChecklistSection 
         caseId={caseItem.id} 
-        initialChecklist={caseItem.checklist ? JSON.parse(JSON.stringify(caseItem.checklist)) : []} 
+        initialChecklist={caseItem.checklistItems ? JSON.parse(JSON.stringify(caseItem.checklistItems)) : []} 
       />
 
       {/* 8. AI Generated Documents / Analysis Section */}
       <CaseAnalysisPanel 
         caseId={caseItem.id} 
         initialDocuments={JSON.parse(JSON.stringify(documents))} 
-        aiRequests={JSON.parse(JSON.stringify(caseItem.aiRequests || []))}
+        aiRequests={JSON.parse(JSON.stringify(caseItem.aiRequestLogs || []))}
         caseTitle={caseItem.title}
         caseNumber={caseItem.investigationProfile?.firNumber || caseItem.id}
       />

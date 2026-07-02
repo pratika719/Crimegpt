@@ -1,37 +1,44 @@
 import { z } from "zod";
 
-export const EvidenceType = {
-  DOCUMENT: "DOCUMENT",
-  IMAGE: "IMAGE",
-  VIDEO: "VIDEO",
-  AUDIO: "AUDIO",
-  SCREENSHOT: "SCREENSHOT",
-  LOG_FILE: "LOG_FILE",
-  OTHER: "OTHER",
-} as const;
-
-export type EvidenceType = typeof EvidenceType[keyof typeof EvidenceType];
-
-export const EvidenceTypeSchema = z.enum([
+export const EvidenceTypesList = [
   "DOCUMENT",
   "IMAGE",
   "VIDEO",
   "AUDIO",
   "SCREENSHOT",
   "LOG_FILE",
-  "OTHER",
-]);
+  "OTHER"
+] as const;
 
-export const CreateEvidenceSchema = z.object({
-  title: z.string().min(1, "Title is required").max(200, "Title cannot exceed 200 characters"),
-  type: EvidenceTypeSchema,
-  description: z.string().nullable().optional().or(z.literal("")),
-  notes: z.string().nullable().optional().or(z.literal("")),
-  fileUrl: z.string().max(500, "File URL/Name cannot exceed 500 characters").nullable().optional().or(z.literal("")),
-  caseId: z.string().min(1, "Case ID is required"),
+export const EvidenceProcessingStatusList = [
+  "NOT_STARTED",
+  "PENDING",
+  "PROCESSING",
+  "COMPLETED",
+  "FAILED"
+] as const;
+
+export const createEvidenceSchema = z.object({
+  caseId: z.string().cuid(),
+  title: z.string().trim().min(2).max(180),
+  description: z.string().trim().max(2_000).optional(),
+  type: z.enum(EvidenceTypesList),
+  notes: z.string().trim().max(10_000).optional(),
+  fileUrl: z.string().url().optional(),
+  mimeType: z.string().trim().max(120).optional(),
+  fileSizeBytes: z.number().int().positive().optional(),
+  hashSha256: z.string().length(64).optional(),
+  extractedText: z.string().trim().max(250_000).optional(),
 });
 
-export const UpdateEvidenceSchema = CreateEvidenceSchema.partial().omit({ caseId: true });
+export const updateEvidenceSchema = createEvidenceSchema.partial().omit({ caseId: true });
 
-export type CreateEvidenceInput = z.infer<typeof CreateEvidenceSchema>;
-export type UpdateEvidenceInput = z.infer<typeof UpdateEvidenceSchema>;
+export const updateEvidenceProcessingStatusSchema = z.object({
+  evidenceId: z.string().cuid(),
+  processingStatus: z.enum(EvidenceProcessingStatusList),
+  processingError: z.string().trim().max(2_000).optional(),
+});
+
+export type CreateEvidenceInput = z.infer<typeof createEvidenceSchema>;
+export type UpdateEvidenceInput = z.infer<typeof updateEvidenceSchema>;
+export type UpdateEvidenceProcessingStatusInput = z.infer<typeof updateEvidenceProcessingStatusSchema>;

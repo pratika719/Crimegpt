@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { CaseStatus } from "@/generated/prisma/client";
 
 export class CaseRepository {
   async create(userId: string, data: {
@@ -29,17 +30,17 @@ export class CaseRepository {
         userId,
       },
       include: {
-        documents: {
+        generatedDocuments: {
           orderBy: {
             createdAt: "desc",
           },
         },
-        aiRequests: {
+        aiRequestLogs: {
           orderBy: {
             createdAt: "desc",
           },
         },
-        metadata: true,
+        caseMetadata: true,
         activities: {
           orderBy: {
             createdAt: "desc",
@@ -55,7 +56,7 @@ export class CaseRepository {
             createdAt: "desc",
           },
         },
-        checklist: {
+        checklistItems: {
           orderBy: [
             { completed: "asc" },
             { createdAt: "desc" },
@@ -96,12 +97,12 @@ export class CaseRepository {
             createdAt: "desc",
           },
         },
-        medicalInfos: {
+        medicalInformation: {
           orderBy: {
             createdAt: "desc",
           },
         },
-        courtInfos: {
+        courtInformation: {
           orderBy: {
             createdAt: "desc",
           },
@@ -113,7 +114,7 @@ export class CaseRepository {
   async updateStatus(
     id: string,
     userId: string,
-    status: "OPEN" | "UNDER_INVESTIGATION" | "CLOSED",
+    status: CaseStatus,
     tx?: any
   ) {
     const client = tx || prisma;
@@ -132,7 +133,7 @@ export class CaseRepository {
     data: {
       title?: string;
       narrative?: string;
-      status?: "OPEN" | "UNDER_INVESTIGATION" | "CLOSED";
+      status?: CaseStatus;
     }
   ) {
     const c = await prisma.case.findFirst({ where: { id, userId } });

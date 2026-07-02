@@ -43,11 +43,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { updateCaseAction, deleteCaseAction } from "@/actions/case.action";
 import { toast } from "sonner";
 
+import type { CaseStatus } from "@/generated/prisma/client";
+
 interface CaseHeaderActionsProps {
   caseId: string;
   caseTitle: string;
   caseNarrative: string;
-  caseStatus: "OPEN" | "UNDER_INVESTIGATION" | "CLOSED";
+  caseStatus: CaseStatus;
 }
 
 export default function CaseHeaderActions({
@@ -208,6 +210,7 @@ export default function CaseHeaderActions({
                 <option value="OPEN">Open</option>
                 <option value="UNDER_INVESTIGATION">Under Investigation</option>
                 <option value="CLOSED">Closed</option>
+                <option value="ARCHIVED">Archived</option>
               </select>
             </div>
           </div>

@@ -36,6 +36,7 @@ export class AIDiagnosticsService {
         caseId,
       });
     } catch (obsError) {
+      // We don't throw or return early here because telemetry failure shouldn't abort the run
       console.warn(`⚠️ Warning: Failed to write AI observability log:`, obsError);
     }
 

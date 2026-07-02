@@ -1,9 +1,28 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { evidenceService } from "@/services/evidence/evidence.service";
-import { CreateEvidenceInput, UpdateEvidenceInput } from "@/schema/evidence.schema";
+import { CreateEvidenceInput, UpdateEvidenceInput, CreateEvidenceSchema, UpdateEvidenceSchema } from "@/schema/evidence.schema";
 import { auth } from "@/auth";
+import { validateActionInput } from "@/lib/validation/action-guard";
+import { actionSuccess, actionFailure } from "@/lib/action-response";
+
+const CreateEvidenceActionSchema = z.object({
+  caseId: z.string().min(1, "Case ID is required"),
+  data: CreateEvidenceSchema.omit({ caseId: true }),
+});
+
+const UpdateEvidenceActionSchema = z.object({
+  id: z.string().min(1, "Evidence ID is required"),
+  caseId: z.string().min(1, "Case ID is required"),
+  data: UpdateEvidenceSchema,
+});
+
+const DeleteEvidenceActionSchema = z.object({
+  id: z.string().min(1, "Evidence ID is required"),
+  caseId: z.string().min(1, "Case ID is required"),
+});
 
 /**
  * Server action to register a new evidence item to a case.
@@ -12,31 +31,24 @@ export async function createEvidenceAction(
   caseId: string,
   data: Omit<CreateEvidenceInput, "caseId">
 ) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { success: false, message: "Unauthorized" };
+  return validateActionInput(
+    CreateEvidenceActionSchema,
+    { caseId, data },
+    async (validated) => {
+      const session = await auth();
+      if (!session?.user?.id) {
+        return actionFailure("UNAUTHORIZED", "Unauthorized");
+      }
+      const userId = session.user.id;
+
+      const evidence = await evidenceService.createEvidence(validated.caseId, userId, validated.data);
+      revalidatePath(`/case/${validated.caseId}`);
+
+      return actionSuccess({
+        data: JSON.parse(JSON.stringify(evidence)),
+      });
     }
-    const userId = session.user.id;
-
-    if (!caseId) {
-      return { success: false, message: "Case ID is required." };
-    }
-
-    const evidence = await evidenceService.createEvidence(caseId, userId, data);
-    revalidatePath(`/case/${caseId}`);
-
-    return {
-      success: true,
-      data: JSON.parse(JSON.stringify(evidence)),
-    };
-  } catch (error: any) {
-    console.error("❌ Action Failure (createEvidenceAction):", error);
-    return {
-      success: false,
-      message: error?.message || "Failed to register evidence.",
-    };
-  }
+  );
 }
 
 /**
@@ -47,60 +59,46 @@ export async function updateEvidenceAction(
   caseId: string,
   data: UpdateEvidenceInput
 ) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { success: false, message: "Unauthorized" };
+  return validateActionInput(
+    UpdateEvidenceActionSchema,
+    { id, caseId, data },
+    async (validated) => {
+      const session = await auth();
+      if (!session?.user?.id) {
+        return actionFailure("UNAUTHORIZED", "Unauthorized");
+      }
+      const userId = session.user.id;
+
+      const evidence = await evidenceService.updateEvidence(validated.id, userId, validated.data, validated.caseId);
+      revalidatePath(`/case/${validated.caseId}`);
+
+      return actionSuccess({
+        data: JSON.parse(JSON.stringify(evidence)),
+      });
     }
-    const userId = session.user.id;
-
-    if (!id || !caseId) {
-      return { success: false, message: "ID and Case ID are required." };
-    }
-
-    const evidence = await evidenceService.updateEvidence(id, userId, data, caseId);
-    revalidatePath(`/case/${caseId}`);
-
-    return {
-      success: true,
-      data: JSON.parse(JSON.stringify(evidence)),
-    };
-  } catch (error: any) {
-    console.error("❌ Action Failure (updateEvidenceAction):", error);
-    return {
-      success: false,
-      message: error?.message || "Failed to update evidence details.",
-    };
-  }
+  );
 }
 
 /**
  * Server action to remove an evidence item.
  */
 export async function deleteEvidenceAction(id: string, caseId: string) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { success: false, message: "Unauthorized" };
+  return validateActionInput(
+    DeleteEvidenceActionSchema,
+    { id, caseId },
+    async (validated) => {
+      const session = await auth();
+      if (!session?.user?.id) {
+        return actionFailure("UNAUTHORIZED", "Unauthorized");
+      }
+      const userId = session.user.id;
+
+      const evidence = await evidenceService.deleteEvidence(validated.id, userId, validated.caseId);
+      revalidatePath(`/case/${validated.caseId}`);
+
+      return actionSuccess({
+        data: JSON.parse(JSON.stringify(evidence)),
+      });
     }
-    const userId = session.user.id;
-
-    if (!id || !caseId) {
-      return { success: false, message: "ID and Case ID are required." };
-    }
-
-    const evidence = await evidenceService.deleteEvidence(id, userId, caseId);
-    revalidatePath(`/case/${caseId}`);
-
-    return {
-      success: true,
-      data: JSON.parse(JSON.stringify(evidence)),
-    };
-  } catch (error: any) {
-    console.error("❌ Action Failure (deleteEvidenceAction):", error);
-    return {
-      success: false,
-      message: error?.message || "Failed to delete evidence record.",
-    };
-  }
+  );
 }

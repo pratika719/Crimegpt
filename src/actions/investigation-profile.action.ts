@@ -1,8 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { investigationProfileService } from "@/services/investigation-profile/investigation-profile.service";
 import { auth } from "@/auth";
+import { validateActionInput } from "@/lib/validation/action-guard";
+import { actionSuccess } from "@/lib/action-response";
 import {
   InvestigationProfileSchema,
   VictimSchema,
@@ -22,324 +25,362 @@ async function getSessionUserId() {
   return session.user.id;
 }
 
-export async function upsertInvestigationProfileAction(caseId: string, data: any) {
-  try {
-    const userId = await getSessionUserId();
-    const parsed = InvestigationProfileSchema.parse(data);
-    
-    // Parse date fields if they are strings
-    const formattedData = {
-      ...parsed,
-      dateOfRegistration: parsed.dateOfRegistration ? new Date(parsed.dateOfRegistration) : null,
-      incidentDateTime: parsed.incidentDateTime ? new Date(parsed.incidentDateTime) : null,
-    };
+// Reusable schemas for validation wrapper
+const CaseIdAndDataSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
+  z.object({
+    caseId: z.string().min(1, "Case ID is required"),
+    data: dataSchema,
+  });
 
-    await investigationProfileService.upsertProfile(caseId, userId, formattedData);
-    revalidatePath(`/case/${caseId}`);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to update investigation profile." };
-  }
+const IdCaseIdAndDataSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
+  z.object({
+    id: z.string().min(1, "ID is required"),
+    caseId: z.string().min(1, "Case ID is required"),
+    data: dataSchema,
+  });
+
+const IdAndCaseIdSchema = z.object({
+  id: z.string().min(1, "ID is required"),
+  caseId: z.string().min(1, "Case ID is required"),
+});
+
+export async function upsertInvestigationProfileAction(caseId: string, data: any) {
+  return validateActionInput(
+    CaseIdAndDataSchema(InvestigationProfileSchema),
+    { caseId, data },
+    async (validated) => {
+      const userId = await getSessionUserId();
+      const formattedData = {
+        ...validated.data,
+        dateOfRegistration: validated.data.dateOfRegistration ? new Date(validated.data.dateOfRegistration) : null,
+        incidentDateTime: validated.data.incidentDateTime ? new Date(validated.data.incidentDateTime) : null,
+      };
+
+      await investigationProfileService.upsertProfile(validated.caseId, userId, formattedData);
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
 }
 
 // Victims
 export async function addVictimAction(caseId: string, data: any) {
-  try {
-    const userId = await getSessionUserId();
-    const parsed = VictimSchema.parse(data);
-    await investigationProfileService.addVictim(caseId, userId, parsed);
-    revalidatePath(`/case/${caseId}`);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to add victim." };
-  }
+  return validateActionInput(
+    CaseIdAndDataSchema(VictimSchema),
+    { caseId, data },
+    async (validated) => {
+      const userId = await getSessionUserId();
+      await investigationProfileService.addVictim(validated.caseId, userId, validated.data);
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
 }
 
 export async function updateVictimAction(victimId: string, caseId: string, data: any) {
-  try {
-    const userId = await getSessionUserId();
-    const parsed = VictimSchema.partial().parse(data);
-    await investigationProfileService.updateVictim(victimId, userId, parsed);
-    revalidatePath(`/case/${caseId}`);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to update victim." };
-  }
+  return validateActionInput(
+    IdCaseIdAndDataSchema(VictimSchema.partial()),
+    { id: victimId, caseId, data },
+    async (validated) => {
+      const userId = await getSessionUserId();
+      await investigationProfileService.updateVictim(validated.id, userId, validated.data);
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
 }
 
 export async function deleteVictimAction(victimId: string, caseId: string) {
-  try {
-    const userId = await getSessionUserId();
-    await investigationProfileService.deleteVictim(victimId, userId);
-    revalidatePath(`/case/${caseId}`);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to delete victim." };
-  }
+  return validateActionInput(
+    IdAndCaseIdSchema,
+    { id: victimId, caseId },
+    async (validated) => {
+      const userId = await getSessionUserId();
+      await investigationProfileService.deleteVictim(validated.id, userId);
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
 }
 
 // Accused
 export async function addAccusedAction(caseId: string, data: any) {
-  try {
-    const userId = await getSessionUserId();
-    const parsed = AccusedSchema.parse(data);
-    await investigationProfileService.addAccused(caseId, userId, parsed);
-    revalidatePath(`/case/${caseId}`);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to add accused." };
-  }
+  return validateActionInput(
+    CaseIdAndDataSchema(AccusedSchema),
+    { caseId, data },
+    async (validated) => {
+      const userId = await getSessionUserId();
+      await investigationProfileService.addAccused(validated.caseId, userId, validated.data);
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
 }
 
 export async function updateAccusedAction(accusedId: string, caseId: string, data: any) {
-  try {
-    const userId = await getSessionUserId();
-    const parsed = AccusedSchema.partial().parse(data);
-    await investigationProfileService.updateAccused(accusedId, userId, parsed);
-    revalidatePath(`/case/${caseId}`);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to update accused." };
-  }
+  return validateActionInput(
+    IdCaseIdAndDataSchema(AccusedSchema.partial()),
+    { id: accusedId, caseId, data },
+    async (validated) => {
+      const userId = await getSessionUserId();
+      await investigationProfileService.updateAccused(validated.id, userId, validated.data);
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
 }
 
 export async function deleteAccusedAction(accusedId: string, caseId: string) {
-  try {
-    const userId = await getSessionUserId();
-    await investigationProfileService.deleteAccused(accusedId, userId);
-    revalidatePath(`/case/${caseId}`);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to delete accused." };
-  }
+  return validateActionInput(
+    IdAndCaseIdSchema,
+    { id: accusedId, caseId },
+    async (validated) => {
+      const userId = await getSessionUserId();
+      await investigationProfileService.deleteAccused(validated.id, userId);
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
 }
 
 // Witness
 export async function addWitnessAction(caseId: string, data: any) {
-  try {
-    const userId = await getSessionUserId();
-    const parsed = WitnessSchema.parse(data);
+  return validateActionInput(
+    CaseIdAndDataSchema(WitnessSchema),
+    { caseId, data },
+    async (validated) => {
+      const userId = await getSessionUserId();
+      const formattedData = {
+        ...validated.data,
+        statementDate: validated.data.statementDate ? new Date(validated.data.statementDate) : null,
+      };
 
-    const formattedData = {
-      ...parsed,
-      statementDate: parsed.statementDate ? new Date(parsed.statementDate) : null,
-    };
-
-    await investigationProfileService.addWitness(caseId, userId, formattedData);
-    revalidatePath(`/case/${caseId}`);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to add witness." };
-  }
+      await investigationProfileService.addWitness(validated.caseId, userId, formattedData);
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
 }
 
 export async function updateWitnessAction(witnessId: string, caseId: string, data: any) {
-  try {
-    const userId = await getSessionUserId();
-    const parsed = WitnessSchema.partial().parse(data);
+  return validateActionInput(
+    IdCaseIdAndDataSchema(WitnessSchema.partial()),
+    { id: witnessId, caseId, data },
+    async (validated) => {
+      const userId = await getSessionUserId();
+      const formattedData = {
+        ...validated.data,
+        statementDate: validated.data.statementDate ? new Date(validated.data.statementDate) : undefined,
+      };
 
-    const formattedData = {
-      ...parsed,
-      statementDate: parsed.statementDate ? new Date(parsed.statementDate) : undefined,
-    };
-
-    await investigationProfileService.updateWitness(witnessId, userId, formattedData);
-    revalidatePath(`/case/${caseId}`);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to update witness." };
-  }
+      await investigationProfileService.updateWitness(validated.id, userId, formattedData);
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
 }
 
 export async function deleteWitnessAction(witnessId: string, caseId: string) {
-  try {
-    const userId = await getSessionUserId();
-    await investigationProfileService.deleteWitness(witnessId, userId);
-    revalidatePath(`/case/${caseId}`);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to delete witness." };
-  }
+  return validateActionInput(
+    IdAndCaseIdSchema,
+    { id: witnessId, caseId },
+    async (validated) => {
+      const userId = await getSessionUserId();
+      await investigationProfileService.deleteWitness(validated.id, userId);
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
 }
 
 // Vehicles
 export async function addVehicleAction(caseId: string, data: any) {
-  try {
-    const userId = await getSessionUserId();
-    const parsed = VehicleSchema.parse(data);
-    await investigationProfileService.addVehicle(caseId, userId, parsed);
-    revalidatePath(`/case/${caseId}`);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to add vehicle." };
-  }
+  return validateActionInput(
+    CaseIdAndDataSchema(VehicleSchema),
+    { caseId, data },
+    async (validated) => {
+      const userId = await getSessionUserId();
+      await investigationProfileService.addVehicle(validated.caseId, userId, validated.data);
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
 }
 
 export async function updateVehicleAction(vehicleId: string, caseId: string, data: any) {
-  try {
-    const userId = await getSessionUserId();
-    const parsed = VehicleSchema.partial().parse(data);
-    await investigationProfileService.updateVehicle(vehicleId, userId, parsed);
-    revalidatePath(`/case/${caseId}`);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to update vehicle." };
-  }
+  return validateActionInput(
+    IdCaseIdAndDataSchema(VehicleSchema.partial()),
+    { id: vehicleId, caseId, data },
+    async (validated) => {
+      const userId = await getSessionUserId();
+      await investigationProfileService.updateVehicle(validated.id, userId, validated.data);
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
 }
 
 export async function deleteVehicleAction(vehicleId: string, caseId: string) {
-  try {
-    const userId = await getSessionUserId();
-    await investigationProfileService.deleteVehicle(vehicleId, userId);
-    revalidatePath(`/case/${caseId}`);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to delete vehicle." };
-  }
+  return validateActionInput(
+    IdAndCaseIdSchema,
+    { id: vehicleId, caseId },
+    async (validated) => {
+      const userId = await getSessionUserId();
+      await investigationProfileService.deleteVehicle(validated.id, userId);
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
 }
 
 // Seized Property
 export async function addSeizedItemAction(caseId: string, data: any) {
-  try {
-    const userId = await getSessionUserId();
-    const parsed = SeizedItemSchema.parse(data);
+  return validateActionInput(
+    CaseIdAndDataSchema(SeizedItemSchema),
+    { caseId, data },
+    async (validated) => {
+      const userId = await getSessionUserId();
+      const formattedData = {
+        ...validated.data,
+        seizureDate: validated.data.seizureDate ? new Date(validated.data.seizureDate) : null,
+      };
 
-    const formattedData = {
-      ...parsed,
-      seizureDate: parsed.seizureDate ? new Date(parsed.seizureDate) : null,
-    };
-
-    await investigationProfileService.addSeizedItem(caseId, userId, formattedData);
-    revalidatePath(`/case/${caseId}`);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to add seized item." };
-  }
+      await investigationProfileService.addSeizedItem(validated.caseId, userId, formattedData);
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
 }
 
 export async function updateSeizedItemAction(itemId: string, caseId: string, data: any) {
-  try {
-    const userId = await getSessionUserId();
-    const parsed = SeizedItemSchema.partial().parse(data);
+  return validateActionInput(
+    IdCaseIdAndDataSchema(SeizedItemSchema.partial()),
+    { id: itemId, caseId, data },
+    async (validated) => {
+      const userId = await getSessionUserId();
+      const formattedData = {
+        ...validated.data,
+        seizureDate: validated.data.seizureDate ? new Date(validated.data.seizureDate) : undefined,
+      };
 
-    const formattedData = {
-      ...parsed,
-      seizureDate: parsed.seizureDate ? new Date(parsed.seizureDate) : undefined,
-    };
-
-    await investigationProfileService.updateSeizedItem(itemId, userId, formattedData);
-    revalidatePath(`/case/${caseId}`);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to update seized item." };
-  }
+      await investigationProfileService.updateSeizedItem(validated.id, userId, formattedData);
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
 }
 
 export async function deleteSeizedItemAction(itemId: string, caseId: string) {
-  try {
-    const userId = await getSessionUserId();
-    await investigationProfileService.deleteSeizedItem(itemId, userId);
-    revalidatePath(`/case/${caseId}`);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to delete seized item." };
-  }
+  return validateActionInput(
+    IdAndCaseIdSchema,
+    { id: itemId, caseId },
+    async (validated) => {
+      const userId = await getSessionUserId();
+      await investigationProfileService.deleteSeizedItem(validated.id, userId);
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
 }
 
 // Medical
 export async function addMedicalInfoAction(caseId: string, data: any) {
-  try {
-    const userId = await getSessionUserId();
-    const parsed = MedicalInformationSchema.parse(data);
+  return validateActionInput(
+    CaseIdAndDataSchema(MedicalInformationSchema),
+    { caseId, data },
+    async (validated) => {
+      const userId = await getSessionUserId();
+      const formattedData = {
+        ...validated.data,
+        admissionDate: validated.data.admissionDate ? new Date(validated.data.admissionDate) : null,
+      };
 
-    const formattedData = {
-      ...parsed,
-      admissionDate: parsed.admissionDate ? new Date(parsed.admissionDate) : null,
-    };
-
-    await investigationProfileService.addMedicalInfo(caseId, userId, formattedData);
-    revalidatePath(`/case/${caseId}`);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to add medical details." };
-  }
+      await investigationProfileService.addMedicalInfo(validated.caseId, userId, formattedData);
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
 }
 
 export async function updateMedicalInfoAction(medicalInfoId: string, caseId: string, data: any) {
-  try {
-    const userId = await getSessionUserId();
-    const parsed = MedicalInformationSchema.partial().parse(data);
+  return validateActionInput(
+    IdCaseIdAndDataSchema(MedicalInformationSchema.partial()),
+    { id: medicalInfoId, caseId, data },
+    async (validated) => {
+      const userId = await getSessionUserId();
+      const formattedData = {
+        ...validated.data,
+        admissionDate: validated.data.admissionDate ? new Date(validated.data.admissionDate) : undefined,
+      };
 
-    const formattedData = {
-      ...parsed,
-      admissionDate: parsed.admissionDate ? new Date(parsed.admissionDate) : undefined,
-    };
-
-    await investigationProfileService.updateMedicalInfo(medicalInfoId, userId, formattedData);
-    revalidatePath(`/case/${caseId}`);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to update medical details." };
-  }
+      await investigationProfileService.updateMedicalInfo(validated.id, userId, formattedData);
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
 }
 
 export async function deleteMedicalInfoAction(medicalInfoId: string, caseId: string) {
-  try {
-    const userId = await getSessionUserId();
-    await investigationProfileService.deleteMedicalInfo(medicalInfoId, userId);
-    revalidatePath(`/case/${caseId}`);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to delete medical details." };
-  }
+  return validateActionInput(
+    IdAndCaseIdSchema,
+    { id: medicalInfoId, caseId },
+    async (validated) => {
+      const userId = await getSessionUserId();
+      await investigationProfileService.deleteMedicalInfo(validated.id, userId);
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
 }
 
 // Court
 export async function addCourtInfoAction(caseId: string, data: any) {
-  try {
-    const userId = await getSessionUserId();
-    const parsed = CourtInformationSchema.parse(data);
+  return validateActionInput(
+    CaseIdAndDataSchema(CourtInformationSchema),
+    { caseId, data },
+    async (validated) => {
+      const userId = await getSessionUserId();
+      const formattedData = {
+        ...validated.data,
+        nextHearingDate: validated.data.nextHearingDate ? new Date(validated.data.nextHearingDate) : null,
+        chargesheetFiledDate: validated.data.chargesheetFiledDate ? new Date(validated.data.chargesheetFiledDate) : null,
+      };
 
-    const formattedData = {
-      ...parsed,
-      nextHearingDate: parsed.nextHearingDate ? new Date(parsed.nextHearingDate) : null,
-      chargesheetFiledDate: parsed.chargesheetFiledDate ? new Date(parsed.chargesheetFiledDate) : null,
-    };
-
-    await investigationProfileService.addCourtInfo(caseId, userId, formattedData);
-    revalidatePath(`/case/${caseId}`);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to add court details." };
-  }
+      await investigationProfileService.addCourtInfo(validated.caseId, userId, formattedData);
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
 }
 
 export async function updateCourtInfoAction(courtInfoId: string, caseId: string, data: any) {
-  try {
-    const userId = await getSessionUserId();
-    const parsed = CourtInformationSchema.partial().parse(data);
+  return validateActionInput(
+    IdCaseIdAndDataSchema(CourtInformationSchema.partial()),
+    { id: courtInfoId, caseId, data },
+    async (validated) => {
+      const userId = await getSessionUserId();
+      const formattedData = {
+        ...validated.data,
+        nextHearingDate: validated.data.nextHearingDate ? new Date(validated.data.nextHearingDate) : undefined,
+        chargesheetFiledDate: validated.data.chargesheetFiledDate ? new Date(validated.data.chargesheetFiledDate) : undefined,
+      };
 
-    const formattedData = {
-      ...parsed,
-      nextHearingDate: parsed.nextHearingDate ? new Date(parsed.nextHearingDate) : undefined,
-      chargesheetFiledDate: parsed.chargesheetFiledDate ? new Date(parsed.chargesheetFiledDate) : undefined,
-    };
-
-    await investigationProfileService.updateCourtInfo(courtInfoId, userId, formattedData);
-    revalidatePath(`/case/${caseId}`);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to update court details." };
-  }
+      await investigationProfileService.updateCourtInfo(validated.id, userId, formattedData);
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
 }
 
 export async function deleteCourtInfoAction(courtInfoId: string, caseId: string) {
-  try {
-    const userId = await getSessionUserId();
-    await investigationProfileService.deleteCourtInfo(courtInfoId, userId);
-    revalidatePath(`/case/${caseId}`);
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, message: error?.message || "Failed to delete court details." };
-  }
+  return validateActionInput(
+    IdAndCaseIdSchema,
+    { id: courtInfoId, caseId },
+    async (validated) => {
+      const userId = await getSessionUserId();
+      await investigationProfileService.deleteCourtInfo(validated.id, userId);
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
 }

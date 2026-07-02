@@ -1,109 +1,66 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-
+import { z } from "zod";
 import {
   CreateCaseSchema,
   UpdateCaseSchema,
 } from "@/schema/case.schema";
-
 import { CaseService } from "@/services/case/case.services";
 import { auth } from "@/auth";
+import { validateActionInput } from "@/lib/validation/action-guard";
+import { actionSuccess, actionFailure } from "@/lib/action-response";
 
-const service =
-  new CaseService();
+const service = new CaseService();
 
-export async function createCaseAction(
-  input: unknown
-) {
-  try {
+const DeleteCaseSchema = z.string().min(1, "Case ID is required");
+
+export async function createCaseAction(input: unknown) {
+  return validateActionInput(CreateCaseSchema, input, async (validated) => {
     const session = await auth();
     if (!session?.user?.id) {
-      return {
-        success: false,
-        message: "Unauthorized",
-      };
+      return actionFailure("UNAUTHORIZED", "Unauthorized");
     }
 
-    const validated =
-      CreateCaseSchema.parse(input);
-
-    await service.createCase(
-      session.user.id,
-      validated
-    );
-
+    await service.createCase(session.user.id, validated);
     revalidatePath("/case");
 
-    return {
-      success: true,
-    };
-  } catch (error) {
-    console.error("Error creating case:", error);
-    return {
-      success: false,
-      message:
-        "Failed to create case",
-    };
-  }
+    return actionSuccess();
+  });
 }
 
-export async function updateCaseAction(
-  id: string,
-  input: unknown
-) {
-  try {
+export async function updateCaseAction(id: string, input: unknown) {
+  return validateActionInput(UpdateCaseSchema, input, async (validated) => {
     const session = await auth();
     if (!session?.user?.id) {
-      return { success: false, message: "Unauthorized" };
+      return actionFailure("UNAUTHORIZED", "Unauthorized");
     }
 
     if (!id) {
-      return { success: false, message: "Case ID is required." };
+      return actionFailure("VALIDATION_ERROR", "Case ID is required.");
     }
-
-    const validated = UpdateCaseSchema.parse(input);
 
     const result = await service.updateCase(id, session.user.id, validated);
 
     revalidatePath(`/case/${id}`);
     revalidatePath("/case");
 
-    return {
-      success: true,
+    return actionSuccess({
       data: JSON.parse(JSON.stringify(result)),
-    };
-  } catch (error: any) {
-    console.error("❌ Action Failure (updateCaseAction):", error);
-    return {
-      success: false,
-      message: error?.message || "Failed to update case.",
-    };
-  }
+    });
+  });
 }
 
 export async function deleteCaseAction(id: string) {
-  try {
+  return validateActionInput(DeleteCaseSchema, id, async (validatedId) => {
     const session = await auth();
     if (!session?.user?.id) {
-      return { success: false, message: "Unauthorized" };
+      return actionFailure("UNAUTHORIZED", "Unauthorized");
     }
 
-    if (!id) {
-      return { success: false, message: "Case ID is required." };
-    }
-
-    await service.deleteCase(id, session.user.id);
-
+    await service.deleteCase(validatedId, session.user.id);
     revalidatePath("/case");
 
-    return { success: true };
-  } catch (error: any) {
-    console.error("❌ Action Failure (deleteCaseAction):", error);
-    return {
-      success: false,
-      message: error?.message || "Failed to delete case.",
-    };
-  }
+    return actionSuccess();
+  });
 }

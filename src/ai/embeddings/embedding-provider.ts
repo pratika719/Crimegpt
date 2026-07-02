@@ -4,6 +4,7 @@ import { Embeddings } from "@langchain/core/embeddings";
  * Swappable EmbeddingProvider interface that extends LangChain's Embeddings base class.
  * All future embedding providers (e.g. OpenAI, Gemini, Nomic, Cohere) should implement
  * this interface to ensure clean swappability across ingestion and retrieval layers.
+ * (Note: timeout and cancellation signals are handled by calling layers / concrete providers)
  */
 export interface EmbeddingProvider extends Embeddings {
   /**

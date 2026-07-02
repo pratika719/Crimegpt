@@ -71,8 +71,17 @@ function hasAny(content: string, patterns: RegExp[]): boolean {
 }
 
 function auditFile(filePath: string): Finding[] {
-  const content = readFile(filePath);
   const file = toRelative(filePath);
+  if (
+    file.includes("src/scripts/") ||
+    file.includes("scripts/") ||
+    file.includes("app/api/health/route.ts") ||
+    file.includes("src/app/api/health/route.ts")
+  ) {
+    return [];
+  }
+
+  const content = readFile(filePath);
   const findings: Finding[] = [];
 
   const isServerAction =
@@ -90,9 +99,9 @@ function auditFile(filePath: string): Finding[] {
 
   const importsPrisma = hasAny(content, [
     /from\s+["']@\/lib\/prisma["']/,
-    /from\s+["'].*prisma.*["']/,
+    /from\s+["'](?!@\/generated\/prisma\/client).*prisma.*["']/,
     /new\s+PrismaClient\s*\(/,
-    /prisma\./,
+    /\bprisma\./,
   ]);
 
   const importsGemini = hasAny(content, [

@@ -26,7 +26,10 @@ export class AIRequestLogRepository {
     }
 
     return client.aIRequestLog.create({
-      data,
+      data: {
+        ...data,
+        userId,
+      },
     });
   }
 }

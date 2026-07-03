@@ -285,7 +285,11 @@ export default function CaseAnalysisPanel({
         response = await analyzeCaseAction(caseId);
       } else {
         // All other documents use the new Document Engine action
-        response = await generateDocumentAction(caseId, type, isRegen);
+        response = await generateDocumentAction({
+          caseId,
+          documentType: type as any,
+          forceRegenerate: isRegen,
+        });
       }
 
       if (!response.success) {

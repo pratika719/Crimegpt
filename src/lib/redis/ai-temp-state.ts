@@ -20,7 +20,7 @@ export type AITempState = {
   metadata?: Record<string, unknown>;
 };
 
-export async function setAItempState(
+export async function setAITempState(
   state: AITempState,
   ttlSeconds = 900,
 ): Promise<void> {

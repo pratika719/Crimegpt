@@ -8,6 +8,8 @@ import { CaseService } from "@/services/case/case.services";
 import { auth } from "@/auth";
 import { validateActionInput } from "@/lib/validation/action-guard";
 import { actionSuccess, actionFailure } from "@/lib/action-response";
+import { queueProducerService } from "@/services/queue/queue-producer.service";
+
 
 const GenerateDocumentSchema = z.object({
   caseId: z.string().min(1, "Case ID is required"),
@@ -26,34 +28,39 @@ const LogDocumentActivitySchema = z.object({
 /**
  * Server action to generate (or regenerate) any registered document type for a case.
  */
-export async function generateDocumentAction(caseId: string, type: string, isRegenerate = false) {
+const enqueueDocumentGenerationSchema = z.object({
+  caseId: z.string().cuid(),
+  documentType: z.nativeEnum(DocumentType),
+  forceRegenerate: z.boolean().default(false),
+});
+
+export async function generateDocumentAction(input: unknown) {
   return validateActionInput(
-    GenerateDocumentSchema,
-    { caseId, type, isRegenerate },
-    async (validated) => {
+    enqueueDocumentGenerationSchema,
+    input,
+    async (data) => {
       const session = await auth();
+
       if (!session?.user?.id) {
         return actionFailure("UNAUTHORIZED", "Unauthorized");
       }
-      const userId = session.user.id;
 
-      const docType = validated.type as DocumentType;
-      const { documentGeneratorService } = await import("@/services/document-engine/document-generator.service");
-      const document = await documentGeneratorService.generateDocument(validated.caseId, userId, docType);
-
-      // If it's a regeneration, also log a specific activity entry
-      if (validated.isRegenerate) {
-        await activityService.logDocumentRegenerated(validated.caseId, userId, docType, document.title, document.version);
-      }
-
-      // Revalidate the case detail page so the UI displays the new document
-      revalidatePath(`/case/${validated.caseId}`);
+      const queued = await queueProducerService.addDocumentGenerationJob({
+        caseId: data.caseId,
+        userId: session.user.id,
+        documentType: data.documentType,
+        forceRegenerate: data.forceRegenerate,
+      });
+console.log("[document-generation-action] queued", queued);
+      revalidatePath(`/case/${data.caseId}`);
 
       return actionSuccess({
-        documentId: document.id,
-        version: document.version,
+        data: {
+          message: "Document generation started.",
+          ...queued,
+        },
       });
-    }
+    },
   );
 }
 

@@ -10,16 +10,16 @@ export type BaseJobPayload = {
   createdAt: string;
 };
 
-export type AIGenerationJobPayload = BaseJobPayload & {
-  caseId: string;
-  requestType: AIRequestType;
-  inputHash?: string;
-};
-
 export type DocumentGenerationJobPayload = BaseJobPayload & {
   caseId: string;
   documentType: DocumentType;
   forceRegenerate?: boolean;
+  inputHash?: string;
+};
+
+export type AIGenerationJobPayload = BaseJobPayload & {
+  caseId: string;
+  requestType: AIRequestType;
   inputHash?: string;
 };
 
@@ -53,13 +53,4 @@ export type CleanupJobPayload = BaseJobPayload & {
     | "STALE_LOCKS"
     | "OLD_AUDIT_LOGS";
   olderThanDays?: number;
-};
-
-export type QueueJobPayloadMap = {
-  "ai-generation": AIGenerationJobPayload;
-  "document-generation": DocumentGenerationJobPayload;
-  embedding: EmbeddingJobPayload;
-  ingestion: IngestionJobPayload;
-  email: EmailJobPayload;
-  cleanup: CleanupJobPayload;
 };

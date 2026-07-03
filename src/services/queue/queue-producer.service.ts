@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { DocumentType } from "@/generated/prisma/client";
 import {
   aiGenerationQueue,
   cleanupQueue,
@@ -22,22 +23,76 @@ function createRequestId(prefix: string): string {
 }
 
 export class QueueProducerService {
-  async addDocumentGenerationJob(
-    input: Omit<DocumentGenerationJobPayload, "requestId" | "createdAt">,
-  ) {
-    const payload: DocumentGenerationJobPayload = {
-      ...input,
-      requestId: createRequestId("docgen"),
-      createdAt: new Date().toISOString(),
-    };
+  async addDocumentGenerationJob(input: {
+    caseId: string;
+    userId: string;
+    documentType: DocumentType;
+    forceRegenerate?: boolean;
+    inputHash?: string;
+  }) {
+    const requestId = createRequestId("docgen");
 
-    const jobId =
+    const baseJobId =
       input.inputHash ??
       `${QUEUE_NAMES.DOCUMENT_GENERATION}:${input.caseId}:${input.documentType}`;
 
-    return documentGenerationQueue.add("generate-document", payload, {
-      jobId,
-    });
+    const jobId = input.forceRegenerate
+      ? `${baseJobId}:${Date.now()}`
+      : baseJobId;
+
+    if (!input.forceRegenerate) {
+      const existingJob = await documentGenerationQueue.getJob(baseJobId);
+
+      if (existingJob) {
+        const state = await existingJob.getState();
+
+        if (
+          state === "waiting" ||
+          state === "active" ||
+          state === "delayed" ||
+          state === "prioritized" ||
+          state === "waiting-children"
+        ) {
+          return {
+            jobId: String(existingJob.id),
+            requestId: existingJob.data.requestId,
+            queueName: QUEUE_NAMES.DOCUMENT_GENERATION,
+            reused: true,
+            state,
+          };
+        }
+
+        if (state === "completed" || state === "failed") {
+          await existingJob.remove();
+        }
+      }
+    }
+
+    const payload: DocumentGenerationJobPayload = {
+      caseId: input.caseId,
+      userId: input.userId,
+      documentType: input.documentType,
+      forceRegenerate: input.forceRegenerate ?? false,
+      inputHash: input.inputHash,
+      requestId,
+      createdAt: new Date().toISOString(),
+    };
+
+    const job = await documentGenerationQueue.add(
+      "generate-document",
+      payload,
+      {
+        jobId,
+      },
+    );
+
+    return {
+      jobId: String(job.id),
+      requestId,
+      queueName: QUEUE_NAMES.DOCUMENT_GENERATION,
+      reused: false,
+      state: "waiting",
+    };
   }
 
   async addAIGenerationJob(
@@ -53,9 +108,15 @@ export class QueueProducerService {
       input.inputHash ??
       `${QUEUE_NAMES.AI_GENERATION}:${input.caseId}:${input.requestType}`;
 
-    return aiGenerationQueue.add("generate-ai", payload, {
+    const job = await aiGenerationQueue.add("generate-ai", payload, {
       jobId,
     });
+
+    return {
+      jobId: String(job.id),
+      requestId: payload.requestId,
+      queueName: QUEUE_NAMES.AI_GENERATION,
+    };
   }
 
   async addEmbeddingJob(
@@ -67,9 +128,15 @@ export class QueueProducerService {
       createdAt: new Date().toISOString(),
     };
 
-    return embeddingQueue.add("generate-embedding", payload, {
+    const job = await embeddingQueue.add("generate-embedding", payload, {
       jobId: `${payload.sourceType}:${payload.sourceId}:${payload.chunkIndex ?? 0}`,
     });
+
+    return {
+      jobId: String(job.id),
+      requestId: payload.requestId,
+      queueName: QUEUE_NAMES.EMBEDDING,
+    };
   }
 
   async addIngestionJob(
@@ -81,9 +148,15 @@ export class QueueProducerService {
       createdAt: new Date().toISOString(),
     };
 
-    return ingestionQueue.add("ingest-source", payload, {
+    const job = await ingestionQueue.add("ingest-source", payload, {
       jobId: `${payload.sourceType}:${payload.sourceId}`,
     });
+
+    return {
+      jobId: String(job.id),
+      requestId: payload.requestId,
+      queueName: QUEUE_NAMES.INGESTION,
+    };
   }
 
   async addEmailJob(input: Omit<EmailJobPayload, "requestId" | "createdAt">) {
@@ -93,7 +166,13 @@ export class QueueProducerService {
       createdAt: new Date().toISOString(),
     };
 
-    return emailQueue.add("send-email", payload);
+    const job = await emailQueue.add("send-email", payload);
+
+    return {
+      jobId: String(job.id),
+      requestId: payload.requestId,
+      queueName: QUEUE_NAMES.EMAIL,
+    };
   }
 
   async addCleanupJob(
@@ -105,9 +184,15 @@ export class QueueProducerService {
       createdAt: new Date().toISOString(),
     };
 
-    return cleanupQueue.add("run-cleanup", payload, {
+    const job = await cleanupQueue.add("run-cleanup", payload, {
       jobId: `${payload.cleanupType}:${payload.olderThanDays ?? "default"}`,
     });
+
+    return {
+      jobId: String(job.id),
+      requestId: payload.requestId,
+      queueName: QUEUE_NAMES.CLEANUP,
+    };
   }
 }
 

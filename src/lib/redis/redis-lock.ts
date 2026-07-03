@@ -22,10 +22,7 @@ export async function acquireRedisLock(
   const redis = await connectRedis();
   const token = crypto.randomUUID();
 
-  const result = await redis.set(key, token, {
-    NX: true,
-    PX: ttlMs,
-  });
+  const result = await redis.set(key, token, "PX", ttlMs, "NX");
 
   if (result !== "OK") {
     return null;
@@ -35,10 +32,7 @@ export async function acquireRedisLock(
     key,
     token,
     release: async () => {
-      const releaseResult = await redis.eval(RELEASE_LOCK_SCRIPT, {
-        keys: [key],
-        arguments: [token],
-      });
+      const releaseResult = await redis.eval(RELEASE_LOCK_SCRIPT, 1, key, token);
 
       return releaseResult === 1;
     },

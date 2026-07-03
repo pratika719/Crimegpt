@@ -1,0 +1,90 @@
+import { Worker, type WorkerOptions } from "bullmq";
+import { getRedisConnection } from "@/lib/redis";
+import { QUEUE_NAMES } from "@/lib/queue/queue-names";
+import { processAIGenerationJob } from "@/workers/ai-generation.processor";
+import { processCleanupJob } from "@/workers/cleanup.processor";
+import { processDocumentGenerationJob } from "@/workers/document-generator.processor";
+import { processEmailJob } from "@/workers/email.proccessor";
+import { processEmbeddingJob } from "@/workers/embedding.processor";
+import { processIngestionJob } from "@/workers/ingestion.processor";
+
+const connection = getRedisConnection() as any;
+
+const defaultWorkerOptions: WorkerOptions = {
+  connection,
+  concurrency: Number(process.env.WORKER_CONCURRENCY ?? 2),
+  autorun: true,
+  skipVersionCheck: true,
+};
+
+export function createWorkers() {
+  const workers = [
+    new Worker(
+      QUEUE_NAMES.DOCUMENT_GENERATION,
+      processDocumentGenerationJob,
+      defaultWorkerOptions,
+    ),
+
+    new Worker(
+      QUEUE_NAMES.AI_GENERATION,
+      processAIGenerationJob,
+      defaultWorkerOptions,
+    ),
+
+    new Worker(QUEUE_NAMES.EMBEDDING, processEmbeddingJob, {
+      ...defaultWorkerOptions,
+      concurrency: Number(process.env.EMBEDDING_WORKER_CONCURRENCY ?? 2),
+    }),
+
+    new Worker(QUEUE_NAMES.INGESTION, processIngestionJob, {
+      ...defaultWorkerOptions,
+      concurrency: Number(process.env.INGESTION_WORKER_CONCURRENCY ?? 1),
+    }),
+
+    new Worker(QUEUE_NAMES.EMAIL, processEmailJob, {
+      ...defaultWorkerOptions,
+      concurrency: Number(process.env.EMAIL_WORKER_CONCURRENCY ?? 3),
+    }),
+
+    new Worker(QUEUE_NAMES.CLEANUP, processCleanupJob, {
+      ...defaultWorkerOptions,
+      concurrency: Number(process.env.CLEANUP_WORKER_CONCURRENCY ?? 1),
+    }),
+  ];
+
+  for (const worker of workers) {
+    worker.on("ready", () => {
+      console.info(`[worker] ready: ${worker.name}`);
+    });
+
+    worker.on("active", (job) => {
+      console.info(`[worker] active: ${worker.name} job=${job.id}`);
+    });
+
+    worker.on("completed", (job) => {
+      console.info(`[worker] completed: ${worker.name} job=${job.id}`);
+    });
+
+    worker.on("failed", (job, error) => {
+      console.error(
+        `[worker] failed: ${worker.name} job=${job?.id ?? "unknown"}`,
+        error,
+      );
+    });
+
+    worker.on("error", (error) => {
+      console.error(`[worker] error: ${worker.name}`, error);
+    });
+  }
+
+  return workers;
+}
+
+export async function closeWorkers(workers: Worker[]) {
+  await Promise.all(
+    workers.map(async (worker) => {
+      await worker.close();
+      console.info(`[worker] closed: ${worker.name}`);
+    }),
+  );
+}

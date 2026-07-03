@@ -16,6 +16,7 @@ export const aiGenerationQueue = new Queue<AIGenerationJobPayload, any, string>(
   QUEUE_NAMES.AI_GENERATION,
   {
     connection,
+    skipVersionCheck: true,
     defaultJobOptions: {
       attempts: 3,
       backoff: {
@@ -37,6 +38,7 @@ export const aiGenerationQueue = new Queue<AIGenerationJobPayload, any, string>(
 export const documentGenerationQueue =
   new Queue<DocumentGenerationJobPayload, any, string>(QUEUE_NAMES.DOCUMENT_GENERATION, {
     connection,
+    skipVersionCheck: true,
     defaultJobOptions: {
       attempts: 3,
       backoff: {
@@ -58,6 +60,7 @@ export const embeddingQueue = new Queue<EmbeddingJobPayload, any, string>(
   QUEUE_NAMES.EMBEDDING,
   {
     connection,
+    skipVersionCheck: true,
     defaultJobOptions: {
       attempts: 5,
       backoff: {
@@ -80,6 +83,7 @@ export const ingestionQueue = new Queue<IngestionJobPayload, any, string>(
   QUEUE_NAMES.INGESTION,
   {
     connection,
+    skipVersionCheck: true,
     defaultJobOptions: {
       attempts: 3,
       backoff: {
@@ -100,6 +104,7 @@ export const ingestionQueue = new Queue<IngestionJobPayload, any, string>(
 
 export const emailQueue = new Queue<EmailJobPayload, any, string>(QUEUE_NAMES.EMAIL, {
   connection,
+  skipVersionCheck: true,
   defaultJobOptions: {
     attempts: 5,
     backoff: {
@@ -119,6 +124,7 @@ export const emailQueue = new Queue<EmailJobPayload, any, string>(QUEUE_NAMES.EM
 
 export const cleanupQueue = new Queue<CleanupJobPayload, any, string>(QUEUE_NAMES.CLEANUP, {
   connection,
+  skipVersionCheck: true,
   defaultJobOptions: {
     attempts: 2,
     backoff: {
@@ -137,12 +143,13 @@ export const cleanupQueue = new Queue<CleanupJobPayload, any, string>(QUEUE_NAME
 });
 
 export const queueEvents = {
-  aiGeneration: new QueueEvents(QUEUE_NAMES.AI_GENERATION, { connection }),
+  aiGeneration: new QueueEvents(QUEUE_NAMES.AI_GENERATION, { connection, skipVersionCheck: true }),
   documentGeneration: new QueueEvents(QUEUE_NAMES.DOCUMENT_GENERATION, {
     connection,
+    skipVersionCheck: true,
   }),
-  embedding: new QueueEvents(QUEUE_NAMES.EMBEDDING, { connection }),
-  ingestion: new QueueEvents(QUEUE_NAMES.INGESTION, { connection }),
-  email: new QueueEvents(QUEUE_NAMES.EMAIL, { connection }),
-  cleanup: new QueueEvents(QUEUE_NAMES.CLEANUP, { connection }),
+  embedding: new QueueEvents(QUEUE_NAMES.EMBEDDING, { connection, skipVersionCheck: true }),
+  ingestion: new QueueEvents(QUEUE_NAMES.INGESTION, { connection, skipVersionCheck: true }),
+  email: new QueueEvents(QUEUE_NAMES.EMAIL, { connection, skipVersionCheck: true }),
+  cleanup: new QueueEvents(QUEUE_NAMES.CLEANUP, { connection, skipVersionCheck: true }),
 };

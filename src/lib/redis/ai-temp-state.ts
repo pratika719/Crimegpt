@@ -29,7 +29,8 @@ export async function setAItempState(
   await redis.set(
     redisKeys.temp.aiState(state.requestId),
     JSON.stringify(state),
-    { EX: ttlSeconds },
+    "EX",
+    ttlSeconds,
   );
 }
 export async function getAITempState(

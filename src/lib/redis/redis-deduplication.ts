@@ -32,10 +32,13 @@ export async function markRequestIfNew(
 ): Promise<boolean> {
   const redis = await connectRedis();
 
-  const result = await redis.set(redisKeys.dedupe.aiRequest(inputHash), "1", {
-    NX: true,
-    EX: ttlSeconds,
-  });
+  const result = await redis.set(
+    redisKeys.dedupe.aiRequest(inputHash),
+    "1",
+    "EX",
+    ttlSeconds,
+    "NX",
+  );
 
   return result === "OK";
 }

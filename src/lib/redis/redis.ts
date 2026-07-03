@@ -1,11 +1,13 @@
-import { createClient, type RedisClientType } from "redis";
+// src/lib/redis/connection.ts
+
+import IORedis from "ioredis";
+
 
 const globalForRedis = globalThis as unknown as {
-  redisClient?: RedisClientType;
-  redisConnecting?: Promise<RedisClientType>;
+  redisConnection?: IORedis;
 };
 
-function getRedisUrl() {
+function getRedisUrl(): string {
   const redisUrl = process.env.REDIS_URL;
 
   if (!redisUrl) {
@@ -15,49 +17,42 @@ function getRedisUrl() {
   return redisUrl;
 }
 
-export function getRedisClient(): RedisClientType {
-  if (!globalForRedis.redisClient) {
-    globalForRedis.redisClient = createClient({
-      url: getRedisUrl(),
-      socket: {
-        reconnectStrategy: (retries) => {
-          if (retries > 10) {
-            return new Error("Redis reconnect attempts exceeded.");
-          }
+export function getRedisConnection(): IORedis {
+  if (!globalForRedis.redisConnection) {
+    const redisUrl = getRedisUrl();
 
-          return Math.min(retries * 100, 3_000);
-        },
-      },
+    globalForRedis.redisConnection = new IORedis(redisUrl, {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+      lazyConnect: true,
+      tls: redisUrl.startsWith("rediss://") ? {} : undefined,
     });
 
-    globalForRedis.redisClient.on("error", (error) => {
+    globalForRedis.redisConnection.on("error", (error) => {
       console.error("[redis] connection error", error);
     });
   }
 
-  return globalForRedis.redisClient;
+  return globalForRedis.redisConnection;
 }
 
-export async function connectRedis(): Promise<RedisClientType> {
-  const client = getRedisClient();
+export async function connectRedis(): Promise<IORedis> {
+  const redis = getRedisConnection();
 
-  if (client.isOpen) {
-    return client;
+  if (redis.status === "wait") {
+    await redis.connect();
   }
 
-  if (!globalForRedis.redisConnecting) {
-    globalForRedis.redisConnecting = client.connect().then(() => client);
-  }
-
-  return globalForRedis.redisConnecting;
+  return redis;
 }
 
-export async function disconnectRedis() {
-  const client = getRedisClient();
+export async function pingRedis(): Promise<"ok" | "error"> {
+  try {
+    const redis = await connectRedis();
+    const pong = await redis.ping();
 
-  if (client.isOpen) {
-    await client.quit();
+    return pong === "PONG" ? "ok" : "error";
+  } catch {
+    return "error";
   }
-
-  globalForRedis.redisConnecting = undefined;
 }

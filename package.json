@@ -13,7 +13,9 @@
     "postinstall": "prisma generate",
     "audit:phase0": "tsx src/scripts/audit-crimegpt.ts",
     "worker:dev": "tsx src/workers/index.ts",
-    "worker:start": "node dist/workers/index.js"
+    "worker:start": "node dist/workers/index.js",
+    "test:ingestion": "tsx src/scripts/test-evidence-ingestion.ts"
+    
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",

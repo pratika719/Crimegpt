@@ -23,21 +23,6 @@ export type AIGenerationJobPayload = BaseJobPayload & {
   inputHash?: string;
 };
 
-export type EmbeddingJobPayload = BaseJobPayload & {
-  sourceType: "LAW_CHUNK" | "EVIDENCE" | "CASE_DOCUMENT";
-  sourceId: string;
-  caseId?: string;
-  text: string;
-  chunkIndex?: number;
-};
-
-export type IngestionJobPayload = BaseJobPayload & {
-  sourceType: "LAW_CSV" | "EVIDENCE_FILE" | "TEXT";
-  sourceId: string;
-  caseId?: string;
-  evidenceType?: EvidenceType;
-  storageKey?: string;
-};
 
 export type EmailJobPayload = BaseJobPayload & {
   to: string;
@@ -53,4 +38,23 @@ export type CleanupJobPayload = BaseJobPayload & {
     | "STALE_LOCKS"
     | "OLD_AUDIT_LOGS";
   olderThanDays?: number;
+};
+export type EmbeddingSourceType = "LAW_CHUNK" | "EVIDENCE" | "CASE_DOCUMENT";
+
+export type EmbeddingJobPayload = BaseJobPayload & {
+  sourceType: EmbeddingSourceType;
+  sourceId: string;
+  caseId?: string;
+  text: string;
+  chunkIndex?: number;
+  metadata?: Record<string, unknown>;
+};
+
+export type IngestionJobPayload = BaseJobPayload & {
+  sourceType: "EVIDENCE_TEXT" | "EVIDENCE_FILE" | "LAW_CSV";
+  sourceId: string;
+  caseId?: string;
+  text?: string;
+  storageKey?: string;
+  metadata?: Record<string, unknown>;
 };

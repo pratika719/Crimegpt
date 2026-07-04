@@ -136,6 +136,9 @@ export class DocumentGeneratorService {
       }
 
       return doc;
+    }, {
+      maxWait: 20000,
+      timeout: 40000,
     });
 
     console.log(`🤖 [DocumentGeneratorService] Generation complete.`);

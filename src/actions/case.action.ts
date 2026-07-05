@@ -10,6 +10,7 @@ import { CaseService } from "@/services/case/case.services";
 import { auth } from "@/auth";
 import { validateActionInput } from "@/lib/validation/action-guard";
 import { actionSuccess, actionFailure } from "@/lib/action-response";
+import { cacheInvalidationService } from "@/services/cache/cache-invalidation.service";
 
 const service = new CaseService();
 
@@ -23,6 +24,14 @@ export async function createCaseAction(input: unknown) {
     }
 
     await service.createCase(session.user.id, validated);
+
+    try {
+      await cacheInvalidationService.invalidateCaseDashboard(session.user.id);
+      await cacheInvalidationService.invalidateCaseSearch(session.user.id);
+    } catch (err) {
+      console.warn("[Cache Invalidation Warning] Failed to invalidate cache on case creation:", err);
+    }
+
     revalidatePath("/case");
 
     return actionSuccess();
@@ -42,6 +51,15 @@ export async function updateCaseAction(id: string, input: unknown) {
 
     const result = await service.updateCase(id, session.user.id, validated);
 
+    try {
+      await cacheInvalidationService.invalidateCaseMutation({
+        userId: session.user.id,
+        caseId: id,
+      });
+    } catch (err) {
+      console.warn(`[Cache Invalidation Warning] Failed to invalidate cache on case update (${id}):`, err);
+    }
+
     revalidatePath(`/case/${id}`);
     revalidatePath("/case");
 
@@ -59,6 +77,16 @@ export async function deleteCaseAction(id: string) {
     }
 
     await service.deleteCase(validatedId, session.user.id);
+
+    try {
+      await cacheInvalidationService.invalidateCaseMutation({
+        userId: session.user.id,
+        caseId: validatedId,
+      });
+    } catch (err) {
+      console.warn(`[Cache Invalidation Warning] Failed to invalidate cache on case deletion (${validatedId}):`, err);
+    }
+
     revalidatePath("/case");
 
     return actionSuccess();

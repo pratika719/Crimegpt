@@ -9,7 +9,7 @@ import { auth } from "@/auth";
 import { validateActionInput } from "@/lib/validation/action-guard";
 import { actionSuccess, actionFailure } from "@/lib/action-response";
 import { queueProducerService } from "@/services/queue/queue-producer.service";
-
+import { cacheInvalidationService } from "@/services/cache/cache-invalidation.service";
 
 const GenerateDocumentSchema = z.object({
   caseId: z.string().min(1, "Case ID is required"),
@@ -51,7 +51,18 @@ export async function generateDocumentAction(input: unknown) {
         documentType: data.documentType,
         forceRegenerate: data.forceRegenerate,
       });
-console.log("[document-generation-action] queued", queued);
+
+      console.log("[document-generation-action] queued", queued);
+
+      try {
+        await cacheInvalidationService.invalidateCaseMutation({
+          userId: session.user.id,
+          caseId: data.caseId,
+        });
+      } catch (err) {
+        console.warn(`[Cache Invalidation Warning] Failed to invalidate cache on document enqueue for case ${data.caseId}:`, err);
+      }
+
       revalidatePath(`/case/${data.caseId}`);
 
       return actionSuccess({
@@ -96,6 +107,16 @@ export async function logDocumentActivityAction(
       } else if (validated.actionType === "REGENERATE") {
         await activityService.logDocumentRegenerated(validated.caseId, userId, validated.docType, validated.docTitle, validated.version);
       }
+
+      try {
+        await cacheInvalidationService.invalidateCaseMutation({
+          userId,
+          caseId: validated.caseId,
+        });
+      } catch (err) {
+        console.warn(`[Cache Invalidation Warning] Failed to invalidate cache on document activity log for case ${validated.caseId}:`, err);
+      }
+
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }

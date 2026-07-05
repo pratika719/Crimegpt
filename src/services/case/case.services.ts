@@ -6,10 +6,11 @@ import {
 
 import { CaseRepository } from "@/repositories/case.repository";
 import { activityService } from "@/services/activity/activity.service";
+import { cacheService } from "@/lib/cache/cache";
+import { cacheKeys } from "@/lib/cache/cache-keys";
 
 export class CaseService {
-  private repository =
-    new CaseRepository();
+  private repository = new CaseRepository();
 
   async createCase(
     userId: string,
@@ -21,12 +22,19 @@ export class CaseService {
   }
 
   async getCases(userId: string) {
-    return this.repository.findAll(userId);
+    return cacheService.getOrSet(
+      cacheKeys.caseDashboard(userId),
+      60,
+      () => this.repository.findAll(userId)
+    );
   }
 
   async getCaseById(id: string, userId: string) {
-    const found =
-      await this.repository.findById(id, userId);
+    const found = await cacheService.getOrSet(
+      cacheKeys.caseDetail(userId, id),
+      30,
+      () => this.repository.findById(id, userId)
+    );
 
     if (!found) {
       throw new Error(
@@ -65,8 +73,6 @@ export class CaseService {
 
     console.log(`💼 [CaseService] Deleting case: ${existing.title} (ID: ${id}) by user: ${userId}`);
 
-    // Note: Activity logs are cascade-deleted with the case,
-    // so logging CASE_DELETED here would be pointless.
     return this.repository.delete(id, userId);
   }
 }

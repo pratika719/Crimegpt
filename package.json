@@ -14,8 +14,9 @@
     "audit:phase0": "tsx src/scripts/audit-crimegpt.ts",
     "worker:dev": "tsx src/workers/index.ts",
     "worker:start": "node dist/workers/index.js",
-    "test:ingestion": "tsx src/scripts/test-evidence-ingestion.ts"
-    
+    "test:ingestion": "tsx src/scripts/test-evidence-ingestion.ts",
+    "queue:check": "tsx src/scripts/check-queues.ts",
+    "vectors:check:evidence": "tsx src/scripts/check-evidence-vectors.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",

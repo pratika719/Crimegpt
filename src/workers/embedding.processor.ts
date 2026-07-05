@@ -3,6 +3,7 @@ import type { EmbeddingJobPayload } from "@/lib/queue/job-types";
 import { evidenceEmbeddingService } from "@/services/embeddings/evidence-embedding.service";
 
 export async function processEmbeddingJob(job: Job<EmbeddingJobPayload>) {
+  console.log("[embedding-worker] picked job", job.id);
   await job.updateProgress({
     status: "STARTED",
     progress: 10,
@@ -20,6 +21,7 @@ export async function processEmbeddingJob(job: Job<EmbeddingJobPayload>) {
       message: "Generating and storing evidence embedding.",
     });
 
+    console.log("[embedding-worker] calling FastAPI embedding service");
     const result = await evidenceEmbeddingService.upsertEvidenceChunk({
       evidenceId: job.data.sourceId,
       caseId: job.data.caseId,
@@ -27,6 +29,7 @@ export async function processEmbeddingJob(job: Job<EmbeddingJobPayload>) {
       content: job.data.text,
       metadata: job.data.metadata,
     });
+    console.log("[embedding-worker] embedding returned");
 
     await job.updateProgress({
       status: "COMPLETED",

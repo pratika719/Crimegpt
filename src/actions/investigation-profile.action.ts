@@ -16,6 +16,7 @@ import {
   MedicalInformationSchema,
   CourtInformationSchema,
 } from "@/schema/investigation-profile.schema";
+import { cacheInvalidationService } from "@/services/cache/cache-invalidation.service";
 
 async function getSessionUserId() {
   const session = await auth();
@@ -23,6 +24,14 @@ async function getSessionUserId() {
     throw new Error("Unauthorized");
   }
   return session.user.id;
+}
+
+async function safeInvalidate(userId: string, caseId: string) {
+  try {
+    await cacheInvalidationService.invalidateCaseMutation({ userId, caseId });
+  } catch (err) {
+    console.warn(`[Cache Invalidation Warning] Failed to invalidate cache for case ${caseId}:`, err);
+  }
 }
 
 // Reusable schemas for validation wrapper
@@ -57,6 +66,7 @@ export async function upsertInvestigationProfileAction(caseId: string, data: any
       };
 
       await investigationProfileService.upsertProfile(validated.caseId, userId, formattedData);
+      await safeInvalidate(userId, validated.caseId);
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }
@@ -71,6 +81,7 @@ export async function addVictimAction(caseId: string, data: any) {
     async (validated) => {
       const userId = await getSessionUserId();
       await investigationProfileService.addVictim(validated.caseId, userId, validated.data);
+      await safeInvalidate(userId, validated.caseId);
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }
@@ -84,6 +95,7 @@ export async function updateVictimAction(victimId: string, caseId: string, data:
     async (validated) => {
       const userId = await getSessionUserId();
       await investigationProfileService.updateVictim(validated.id, userId, validated.data);
+      await safeInvalidate(userId, validated.caseId);
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }
@@ -97,6 +109,7 @@ export async function deleteVictimAction(victimId: string, caseId: string) {
     async (validated) => {
       const userId = await getSessionUserId();
       await investigationProfileService.deleteVictim(validated.id, userId);
+      await safeInvalidate(userId, validated.caseId);
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }
@@ -111,6 +124,7 @@ export async function addAccusedAction(caseId: string, data: any) {
     async (validated) => {
       const userId = await getSessionUserId();
       await investigationProfileService.addAccused(validated.caseId, userId, validated.data);
+      await safeInvalidate(userId, validated.caseId);
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }
@@ -124,6 +138,7 @@ export async function updateAccusedAction(accusedId: string, caseId: string, dat
     async (validated) => {
       const userId = await getSessionUserId();
       await investigationProfileService.updateAccused(validated.id, userId, validated.data);
+      await safeInvalidate(userId, validated.caseId);
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }
@@ -137,6 +152,7 @@ export async function deleteAccusedAction(accusedId: string, caseId: string) {
     async (validated) => {
       const userId = await getSessionUserId();
       await investigationProfileService.deleteAccused(validated.id, userId);
+      await safeInvalidate(userId, validated.caseId);
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }
@@ -156,6 +172,7 @@ export async function addWitnessAction(caseId: string, data: any) {
       };
 
       await investigationProfileService.addWitness(validated.caseId, userId, formattedData);
+      await safeInvalidate(userId, validated.caseId);
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }
@@ -174,6 +191,7 @@ export async function updateWitnessAction(witnessId: string, caseId: string, dat
       };
 
       await investigationProfileService.updateWitness(validated.id, userId, formattedData);
+      await safeInvalidate(userId, validated.caseId);
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }
@@ -187,6 +205,7 @@ export async function deleteWitnessAction(witnessId: string, caseId: string) {
     async (validated) => {
       const userId = await getSessionUserId();
       await investigationProfileService.deleteWitness(validated.id, userId);
+      await safeInvalidate(userId, validated.caseId);
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }
@@ -201,6 +220,7 @@ export async function addVehicleAction(caseId: string, data: any) {
     async (validated) => {
       const userId = await getSessionUserId();
       await investigationProfileService.addVehicle(validated.caseId, userId, validated.data);
+      await safeInvalidate(userId, validated.caseId);
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }
@@ -214,6 +234,7 @@ export async function updateVehicleAction(vehicleId: string, caseId: string, dat
     async (validated) => {
       const userId = await getSessionUserId();
       await investigationProfileService.updateVehicle(validated.id, userId, validated.data);
+      await safeInvalidate(userId, validated.caseId);
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }
@@ -227,6 +248,7 @@ export async function deleteVehicleAction(vehicleId: string, caseId: string) {
     async (validated) => {
       const userId = await getSessionUserId();
       await investigationProfileService.deleteVehicle(validated.id, userId);
+      await safeInvalidate(userId, validated.caseId);
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }
@@ -246,6 +268,7 @@ export async function addSeizedItemAction(caseId: string, data: any) {
       };
 
       await investigationProfileService.addSeizedItem(validated.caseId, userId, formattedData);
+      await safeInvalidate(userId, validated.caseId);
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }
@@ -264,6 +287,7 @@ export async function updateSeizedItemAction(itemId: string, caseId: string, dat
       };
 
       await investigationProfileService.updateSeizedItem(validated.id, userId, formattedData);
+      await safeInvalidate(userId, validated.caseId);
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }
@@ -277,6 +301,7 @@ export async function deleteSeizedItemAction(itemId: string, caseId: string) {
     async (validated) => {
       const userId = await getSessionUserId();
       await investigationProfileService.deleteSeizedItem(validated.id, userId);
+      await safeInvalidate(userId, validated.caseId);
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }
@@ -296,6 +321,7 @@ export async function addMedicalInfoAction(caseId: string, data: any) {
       };
 
       await investigationProfileService.addMedicalInfo(validated.caseId, userId, formattedData);
+      await safeInvalidate(userId, validated.caseId);
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }
@@ -314,6 +340,7 @@ export async function updateMedicalInfoAction(medicalInfoId: string, caseId: str
       };
 
       await investigationProfileService.updateMedicalInfo(validated.id, userId, formattedData);
+      await safeInvalidate(userId, validated.caseId);
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }
@@ -327,6 +354,7 @@ export async function deleteMedicalInfoAction(medicalInfoId: string, caseId: str
     async (validated) => {
       const userId = await getSessionUserId();
       await investigationProfileService.deleteMedicalInfo(validated.id, userId);
+      await safeInvalidate(userId, validated.caseId);
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }
@@ -347,6 +375,7 @@ export async function addCourtInfoAction(caseId: string, data: any) {
       };
 
       await investigationProfileService.addCourtInfo(validated.caseId, userId, formattedData);
+      await safeInvalidate(userId, validated.caseId);
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }
@@ -366,6 +395,7 @@ export async function updateCourtInfoAction(courtInfoId: string, caseId: string,
       };
 
       await investigationProfileService.updateCourtInfo(validated.id, userId, formattedData);
+      await safeInvalidate(userId, validated.caseId);
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }
@@ -379,6 +409,7 @@ export async function deleteCourtInfoAction(courtInfoId: string, caseId: string)
     async (validated) => {
       const userId = await getSessionUserId();
       await investigationProfileService.deleteCourtInfo(validated.id, userId);
+      await safeInvalidate(userId, validated.caseId);
       revalidatePath(`/case/${validated.caseId}`);
       return actionSuccess();
     }

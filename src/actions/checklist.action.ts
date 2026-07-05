@@ -6,6 +6,7 @@ import { checklistService } from "@/services/checklist/checklist.service";
 import { auth } from "@/auth";
 import { validateActionInput } from "@/lib/validation/action-guard";
 import { actionSuccess, actionFailure } from "@/lib/action-response";
+import { cacheInvalidationService } from "@/services/cache/cache-invalidation.service";
 
 const CreateChecklistItemSchema = z.object({
   caseId: z.string().min(1, "Case ID is required"),
@@ -48,6 +49,16 @@ export async function createChecklistItemAction(caseId: string, title: string) {
         userId,
         { title: validated.title.trim() }
       );
+
+      try {
+        await cacheInvalidationService.invalidateCaseMutation({
+          userId,
+          caseId: validated.caseId,
+        });
+      } catch (err) {
+        console.warn(`[Cache Invalidation Warning] Failed to invalidate cache on checklist creation for case ${validated.caseId}:`, err);
+      }
+
       revalidatePath(`/case/${validated.caseId}`);
 
       return actionSuccess({
@@ -77,6 +88,16 @@ export async function toggleChecklistItemAction(id: string, caseId: string, comp
         { completed: validated.completed },
         validated.caseId
       );
+
+      try {
+        await cacheInvalidationService.invalidateCaseMutation({
+          userId,
+          caseId: validated.caseId,
+        });
+      } catch (err) {
+        console.warn(`[Cache Invalidation Warning] Failed to invalidate cache on checklist toggle for case ${validated.caseId}:`, err);
+      }
+
       revalidatePath(`/case/${validated.caseId}`);
 
       return actionSuccess({
@@ -105,6 +126,16 @@ export async function deleteChecklistItemAction(id: string, caseId: string) {
         userId,
         validated.caseId
       );
+
+      try {
+        await cacheInvalidationService.invalidateCaseMutation({
+          userId,
+          caseId: validated.caseId,
+        });
+      } catch (err) {
+        console.warn(`[Cache Invalidation Warning] Failed to invalidate cache on checklist deletion for case ${validated.caseId}:`, err);
+      }
+
       revalidatePath(`/case/${validated.caseId}`);
 
       return actionSuccess({
@@ -134,6 +165,16 @@ export async function renameChecklistItemAction(id: string, caseId: string, titl
         { title: validated.title.trim() },
         validated.caseId
       );
+
+      try {
+        await cacheInvalidationService.invalidateCaseMutation({
+          userId,
+          caseId: validated.caseId,
+        });
+      } catch (err) {
+        console.warn(`[Cache Invalidation Warning] Failed to invalidate cache on checklist rename for case ${validated.caseId}:`, err);
+      }
+
       revalidatePath(`/case/${validated.caseId}`);
 
       return actionSuccess({

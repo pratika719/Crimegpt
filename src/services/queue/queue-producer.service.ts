@@ -22,6 +22,18 @@ function createRequestId(prefix: string): string {
   return `${prefix}_${crypto.randomUUID()}`;
 }
 
+function createSafeJobId(parts: Array<string | number | boolean | undefined | null>): string {
+  return parts
+    .filter((part) => part !== undefined && part !== null)
+    .map((part) =>
+      String(part)
+        .replace(/:/g, "__")
+        .replace(/\s+/g, "_")
+        .replace(/[^a-zA-Z0-9._-]/g, "_"),
+    )
+    .join("__");
+}
+
 export class QueueProducerService {
   async addDocumentGenerationJob(input: {
     caseId: string;
@@ -32,12 +44,12 @@ export class QueueProducerService {
   }) {
     const requestId = createRequestId("docgen");
 
-    const baseJobId =
-      input.inputHash ??
-      `${QUEUE_NAMES.DOCUMENT_GENERATION}#${input.caseId}#${input.documentType}`;
+    const baseJobId = input.inputHash
+      ? createSafeJobId([input.inputHash])
+      : createSafeJobId([QUEUE_NAMES.DOCUMENT_GENERATION, input.caseId, input.documentType]);
 
     const jobId = input.forceRegenerate
-      ? `${baseJobId}#${Date.now()}`
+      ? createSafeJobId([baseJobId, Date.now()])
       : baseJobId;
 
     if (!input.forceRegenerate) {
@@ -104,9 +116,9 @@ export class QueueProducerService {
       createdAt: new Date().toISOString(),
     };
 
-    const jobId =
-      input.inputHash ??
-      `${QUEUE_NAMES.AI_GENERATION}#${input.caseId}#${input.requestType}`;
+    const jobId = input.inputHash
+      ? createSafeJobId([input.inputHash])
+      : createSafeJobId([QUEUE_NAMES.AI_GENERATION, input.caseId, input.requestType]);
 
     const job = await aiGenerationQueue.add("generate-ai", payload, {
       jobId,
@@ -118,27 +130,27 @@ export class QueueProducerService {
       queueName: QUEUE_NAMES.AI_GENERATION,
     };
   }
-async addIngestionJob(
-  input: Omit<IngestionJobPayload, "requestId" | "createdAt">,
-) {
-  const payload: IngestionJobPayload = {
-    ...input,
-    requestId: createRequestId("ingest"),
-    createdAt: new Date().toISOString(),
-  };
 
-  const job = await ingestionQueue.add("ingest-source", payload, {
-    jobId: `${payload.sourceType}#${payload.sourceId}`,
-  });
+  async addIngestionJob(
+    input: Omit<IngestionJobPayload, "requestId" | "createdAt">,
+  ) {
+    const payload: IngestionJobPayload = {
+      ...input,
+      requestId: createRequestId("ingest"),
+      createdAt: new Date().toISOString(),
+    };
 
-  return {
-    jobId: String(job.id),
-    requestId: payload.requestId,
-    queueName: QUEUE_NAMES.INGESTION,
-  };
-}
+    const job = await ingestionQueue.add("ingest-source", payload, {
+      jobId: createSafeJobId([payload.sourceType, payload.sourceId]),
+    });
 
-  
+    return {
+      jobId: String(job.id),
+      requestId: payload.requestId,
+      queueName: QUEUE_NAMES.INGESTION,
+    };
+  }
+
   async addEmailJob(input: Omit<EmailJobPayload, "requestId" | "createdAt">) {
     const payload: EmailJobPayload = {
       ...input,
@@ -165,7 +177,7 @@ async addIngestionJob(
     };
 
     const job = await cleanupQueue.add("run-cleanup", payload, {
-      jobId: `${payload.cleanupType}#${payload.olderThanDays ?? "default"}`,
+      jobId: createSafeJobId([payload.cleanupType, payload.olderThanDays ?? "default"]),
     });
 
     return {
@@ -176,24 +188,24 @@ async addIngestionJob(
   }
 
   async addEmbeddingJob(
-  input: Omit<EmbeddingJobPayload, "requestId" | "createdAt">,
-) {
-  const payload: EmbeddingJobPayload = {
-    ...input,
-    requestId: createRequestId("embed"),
-    createdAt: new Date().toISOString(),
-  };
+    input: Omit<EmbeddingJobPayload, "requestId" | "createdAt">,
+  ) {
+    const payload: EmbeddingJobPayload = {
+      ...input,
+      requestId: createRequestId("embed"),
+      createdAt: new Date().toISOString(),
+    };
 
-  const job = await embeddingQueue.add("generate-embedding", payload, {
-    jobId: `${payload.sourceType}#${payload.sourceId}#${payload.chunkIndex ?? 0}`,
-  });
+    const job = await embeddingQueue.add("generate-embedding", payload, {
+      jobId: createSafeJobId([payload.sourceType, payload.sourceId, payload.chunkIndex ?? 0]),
+    });
 
-  return {
-    jobId: String(job.id),
-    requestId: payload.requestId,
-    queueName: QUEUE_NAMES.EMBEDDING,
-  };
-}
+    return {
+      jobId: String(job.id),
+      requestId: payload.requestId,
+      queueName: QUEUE_NAMES.EMBEDDING,
+    };
+  }
 }
 
 export const queueProducerService = new QueueProducerService();

@@ -1,9 +1,11 @@
+import "dotenv/config";
 import { queueProducerService } from "@/services/queue/queue-producer.service";
 
 async function main() {
+  const uniqueId = `test-evidence-${Date.now()}`;
   const result = await queueProducerService.addIngestionJob({
     sourceType: "EVIDENCE_TEXT",
-    sourceId: "test-evidence-001",
+    sourceId: uniqueId,
     caseId: "test-case-001",
     userId: "test-user-001",
     text: `

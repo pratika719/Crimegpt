@@ -7,6 +7,7 @@ import { CreateCaseMetadataInput, UpdateCaseMetadataSchema } from "@/schema/case
 import { auth } from "@/auth";
 import { validateActionInput } from "@/lib/validation/action-guard";
 import { actionSuccess, actionFailure } from "@/lib/action-response";
+import { cacheInvalidationService } from "@/services/cache/cache-invalidation.service";
 
 const SaveCaseMetadataSchema = z.object({
   caseId: z.string().min(1, "Case ID is required"),
@@ -37,6 +38,15 @@ export async function saveCaseMetadataAction(
         userId,
         validated.data
       );
+
+      try {
+        await cacheInvalidationService.invalidateCaseMutation({
+          userId,
+          caseId: validated.caseId,
+        });
+      } catch (err) {
+        console.warn(`[Cache Invalidation Warning] Failed to invalidate cache on metadata save for case ${validated.caseId}:`, err);
+      }
 
       // Revalidate the case detail page so the UI displays the new metadata
       revalidatePath(`/case/${validated.caseId}`);

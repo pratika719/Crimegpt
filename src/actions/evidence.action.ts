@@ -7,6 +7,7 @@ import { CreateEvidenceInput, UpdateEvidenceInput, createEvidenceSchema, updateE
 import { auth } from "@/auth";
 import { validateActionInput } from "@/lib/validation/action-guard";
 import { actionSuccess, actionFailure } from "@/lib/action-response";
+import { cacheInvalidationService } from "@/services/cache/cache-invalidation.service";
 
 const CreateEvidenceActionSchema = z.object({
   caseId: z.string().min(1, "Case ID is required"),
@@ -42,6 +43,16 @@ export async function createEvidenceAction(
       const userId = session.user.id;
 
       const evidence = await evidenceService.createEvidence(validated.caseId, userId, validated.data);
+
+      try {
+        await cacheInvalidationService.invalidateCaseMutation({
+          userId,
+          caseId: validated.caseId,
+        });
+      } catch (err) {
+        console.warn(`[Cache Invalidation Warning] Failed to invalidate cache on evidence creation for case ${validated.caseId}:`, err);
+      }
+
       revalidatePath(`/case/${validated.caseId}`);
 
       return actionSuccess({
@@ -70,6 +81,16 @@ export async function updateEvidenceAction(
       const userId = session.user.id;
 
       const evidence = await evidenceService.updateEvidence(validated.id, userId, validated.data, validated.caseId);
+
+      try {
+        await cacheInvalidationService.invalidateCaseMutation({
+          userId,
+          caseId: validated.caseId,
+        });
+      } catch (err) {
+        console.warn(`[Cache Invalidation Warning] Failed to invalidate cache on evidence update for case ${validated.caseId}:`, err);
+      }
+
       revalidatePath(`/case/${validated.caseId}`);
 
       return actionSuccess({
@@ -94,6 +115,16 @@ export async function deleteEvidenceAction(id: string, caseId: string) {
       const userId = session.user.id;
 
       const evidence = await evidenceService.deleteEvidence(validated.id, userId, validated.caseId);
+
+      try {
+        await cacheInvalidationService.invalidateCaseMutation({
+          userId,
+          caseId: validated.caseId,
+        });
+      } catch (err) {
+        console.warn(`[Cache Invalidation Warning] Failed to invalidate cache on evidence deletion for case ${validated.caseId}:`, err);
+      }
+
       revalidatePath(`/case/${validated.caseId}`);
 
       return actionSuccess({

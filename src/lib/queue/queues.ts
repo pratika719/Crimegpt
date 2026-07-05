@@ -1,5 +1,5 @@
 import { Queue, QueueEvents } from "bullmq";
-import { getBullMQConnection } from "@/lib/queue/bullmq-connection";
+import { getRedisConnection } from "@/lib/redis";
 import { QUEUE_NAMES } from "@/lib/queue/queue-names";
 import type {
   AIGenerationJobPayload,
@@ -10,7 +10,7 @@ import type {
   IngestionJobPayload,
 } from "@/lib/queue/job-types";
 
-const connection = getBullMQConnection() as any;
+const connection = getRedisConnection() as any;
 
 export const aiGenerationQueue = new Queue<AIGenerationJobPayload, any, string>(
   QUEUE_NAMES.AI_GENERATION,

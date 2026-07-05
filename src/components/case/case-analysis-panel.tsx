@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { generateDocumentAction, logDocumentActivityAction } from "@/actions/document-generation.action";
 import { renameDocumentAction, deleteDocumentAction } from "@/actions/document.action";
 import { analyzeCaseAction } from "@/actions/legal-analysis.action";
+import { useJobPolling } from "@/hooks/use-job-polling";
 import { DocumentType } from "@/services/pdf/pdf-template-registry";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -170,6 +171,8 @@ export default function CaseAnalysisPanel({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [activeType, setActiveType] = useState<string>("LEGAL_ANALYSIS");
+  const activeMeta = DOCUMENT_TYPES_METADATA.find((m) => m.type === activeType)!;
+  const ActiveIcon = activeMeta.icon;
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [typeFilter, setTypeFilter] = useState<string>("ALL");
   const [actionType, setActionType] = useState<string | null>(null);
@@ -182,6 +185,68 @@ export default function CaseAnalysisPanel({
 
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationStep, setGenerationStep] = useState<"analyzing" | "generating" | "saving" | "completed">("analyzing");
+
+  // Keep track of generating background jobs per document type
+  const [generatingJobs, setGeneratingJobs] = useState<Record<string, { jobId: string; queueName: string }>>({});
+
+  const activeJobInfo = generatingJobs[activeType] || null;
+
+  const { status, error, isPolling } = useJobPolling({
+    jobId: activeJobInfo?.jobId ?? null,
+    queueName: activeJobInfo?.queueName ?? null,
+    enabled: Boolean(activeJobInfo),
+    intervalMs: 5000,
+  });
+
+  const isJobRunning =
+    status?.state === "waiting" ||
+    status?.state === "active" ||
+    status?.state === "delayed" ||
+    isPolling;
+
+  // Handle completion, failure, and error in polling
+  useEffect(() => {
+    if (status?.state === "completed") {
+      toast.success(`${activeMeta.title} generated successfully!`);
+      setGeneratingJobs((prev) => {
+        const next = { ...prev };
+        delete next[activeType];
+        return next;
+      });
+      setActionType(null);
+      router.refresh();
+    } else if (status?.state === "failed") {
+      toast.error(`Generation failed: ${status.failedReason || "Please try again."}`);
+      setGeneratingJobs((prev) => {
+        const next = { ...prev };
+        delete next[activeType];
+        return next;
+      });
+      setActionType(null);
+    } else if (status?.state === "unknown") {
+      if (status.failedReason) {
+        toast.error(`Generation status: ${status.failedReason}`);
+        setGeneratingJobs((prev) => {
+          const next = { ...prev };
+          delete next[activeType];
+          return next;
+        });
+        setActionType(null);
+      }
+    }
+  }, [status?.state, status?.failedReason, activeType, router, activeMeta.title]);
+
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      setGeneratingJobs((prev) => {
+        const next = { ...prev };
+        delete next[activeType];
+        return next;
+      });
+      setActionType(null);
+    }
+  }, [error, activeType]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -294,16 +359,30 @@ export default function CaseAnalysisPanel({
 
       if (!response.success) {
         toast.error((response as any).message || `Failed to generate ${type}.`);
+        setActionType(null);
       } else {
-        toast.success(`${isRegen ? "Regenerated" : "Generated"} successfully!`);
-        // Reset version select to latest
-        const successResp = response as { success: true; version?: number };
-        if (successResp.version) {
-          setCustomVersion((prev) => ({ ...prev, [type]: successResp.version! }));
+        if (type === "LEGAL_ANALYSIS") {
+          toast.success(`${isRegen ? "Regenerated" : "Generated"} successfully!`);
+          router.refresh();
+          setActionType(null);
+        } else {
+          // For BullMQ documents, we receive jobId and queueName
+          const jobData = (response as any).data;
+          if (jobData && jobData.jobId && jobData.queueName) {
+            setGeneratingJobs((prev) => ({
+              ...prev,
+              [type]: {
+                jobId: jobData.jobId,
+                queueName: jobData.queueName,
+              },
+            }));
+            toast.info("Document generation started in the background...");
+          } else {
+            toast.error("Failed to retrieve queued job details.");
+            setActionType(null);
+          }
         }
-        router.refresh();
       }
-      setActionType(null);
     });
   };
 
@@ -371,9 +450,6 @@ export default function CaseAnalysisPanel({
       }
     });
   };
-
-  const activeMeta = DOCUMENT_TYPES_METADATA.find((m) => m.type === activeType)!;
-  const ActiveIcon = activeMeta.icon;
 
   const renderConfidenceBadge = (confidence: "HIGH" | "MEDIUM" | "LOW") => {
     const styles = {
@@ -473,7 +549,11 @@ export default function CaseAnalysisPanel({
                         {docMeta.description}
                       </p>
                       <div className="flex items-center gap-2 pt-1 text-[9px] font-mono uppercase tracking-wider">
-                        {hasGenerated ? (
+                        {generatingJobs[docMeta.type] ? (
+                          <span className="text-indigo-600 dark:text-indigo-400 font-bold flex items-center gap-1 animate-pulse">
+                            <Loader2 className="h-2.5 w-2.5 animate-spin text-indigo-500" /> Generating...
+                          </span>
+                        ) : hasGenerated ? (
                           <span className="text-emerald-600 dark:text-emerald-400 font-bold">
                             ✓ v{generatedDocs.map(d => d.version).sort((a,b)=>b-a)[0]} Ready
                           </span>
@@ -589,8 +669,9 @@ export default function CaseAnalysisPanel({
                     <span className="text-xs font-mono font-bold text-zinc-500 dark:text-zinc-400 uppercase">Version:</span>
                     <select
                       value={selectedVersion}
+                      disabled={isJobRunning || isPending}
                       onChange={(e) => setCustomVersion((prev) => ({ ...prev, [activeType]: Number(e.target.value) }))}
-                      className="border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-xs font-mono rounded px-2 py-1 focus:outline-none"
+                      className="border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-xs font-mono rounded px-2 py-1 focus:outline-none disabled:opacity-50"
                     >
                       {availableVersions.map((v) => (
                         <option key={v} value={v}>
@@ -621,7 +702,8 @@ export default function CaseAnalysisPanel({
                         render={
                           <button
                             type="button"
-                            className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                            disabled={isJobRunning || isPending}
+                            className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
                             aria-label="Document actions"
                           />
                         }
@@ -642,18 +724,62 @@ export default function CaseAnalysisPanel({
                     </DropdownMenu>
                     <button
                       onClick={() => handleGenerate(activeType, true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                      disabled={isJobRunning || isPending}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
                     >
-                      <RefreshCw className="h-3.5 w-3.5" />
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin" />
                       Regenerate
                     </button>
                     <button
                       onClick={handlePDFDownload}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-zinc-900 border border-zinc-900 text-white dark:bg-zinc-200 dark:border-zinc-200 dark:text-zinc-900 hover:opacity-90 transition-opacity"
+                      disabled={isJobRunning || isPending}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-zinc-900 border border-zinc-900 text-white dark:bg-zinc-200 dark:border-zinc-200 dark:text-zinc-900 hover:opacity-90 transition-opacity disabled:opacity-50"
                     >
                       <Download className="h-3.5 w-3.5" />
                       Download PDF
                     </button>
+                  </div>
+                </div>
+              ) : isJobRunning ? (
+                /* Un-generated Active Polling State */
+                <div className="rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-12 text-center flex flex-col items-center justify-center space-y-4">
+                  <div className="h-14 w-14 rounded-full bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center border border-zinc-100 dark:border-zinc-800">
+                    <Loader2 className="h-7 w-7 text-indigo-500 animate-spin" />
+                  </div>
+                  <div className="space-y-1.5 max-w-sm">
+                    <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                      Drafting {activeMeta.title}...
+                    </h3>
+                    {activeJobInfo && !status && (
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                        Generation started. This may take 30–60 seconds.
+                      </p>
+                    )}
+                    {status?.state === "waiting" && (
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                        Document generation is queued.
+                      </p>
+                    )}
+                    {status?.state === "active" && (
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                        Document is generating in the background.
+                      </p>
+                    )}
+                    {status?.state === "completed" && (
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                        Document generated successfully. Refreshing documents...
+                      </p>
+                    )}
+                    {status?.state === "failed" && (
+                      <p className="text-xs text-rose-600 dark:text-rose-400">
+                        Generation failed: {status.failedReason ?? "Please try again."}
+                      </p>
+                    )}
+                    {error && (
+                      <p className="text-xs text-rose-600 dark:text-rose-400 font-medium">
+                        {error}
+                      </p>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -683,6 +809,19 @@ export default function CaseAnalysisPanel({
               {/* ACTIVE PREVIEW CONTENT */}
               {activeDoc && (
                 <div className="space-y-6">
+                  {isJobRunning && (
+                    <div className="rounded-xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/40 dark:bg-blue-950/20 p-4 flex items-center gap-3 animate-pulse">
+                      <Loader2 className="h-5 w-5 text-blue-500 animate-spin flex-shrink-0" />
+                      <div className="text-xs text-zinc-800 dark:text-zinc-200">
+                        {activeJobInfo && !status && "Regeneration started. This may take 30–60 seconds."}
+                        {status?.state === "waiting" && "Document generation is queued."}
+                        {status?.state === "active" && "Document is generating in the background."}
+                        {status?.state === "completed" && "Document regenerated successfully. Refreshing..."}
+                        {status?.state === "failed" && `Regeneration failed: ${status.failedReason ?? "Please try again."}`}
+                        {error && error}
+                      </div>
+                    </div>
+                  )}
                   {/* Legal Analysis View */}
                   {activeDoc.type === "LEGAL_ANALYSIS" && (
                     <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden animate-fadeIn">

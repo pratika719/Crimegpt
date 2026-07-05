@@ -7,30 +7,26 @@ import {
   emailQueue,
   cleanupQueue,
 } from "@/lib/queue/queues";
-import { QUEUE_NAMES, type QueueName } from "@/lib/queue/queue-names";
+import { QUEUE_NAMES } from "@/lib/queue/queue-names";
 
-export type JobStatusResponse = {
+export type MinimalJobState =
+  | "waiting"
+  | "active"
+  | "completed"
+  | "failed"
+  | "delayed"
+  | "paused"
+  | "unknown";
+
+export type MinimalJobStatusResponse = {
   jobId: string;
-  queueName: QueueName;
-  state:
-    | "completed"
-    | "failed"
-    | "delayed"
-    | "active"
-    | "waiting"
-    | "waiting-children"
-    | "prioritized"
-    | "unknown";
-  progress: unknown;
-  returnvalue: unknown;
-  failedReason?: string;
-  attemptsMade: number;
-  timestamp: number;
-  processedOn?: number;
-  finishedOn?: number;
+  queueName: string;
+  state: MinimalJobState;
+  failedReason?: string | null;
+  result?: unknown;
 };
 
-const queues = {
+const queueMap = {
   [QUEUE_NAMES.DOCUMENT_GENERATION]: documentGenerationQueue,
   [QUEUE_NAMES.AI_GENERATION]: aiGenerationQueue,
   [QUEUE_NAMES.EMBEDDING]: embeddingQueue,
@@ -40,36 +36,51 @@ const queues = {
 };
 
 export class JobStatusService {
-  async getJobStatus(
-    queueName: QueueName,
-    jobId: string,
-  ): Promise<JobStatusResponse | null> {
-    const queue = queues[queueName];
+  async getJobStatus(input: {
+    queueName: string;
+    jobId: string;
+  }): Promise<MinimalJobStatusResponse> {
+    const queue = queueMap[input.queueName as keyof typeof queueMap];
 
     if (!queue) {
-      return null;
+      return {
+        jobId: input.jobId,
+        queueName: input.queueName,
+        state: "unknown",
+        failedReason: "Unknown queue.",
+      };
     }
 
-    const job = await Job.fromId(queue, jobId);
+    try {
+      const job = await Job.fromId(queue, input.jobId);
 
-    if (!job) {
-      return null;
+      if (!job) {
+        return {
+          jobId: input.jobId,
+          queueName: input.queueName,
+          state: "unknown",
+          failedReason: "Job not found.",
+        };
+      }
+
+      const state = await job.getState();
+
+      return {
+        jobId: input.jobId,
+        queueName: input.queueName,
+        state: state as MinimalJobState,
+        failedReason: job.failedReason ?? null,
+        result: job.returnvalue ?? null,
+      };
+    } catch (error) {
+      console.error(`[JobStatusService] Error fetching job status for ${input.jobId}:`, error);
+      return {
+        jobId: input.jobId,
+        queueName: input.queueName,
+        state: "unknown",
+        failedReason: "Error retrieving job status.",
+      };
     }
-
-    const state = await job.getState();
-
-    return {
-      jobId: String(job.id),
-      queueName,
-      state,
-      progress: job.progress,
-      returnvalue: job.returnvalue,
-      failedReason: job.failedReason,
-      attemptsMade: job.attemptsMade,
-      timestamp: job.timestamp,
-      processedOn: job.processedOn,
-      finishedOn: job.finishedOn,
-    };
   }
 }
 

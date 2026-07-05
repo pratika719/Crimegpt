@@ -16,7 +16,8 @@
     "worker:start": "node dist/workers/index.js",
     "test:ingestion": "tsx src/scripts/test-evidence-ingestion.ts",
     "queue:check": "tsx src/scripts/check-queues.ts",
-    "vectors:check:evidence": "tsx src/scripts/check-evidence-vectors.ts"
+    "vectors:check:evidence": "tsx src/scripts/check-evidence-vectors.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",

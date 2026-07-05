@@ -20,14 +20,10 @@ export async function getJobStatusAction(input: unknown) {
       return actionFailure("UNAUTHORIZED", "Unauthorized");
     }
 
-    const status = await jobStatusService.getJobStatus(
-      data.queueName,
-      data.jobId,
-    );
-
-    if (!status) {
-      return actionFailure("NOT_FOUND", "Job not found.");
-    }
+    const status = await jobStatusService.getJobStatus({
+      queueName: data.queueName,
+      jobId: data.jobId,
+    });
 
     return actionSuccess({ data: status });
   });

@@ -1,13 +1,13 @@
 # CrimeGPT v2 Automated Audit
 
-Generated at: 2026-07-04T12:58:03.193Z
+Generated at: 2026-07-05T09:46:15.141Z
 
 ## Summary
 
 | Severity | Count |
 |---|---:|
 | Critical | 0 |
-| Warning | 75 |
+| Warning | 77 |
 | Info | 0 |
 
 ## Findings
@@ -84,6 +84,8 @@ Generated at: 2026-07-04T12:58:03.193Z
 | warning | `src/services/pdf/pdf-export.service.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/services/pdf/pdf-template-renderer.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/services/person/person.service.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
+| warning | `src/services/queue/job-status.service.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
+| warning | `src/services/queue/job-status.service.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/workers/embedding.processor.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/workers/index.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
 | warning | `src/workers/index.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |

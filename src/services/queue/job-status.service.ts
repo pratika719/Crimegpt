@@ -8,6 +8,7 @@ import {
   cleanupQueue,
 } from "@/lib/queue/queues";
 import { QUEUE_NAMES } from "@/lib/queue/queue-names";
+import { logger } from "@/lib/logger";
 
 export type MinimalJobState =
   | "waiting"
@@ -73,7 +74,14 @@ export class JobStatusService {
         result: job.returnvalue ?? null,
       };
     } catch (error) {
-      console.error(`[JobStatusService] Error fetching job status for ${input.jobId}:`, error);
+      logger.error(
+        {
+          err: error,
+          jobId: input.jobId,
+          queueName: input.queueName,
+        },
+        "Error fetching job status",
+      );
       return {
         jobId: input.jobId,
         queueName: input.queueName,

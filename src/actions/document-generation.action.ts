@@ -10,6 +10,7 @@ import { validateActionInput } from "@/lib/validation/action-guard";
 import { actionSuccess, actionFailure } from "@/lib/action-response";
 import { queueProducerService } from "@/services/queue/queue-producer.service";
 import { cacheInvalidationService } from "@/services/cache/cache-invalidation.service";
+import { logger } from "@/lib/logger";
 
 const GenerateDocumentSchema = z.object({
   caseId: z.string().min(1, "Case ID is required"),
@@ -45,32 +46,66 @@ export async function generateDocumentAction(input: unknown) {
         return actionFailure("UNAUTHORIZED", "Unauthorized");
       }
 
-      const queued = await queueProducerService.addDocumentGenerationJob({
-        caseId: data.caseId,
-        userId: session.user.id,
-        documentType: data.documentType,
-        forceRegenerate: data.forceRegenerate,
-      });
-
-      console.log("[document-generation-action] queued", queued);
+      logger.info(
+        {
+          caseId: data.caseId,
+          userId: session.user.id,
+          documentType: data.documentType,
+          forceRegenerate: data.forceRegenerate,
+        },
+        "Document generation requested",
+      );
 
       try {
-        await cacheInvalidationService.invalidateCaseMutation({
-          userId: session.user.id,
+        const queued = await queueProducerService.addDocumentGenerationJob({
           caseId: data.caseId,
+          userId: session.user.id,
+          documentType: data.documentType,
+          forceRegenerate: data.forceRegenerate,
+        });
+
+        logger.info(
+          {
+            jobId: queued.jobId,
+            caseId: data.caseId,
+            userId: session.user.id,
+            documentType: data.documentType,
+          },
+          "Document generation job enqueued successfully",
+        );
+
+        try {
+          await cacheInvalidationService.invalidateCaseMutation({
+            userId: session.user.id,
+            caseId: data.caseId,
+          });
+        } catch (err) {
+          logger.warn(
+            { err, caseId: data.caseId },
+            "Failed to invalidate cache on document enqueue"
+          );
+        }
+
+        revalidatePath(`/case/${data.caseId}`);
+
+        return actionSuccess({
+          data: {
+            message: "Document generation started.",
+            ...queued,
+          },
         });
       } catch (err) {
-        console.warn(`[Cache Invalidation Warning] Failed to invalidate cache on document enqueue for case ${data.caseId}:`, err);
+        logger.error(
+          {
+            err,
+            caseId: data.caseId,
+            userId: session.user.id,
+            documentType: data.documentType,
+          },
+          "Document generation enqueue failed",
+        );
+        throw err;
       }
-
-      revalidatePath(`/case/${data.caseId}`);
-
-      return actionSuccess({
-        data: {
-          message: "Document generation started.",
-          ...queued,
-        },
-      });
     },
   );
 }

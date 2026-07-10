@@ -1,13 +1,13 @@
 # CrimeGPT v2 Automated Audit
 
-Generated at: 2026-07-10T07:21:38.575Z
+Generated at: 2026-07-10T08:41:23.780Z
 
 ## Summary
 
 | Severity | Count |
 |---|---:|
 | Critical | 0 |
-| Warning | 81 |
+| Warning | 79 |
 | Info | 0 |
 
 ## Findings
@@ -30,6 +30,7 @@ Generated at: 2026-07-10T07:21:38.575Z
 | warning | `src/actions/evidence.action.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/actions/investigation-profile.action.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
 | warning | `src/actions/investigation-profile.action.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
+| warning | `src/actions/job-status.actions.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
 | warning | `src/actions/person.action.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
 | warning | `src/actions/person.action.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/actions/search.action.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
@@ -66,19 +67,19 @@ Generated at: 2026-07-10T07:21:38.575Z
 | warning | `src/components/search/search-dialog.tsx` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/lib/cache/cache.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
 | warning | `src/lib/cache/cache.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
+| warning | `src/lib/logger.ts` | AI_WITHOUT_TIMEOUT | AI call appears to lack timeout/cancellation handling. |
+| warning | `src/lib/logger.ts` | AI_WITHOUT_ERROR_BOUNDARY | AI provider call appears to lack explicit error handling. |
 | warning | `src/lib/pdf-export.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/lib/prisma.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/lib/queue/bullmq-connection.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/lib/redis/redis.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/services/ai/ai-observability.service.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
-| warning | `src/services/ai/ai-observability.service.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/services/case/ai-diagnostics.service.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/services/case/case.services.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/services/case/legal-analysis.services.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/services/case-metadata/case-metadata.service.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/services/checklist/checklist.service.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/services/document-engine/document-generator.service.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
-| warning | `src/services/document-engine/document-generator.service.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/services/document-engine/document.service.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/services/evidence/evidence.service.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/services/investigation-summary/investigation-summary.service.ts` | AI_WITHOUT_TIMEOUT | AI call appears to lack timeout/cancellation handling. |
@@ -87,14 +88,11 @@ Generated at: 2026-07-10T07:21:38.575Z
 | warning | `src/services/pdf/pdf-template-renderer.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/services/person/person.service.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/services/queue/job-status.service.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
-| warning | `src/services/queue/job-status.service.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/workers/document-generator.processor.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
 | warning | `src/workers/document-generator.processor.ts` | AI_WITHOUT_TIMEOUT | AI call appears to lack timeout/cancellation handling. |
-| warning | `src/workers/embedding.processor.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
+| warning | `src/workers/embedding.processor.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
 | warning | `src/workers/index.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
-| warning | `src/workers/index.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
-| warning | `src/workers/ingestion.processor.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
-| warning | `src/workers/worker-registry.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
+| warning | `src/workers/ingestion.processor.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
 
 ## Notes
 

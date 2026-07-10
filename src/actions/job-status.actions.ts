@@ -6,6 +6,7 @@ import { QUEUE_NAMES } from "@/lib/queue/queue-names";
 import { validateActionInput } from "@/lib/validation/action-guard";
 import { actionFailure, actionSuccess } from "@/lib/action-response";
 import { jobStatusService } from "@/services/queue/job-status.service";
+import { logger } from "@/lib/logger";
 
 const getJobStatusSchema = z.object({
   queueName: z.nativeEnum(QUEUE_NAMES),
@@ -20,11 +21,24 @@ export async function getJobStatusAction(input: unknown) {
       return actionFailure("UNAUTHORIZED", "Unauthorized");
     }
 
-    const status = await jobStatusService.getJobStatus({
-      queueName: data.queueName,
-      jobId: data.jobId,
-    });
+    try {
+      const status = await jobStatusService.getJobStatus({
+        queueName: data.queueName,
+        jobId: data.jobId,
+      });
 
-    return actionSuccess({ data: status });
+      return actionSuccess({ data: status });
+    } catch (error) {
+      logger.error(
+        {
+          err: error,
+          queueName: data.queueName,
+          jobId: data.jobId,
+          userId: session.user.id,
+        },
+        "Job status lookup failed",
+      );
+      throw error;
+    }
   });
 }

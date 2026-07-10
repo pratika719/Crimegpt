@@ -2,14 +2,9 @@ import type { Job } from "bullmq";
 import type { IngestionJobPayload } from "@/lib/queue/job-types";
 import { evidenceIngestionService } from "@/services/ingestion/evidence-ingestion.service";
 import { NonRetryableError } from "@/lib/error/retryable-error";
+import { logger } from "@/lib/logger";
 
 export async function processIngestionJob(job: Job<IngestionJobPayload>) {
-  console.log("[ingestion-worker] picked job", {
-    id: job.id,
-    name: job.name,
-    data: job.data,
-  });
-
   const { sourceType, caseId, text, sourceId, userId } = job.data;
 
   // Validation
@@ -33,6 +28,18 @@ export async function processIngestionJob(job: Job<IngestionJobPayload>) {
     throw new NonRetryableError("Ingestion job missing userId.");
   }
 
+  logger.info(
+    {
+      jobId: job.id,
+      queueName: job.queueName,
+      caseId,
+      sourceType,
+      sourceId,
+      userId,
+    },
+    "Ingestion job started",
+  );
+
   await job.updateProgress({
     status: "STARTED",
     progress: 5,
@@ -45,27 +52,49 @@ export async function processIngestionJob(job: Job<IngestionJobPayload>) {
     message: "Chunking evidence text.",
   });
 
-  console.log("[ingestion-worker] chunking evidence", {
-    sourceId,
-    caseId,
-    hasText: Boolean(text),
-  });
+  const startedAt = Date.now();
 
-  const result = await evidenceIngestionService.ingestEvidenceText({
-    evidenceId: sourceId,
-    caseId,
-    userId,
-    text,
-  });
+  try {
+    const result = await evidenceIngestionService.ingestEvidenceText({
+      evidenceId: sourceId,
+      caseId,
+      userId,
+      text,
+    });
 
-  console.log("[ingestion-worker] chunk count", result.chunksQueued);
-  console.log("[ingestion-worker] queued embedding jobs");
+    logger.info(
+      {
+        jobId: job.id,
+        queueName: job.queueName,
+        caseId,
+        sourceType,
+        sourceId,
+        chunksCount: result.chunksQueued,
+        latencyMs: Date.now() - startedAt,
+      },
+      "Ingestion job completed",
+    );
 
-  await job.updateProgress({
-    status: "QUEUED_EMBEDDINGS",
-    progress: 100,
-    message: `Queued ${result.chunksQueued} embedding jobs.`,
-  });
+    await job.updateProgress({
+      status: "QUEUED_EMBEDDINGS",
+      progress: 100,
+      message: `Queued ${result.chunksQueued} embedding jobs.`,
+    });
 
-  return result;
+    return result;
+  } catch (error) {
+    logger.error(
+      {
+        err: error,
+        jobId: job.id,
+        queueName: job.queueName,
+        caseId,
+        sourceType,
+        sourceId,
+        latencyMs: Date.now() - startedAt,
+      },
+      "Ingestion job failed",
+    );
+    throw error;
+  }
 }

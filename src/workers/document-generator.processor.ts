@@ -4,6 +4,7 @@ import { setAITempState } from "@/lib/redis/ai-temp-state";
 import { documentGeneratorService } from "@/services/document-engine/document-generator.service";
 import { NonRetryableError } from "@/lib/error/retryable-error";
 import { aiObservabilityService } from "@/services/ai/ai-observability.service";
+import { logger } from "@/lib/logger";
 
 const GEMINI_MODEL = "gemini-2.5-flash";
 
@@ -28,6 +29,19 @@ export async function processDocumentGenerationJob(
   if (!documentType) {
     throw new NonRetryableError("Document generation job missing documentType.");
   }
+
+  logger.info(
+    {
+      jobId: job.id,
+      queueName: job.queueName,
+      attempt: job.attemptsMade + 1,
+      maxAttempts: job.opts.attempts,
+      caseId,
+      userId,
+      documentType,
+    },
+    "Document generation job started",
+  );
 
   await job.updateProgress({
     status: "STARTED",
@@ -85,9 +99,36 @@ export async function processDocumentGenerationJob(
       modelUsed: GEMINI_MODEL,
       latencyMs: Date.now() - startedAt,
     });
+
+    logger.info(
+      {
+        jobId: job.id,
+        queueName: job.queueName,
+        caseId,
+        userId,
+        documentType,
+        latencyMs: Date.now() - startedAt,
+      },
+      "Document generation job completed",
+    );
   } catch (error) {
     const maxAttempts = job.opts.attempts ?? 1;
     const isFinal = job.attemptsMade >= maxAttempts - 1;
+
+    logger.error(
+      {
+        err: error,
+        jobId: job.id,
+        queueName: job.queueName,
+        caseId,
+        userId,
+        documentType,
+        attempt: job.attemptsMade + 1,
+        maxAttempts: job.opts.attempts,
+        latencyMs: Date.now() - startedAt,
+      },
+      "Document generation job failed",
+    );
 
     if (isFinal) {
       const errorMessage = error instanceof Error ? error.message : "Unknown AI generation error.";

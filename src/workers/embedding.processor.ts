@@ -2,10 +2,9 @@ import type { Job } from "bullmq";
 import type { EmbeddingJobPayload } from "@/lib/queue/job-types";
 import { evidenceEmbeddingService } from "@/services/embeddings/evidence-embedding.service";
 import { NonRetryableError } from "@/lib/error/retryable-error";
+import { logger } from "@/lib/logger";
 
 export async function processEmbeddingJob(job: Job<EmbeddingJobPayload>) {
-  console.log("[embedding-worker] picked job", job.id);
-  
   const { sourceType, sourceId, caseId, chunkIndex, text, metadata } = job.data;
 
   // Validation
@@ -29,6 +28,19 @@ export async function processEmbeddingJob(job: Job<EmbeddingJobPayload>) {
     throw new NonRetryableError("Embedding job missing text content.");
   }
 
+  logger.info(
+    {
+      jobId: job.id,
+      queueName: job.queueName,
+      caseId,
+      evidenceId: sourceId,
+      chunkIndex,
+      attempt: job.attemptsMade + 1,
+      maxAttempts: job.opts.attempts,
+    },
+    "Embedding job started",
+  );
+
   await job.updateProgress({
     status: "STARTED",
     progress: 10,
@@ -41,21 +53,51 @@ export async function processEmbeddingJob(job: Job<EmbeddingJobPayload>) {
     message: "Generating and storing evidence embedding.",
   });
 
-  console.log("[embedding-worker] calling FastAPI embedding service");
-  const result = await evidenceEmbeddingService.upsertEvidenceChunk({
-    evidenceId: sourceId,
-    caseId,
-    chunkIndex,
-    content: text,
-    metadata,
-  });
-  console.log("[embedding-worker] embedding returned");
+  const startedAt = Date.now();
 
-  await job.updateProgress({
-    status: "COMPLETED",
-    progress: 100,
-    message: "Embedding completed.",
-  });
+  try {
+    const result = await evidenceEmbeddingService.upsertEvidenceChunk({
+      evidenceId: sourceId,
+      caseId,
+      chunkIndex,
+      content: text,
+      metadata,
+    });
 
-  return result;
+    logger.info(
+      {
+        jobId: job.id,
+        queueName: job.queueName,
+        caseId,
+        evidenceId: sourceId,
+        chunkIndex,
+        latencyMs: Date.now() - startedAt,
+      },
+      "Embedding job completed",
+    );
+
+    await job.updateProgress({
+      status: "COMPLETED",
+      progress: 100,
+      message: "Embedding completed.",
+    });
+
+    return result;
+  } catch (error) {
+    logger.error(
+      {
+        err: error,
+        jobId: job.id,
+        queueName: job.queueName,
+        caseId,
+        evidenceId: sourceId,
+        chunkIndex,
+        attempt: job.attemptsMade + 1,
+        maxAttempts: job.opts.attempts,
+        latencyMs: Date.now() - startedAt,
+      },
+      "Embedding job failed",
+    );
+    throw error;
+  }
 }

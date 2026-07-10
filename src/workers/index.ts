@@ -1,8 +1,11 @@
 import "dotenv/config";
+process.env.SERVICE_NAME = "crimegpt-worker";
+
+import { logger } from "@/lib/logger";
 import { closeWorkers, createWorkers } from "@/workers/worker-registry";
 import { getRedisConnection } from "@/lib/redis";
 
-
+logger.info("CrimeGPT workers starting...");
 const workers = createWorkers();
 
 let isShuttingDown = false;
@@ -14,7 +17,7 @@ async function shutdown(signal: NodeJS.Signals) {
 
   isShuttingDown = true;
 
-  console.info(`[worker-runtime] received ${signal}. Starting graceful shutdown.`);
+  logger.info({ signal }, "Worker runtime received shutdown signal. Starting graceful shutdown.");
 
   try {
     await closeWorkers(workers);
@@ -22,10 +25,10 @@ async function shutdown(signal: NodeJS.Signals) {
     const redis = getRedisConnection();
     await redis.quit();
 
-    console.info("[worker-runtime] shutdown complete.");
+    logger.info("Worker runtime shutdown complete.");
     process.exit(0);
   } catch (error) {
-    console.error("[worker-runtime] shutdown failed.", error);
+    logger.error({ err: error }, "Worker runtime shutdown failed.");
     process.exit(1);
   }
 }
@@ -34,13 +37,13 @@ process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 
 process.on("uncaughtException", async (error) => {
-  console.error("[worker-runtime] uncaught exception.", error);
+  logger.fatal({ err: error }, "Worker runtime uncaught exception.");
   await shutdown("SIGTERM");
 });
 
 process.on("unhandledRejection", async (reason) => {
-  console.error("[worker-runtime] unhandled rejection.", reason);
+  logger.fatal({ err: reason }, "Worker runtime unhandled rejection.");
   await shutdown("SIGTERM");
 });
 
-console.info("[worker-runtime] CrimeGPT workers started.");
+logger.info("CrimeGPT workers started.");

@@ -19,6 +19,7 @@ import type {
   EmbeddingJobPayload,
   IngestionJobPayload,
 } from "@/lib/queue/job-types";
+import { logger } from "@/lib/logger";
 
 function createRequestId(prefix: string): string {
   return `${prefix}_${crypto.randomUUID()}`;
@@ -55,6 +56,19 @@ export class QueueProducerService {
           state === "prioritized" ||
           state === "waiting-children"
         ) {
+          logger.info(
+            {
+              jobId: String(existingJob.id),
+              queueName: QUEUE_NAMES.DOCUMENT_GENERATION,
+              caseId: input.caseId,
+              userId: input.userId,
+              documentType: input.documentType,
+              state,
+              reused: true,
+            },
+            "Reusing active document generation job",
+          );
+
           return {
             jobId: String(existingJob.id),
             requestId: existingJob.data.requestId,
@@ -89,6 +103,18 @@ export class QueueProducerService {
       },
     );
 
+    logger.info(
+      {
+        jobId: String(job.id),
+        queueName: QUEUE_NAMES.DOCUMENT_GENERATION,
+        caseId: input.caseId,
+        userId: input.userId,
+        documentType: input.documentType,
+        reused: false,
+      },
+      "Document generation job enqueued",
+    );
+
     return {
       jobId: String(job.id),
       requestId,
@@ -116,6 +142,16 @@ export class QueueProducerService {
       ...QUEUE_RETRY_POLICY.AI_GENERATION,
     });
 
+    logger.info(
+      {
+        jobId: String(job.id),
+        queueName: QUEUE_NAMES.AI_GENERATION,
+        caseId: input.caseId,
+        requestType: input.requestType,
+      },
+      "AI generation job enqueued",
+    );
+
     return {
       jobId: String(job.id),
       requestId: payload.requestId,
@@ -136,6 +172,17 @@ export class QueueProducerService {
       jobId: createSafeJobId([payload.sourceType, payload.sourceId]),
       ...QUEUE_RETRY_POLICY.INGESTION,
     });
+
+    logger.info(
+      {
+        jobId: String(job.id),
+        queueName: QUEUE_NAMES.INGESTION,
+        caseId: input.caseId,
+        sourceType: input.sourceType,
+        sourceId: input.sourceId,
+      },
+      "Ingestion job enqueued",
+    );
 
     return {
       jobId: String(job.id),
@@ -158,6 +205,16 @@ export class QueueProducerService {
       ...QUEUE_RETRY_POLICY.EMAIL,
     });
 
+    logger.info(
+      {
+        jobId: String(job.id),
+        queueName: QUEUE_NAMES.EMAIL,
+        to: input.to,
+        subject: input.subject,
+      },
+      "Email job enqueued",
+    );
+
     return {
       jobId: String(job.id),
       requestId: payload.requestId,
@@ -179,6 +236,15 @@ export class QueueProducerService {
       ...QUEUE_RETRY_POLICY.CLEANUP,
     });
 
+    logger.info(
+      {
+        jobId: String(job.id),
+        queueName: QUEUE_NAMES.CLEANUP,
+        cleanupType: input.cleanupType,
+      },
+      "Cleanup job enqueued",
+    );
+
     return {
       jobId: String(job.id),
       requestId: payload.requestId,
@@ -199,6 +265,18 @@ export class QueueProducerService {
       jobId: createSafeJobId([payload.sourceType, payload.sourceId, payload.chunkIndex ?? 0]),
       ...QUEUE_RETRY_POLICY.EMBEDDING,
     });
+
+    logger.info(
+      {
+        jobId: String(job.id),
+        queueName: QUEUE_NAMES.EMBEDDING,
+        caseId: input.caseId,
+        sourceType: input.sourceType,
+        sourceId: input.sourceId,
+        chunkIndex: input.chunkIndex,
+      },
+      "Embedding job enqueued",
+    );
 
     return {
       jobId: String(job.id),

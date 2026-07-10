@@ -1,4 +1,5 @@
 import { aiRequestLogRepository } from "@/repositories/ai-request-log.repository";
+import { logger } from "@/lib/logger";
 
 type LogAISuccessInput = {
   caseId?: string;
@@ -35,7 +36,16 @@ export class AIObservabilityService {
         status: "SUCCESS",
       });
     } catch (error) {
-      console.warn("[ai-observability] failed to log success", error);
+      logger.warn(
+        {
+          err: error,
+          caseId: input.caseId,
+          userId: input.userId,
+          jobId: input.jobId,
+          requestType: input.requestType,
+        },
+        "Failed to write AI observability log for success",
+      );
     }
   }
 
@@ -47,7 +57,16 @@ export class AIObservabilityService {
         failureReason: truncateFailureReason(input.failureReason),
       });
     } catch (error) {
-      console.warn("[ai-observability] failed to log failure", error);
+      logger.warn(
+        {
+          err: error,
+          caseId: input.caseId,
+          userId: input.userId,
+          jobId: input.jobId,
+          requestType: input.requestType,
+        },
+        "Failed to write AI observability log for failure",
+      );
     }
   }
 }

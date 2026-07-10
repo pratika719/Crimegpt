@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { withAITimeout, AITimeoutError } from "@/lib/ai/with-ai-timeout";
+import { logger } from "@/lib/logger";
 
 export class AIProviderError extends Error {
   constructor(message: string, public readonly originalError?: any) {
@@ -107,13 +108,28 @@ export class GeminiProvider {
     }
 
     if (lastError instanceof AITimeoutError) {
+      logger.error(
+        {
+          err: lastError,
+          model: this.modelName,
+        },
+        "Gemini request timed out"
+      );
       throw lastError;
     }
 
-    throw new AIProviderError(
+    const providerError = new AIProviderError(
       `Gemini API call failed after ${maxRetries} retries. Reason: ${lastError?.message || lastError}`,
       lastError
     );
+    logger.error(
+      {
+        err: providerError,
+        model: this.modelName,
+      },
+      "Gemini request failed"
+    );
+    throw providerError;
   }
 
   /**

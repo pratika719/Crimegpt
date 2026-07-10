@@ -6,6 +6,7 @@ import type {
 import { cacheService } from "@/lib/cache/cache";
 import { cacheKeys } from "@/lib/cache/cache-keys";
 import { createCacheHash } from "@/lib/cache/cache-hash";
+import { logger } from "@/lib/logger";
 const EXPECTED_DIMENSIONS = 384;
 
 function validateEmbeddingOutput(
@@ -97,10 +98,19 @@ private async requestEmbeddings(texts: string[]): Promise<EmbeddingOutput> {
 
   if (!response.ok) {
     const errorText = await response.text();
-
-    throw new Error(
+    const err = new Error(
       `FastAPI embedding request failed: ${response.status} ${errorText}`,
     );
+
+    logger.error(
+      {
+        err,
+        textsCount: texts.length,
+      },
+      "FastAPI embedding request failed",
+    );
+
+    throw err;
   }
 
   const output = (await response.json()) as EmbeddingOutput;

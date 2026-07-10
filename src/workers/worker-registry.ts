@@ -7,6 +7,7 @@ import { processDocumentGenerationJob } from "@/workers/document-generator.proce
 import { processEmailJob } from "@/workers/email.proccessor";
 import { processEmbeddingJob } from "@/workers/embedding.processor";
 import { processIngestionJob } from "@/workers/ingestion.processor";
+import { logger } from "@/lib/logger";
 
 const connection = getRedisConnection() as any;
 
@@ -54,26 +55,43 @@ export function createWorkers() {
 
   for (const worker of workers) {
     worker.on("ready", () => {
-      console.info(`[worker] ready: ${worker.name}`);
+      logger.info({ queueName: worker.name }, "BullMQ worker ready");
     });
 
     worker.on("active", (job) => {
-      console.info(`[worker] active: ${worker.name} job=${job.id}`);
+      logger.info(
+        {
+          jobId: job.id,
+          queueName: worker.name,
+        },
+        "BullMQ job active",
+      );
     });
 
     worker.on("completed", (job) => {
-      console.info(`[worker] completed: ${worker.name} job=${job.id}`);
+      logger.info(
+        {
+          jobId: job.id,
+          queueName: worker.name,
+        },
+        "BullMQ job completed",
+      );
     });
 
     worker.on("failed", (job, error) => {
-      console.error(
-        `[worker] failed: ${worker.name} job=${job?.id ?? "unknown"}`,
-        error,
+      logger.error(
+        {
+          err: error,
+          jobId: job?.id,
+          queueName: worker.name,
+          failedReason: job?.failedReason,
+        },
+        "BullMQ job failed",
       );
     });
 
     worker.on("error", (error) => {
-      console.error(`[worker] error: ${worker.name}`, error);
+      logger.error({ err: error, queueName: worker.name }, "BullMQ worker error");
     });
   }
 
@@ -84,7 +102,7 @@ export async function closeWorkers(workers: Worker[]) {
   await Promise.all(
     workers.map(async (worker) => {
       await worker.close();
-      console.info(`[worker] closed: ${worker.name}`);
+      logger.info({ queueName: worker.name }, "BullMQ worker closed");
     }),
   );
 }

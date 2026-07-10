@@ -176,26 +176,29 @@ model LegalChunk {
 }
 
 model AIRequestLog {
-  id               String          @id @default(cuid())
-  caseId           String?
-  userId           String
-  requestType      AIRequestType
-  status           AIRequestStatus @default(SUCCEEDED)
-  prompt           String?
-  retrievedContext String?
-  response         String?
-  modelUsed        String?
-  tokenUsage       Json?
-  latencyMs        Int?
-  errorCode        String?
-  errorMessage     String?
-  retryCount       Int             @default(0)
-  queueJobId       String?
-  inputHash        String?
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  startedAt        DateTime?
-  completedAt      DateTime?
+  id                   String          @id @default(cuid())
+  caseId               String?
+  userId               String
+  requestType          AIRequestType
+  status               AIRequestStatus @default(SUCCEEDED)
+  prompt               String?
+  retrievedContext     String?
+  response             String?
+  modelUsed            String?
+  tokenUsage           Json?
+  latencyMs            Int?
+  errorCode            String?
+  errorMessage         String?
+  retryCount           Int             @default(0)
+  queueJobId           String?
+  inputHash            String?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  startedAt            DateTime?
+  completedAt          DateTime?
+  cacheHit             Boolean?         @default(false)
+  retrievedChunksCount Int?
+  failureReason        String?
 
   case Case? @relation(fields: [caseId], references: [id], onDelete: Cascade)
   user User  @relation(fields: [userId], references: [id], onDelete: Cascade)

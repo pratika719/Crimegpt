@@ -3,6 +3,9 @@ import type { DocumentGenerationJobPayload } from "@/lib/queue/job-types";
 import { setAITempState } from "@/lib/redis/ai-temp-state";
 import { documentGeneratorService } from "@/services/document-engine/document-generator.service";
 import { NonRetryableError } from "@/lib/error/retryable-error";
+import { aiObservabilityService } from "@/services/ai/ai-observability.service";
+
+const GEMINI_MODEL = "gemini-2.5-flash";
 
 export async function processDocumentGenerationJob(
   job: Job<DocumentGenerationJobPayload>,
@@ -64,12 +67,43 @@ export async function processDocumentGenerationJob(
     },
   });
 
-  await documentGeneratorService.generateDocument(
-    caseId,
-    userId,
-    documentType,
-    requestId,
-  );
+  const startedAt = Date.now();
+
+  try {
+    await documentGeneratorService.generateDocument(
+      caseId,
+      userId,
+      documentType,
+      requestId,
+    );
+
+    await aiObservabilityService.logSuccess({
+      caseId,
+      userId,
+      jobId: job.id,
+      requestType: documentType,
+      modelUsed: GEMINI_MODEL,
+      latencyMs: Date.now() - startedAt,
+    });
+  } catch (error) {
+    const maxAttempts = job.opts.attempts ?? 1;
+    const isFinal = job.attemptsMade >= maxAttempts - 1;
+
+    if (isFinal) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown AI generation error.";
+      await aiObservabilityService.logFailure({
+        caseId,
+        userId,
+        jobId: job.id,
+        requestType: documentType,
+        modelUsed: GEMINI_MODEL,
+        latencyMs: Date.now() - startedAt,
+        failureReason: errorMessage,
+      });
+    }
+
+    throw error;
+  }
 
   await job.updateProgress({
     status: "SAVING",

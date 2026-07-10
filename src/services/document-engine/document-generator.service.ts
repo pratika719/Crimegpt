@@ -136,17 +136,19 @@ export class DocumentGeneratorService {
         version: nextVer,
       }, tx);
 
-      // d. Store AIRequestLog for observability
-      await aiObservabilityService.logRequest(userId, {
-        requestType: config.aiRequestType,
-        prompt: promptText,
-        retrievedContext: retrievedChunks.length > 0 ? JSON.stringify(retrievedChunks) : undefined,
-        response: rawResponse,
-        latencyMs,
-        modelUsed,
-        tokenUsage,
-        caseId,
-      }, tx);
+      // d. Store AIRequestLog for observability (only if not background job since worker logs it)
+      if (!requestId) {
+        await aiObservabilityService.logRequest(userId, {
+          requestType: config.aiRequestType,
+          prompt: promptText,
+          retrievedContext: retrievedChunks.length > 0 ? JSON.stringify(retrievedChunks) : undefined,
+          response: rawResponse,
+          latencyMs,
+          modelUsed,
+          tokenUsage,
+          caseId,
+        }, tx);
+      }
 
       // e. Create Case Activity Log entry
       await activityService.logDocumentGenerated(caseId, userId, type, doc.title, nextVer, tx);

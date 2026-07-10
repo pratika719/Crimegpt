@@ -9,6 +9,8 @@ import {
   ingestionQueue,
 } from "@/lib/queue/queues";
 import { QUEUE_NAMES } from "@/lib/queue/queue-names";
+import { createSafeJobId } from "@/lib/queue/job-id";
+import { QUEUE_RETRY_POLICY } from "@/lib/queue/retry-policy";
 import type {
   AIGenerationJobPayload,
   CleanupJobPayload,
@@ -20,18 +22,6 @@ import type {
 
 function createRequestId(prefix: string): string {
   return `${prefix}_${crypto.randomUUID()}`;
-}
-
-function createSafeJobId(parts: Array<string | number | boolean | undefined | null>): string {
-  return parts
-    .filter((part) => part !== undefined && part !== null)
-    .map((part) =>
-      String(part)
-        .replace(/:/g, "__")
-        .replace(/\s+/g, "_")
-        .replace(/[^a-zA-Z0-9._-]/g, "_"),
-    )
-    .join("__");
 }
 
 export class QueueProducerService {
@@ -95,6 +85,7 @@ export class QueueProducerService {
       payload,
       {
         jobId,
+        ...QUEUE_RETRY_POLICY.DOCUMENT_GENERATION,
       },
     );
 
@@ -122,6 +113,7 @@ export class QueueProducerService {
 
     const job = await aiGenerationQueue.add("generate-ai", payload, {
       jobId,
+      ...QUEUE_RETRY_POLICY.AI_GENERATION,
     });
 
     return {
@@ -142,6 +134,7 @@ export class QueueProducerService {
 
     const job = await ingestionQueue.add("ingest-source", payload, {
       jobId: createSafeJobId([payload.sourceType, payload.sourceId]),
+      ...QUEUE_RETRY_POLICY.INGESTION,
     });
 
     return {
@@ -158,7 +151,12 @@ export class QueueProducerService {
       createdAt: new Date().toISOString(),
     };
 
-    const job = await emailQueue.add("send-email", payload);
+    const jobId = createSafeJobId(["email", payload.to, payload.subject, payload.requestId]);
+
+    const job = await emailQueue.add("send-email", payload, {
+      jobId,
+      ...QUEUE_RETRY_POLICY.EMAIL,
+    });
 
     return {
       jobId: String(job.id),
@@ -178,6 +176,7 @@ export class QueueProducerService {
 
     const job = await cleanupQueue.add("run-cleanup", payload, {
       jobId: createSafeJobId([payload.cleanupType, payload.olderThanDays ?? "default"]),
+      ...QUEUE_RETRY_POLICY.CLEANUP,
     });
 
     return {
@@ -198,6 +197,7 @@ export class QueueProducerService {
 
     const job = await embeddingQueue.add("generate-embedding", payload, {
       jobId: createSafeJobId([payload.sourceType, payload.sourceId, payload.chunkIndex ?? 0]),
+      ...QUEUE_RETRY_POLICY.EMBEDDING,
     });
 
     return {

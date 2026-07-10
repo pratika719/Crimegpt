@@ -20,7 +20,7 @@ export class DocumentGeneratorService {
    * The core unified AI document generation pipeline.
    * Works for any registered document type.
    */
-  async generateDocument(caseId: string, userId: string, type: DocumentType) {
+  async generateDocument(caseId: string, userId: string, type: DocumentType, requestId?: string) {
       const lockKey = redisKeys.lock.documentGeneration(caseId, type);
 
   return withRedisLock(lockKey, 120_000, async () => {
@@ -100,9 +100,31 @@ export class DocumentGeneratorService {
       // a. Pessimistic lock on the Case row to serialize concurrent writes
       await tx.$executeRaw`SELECT id FROM "Case" WHERE id = ${caseId} FOR UPDATE`;
 
-      // b. Query latest document version for this type under the case
-      const latestDoc = await documentRepository.findLatestByType(caseId, userId, type, tx);
-      const nextVer = latestDoc ? latestDoc.version + 1 : 1;
+      // b. Query latest document version for this type under the case or overwrite if request is retried (Idempotency check)
+      let nextVer = 1;
+      if (requestId) {
+        const docs = await tx.generatedDocument.findMany({
+          where: { caseId, type },
+        });
+        const existingDoc = docs.find((d: any) => {
+          const content = d.content as any;
+          return content && content._requestId === requestId;
+        });
+
+        if (existingDoc) {
+          nextVer = existingDoc.version;
+          console.log(`🤖 [DocumentGeneratorService] Found existing document for requestId: ${requestId}, deleting version ${nextVer} to overwrite.`);
+          await tx.generatedDocument.delete({
+            where: { id: existingDoc.id },
+          });
+        } else {
+          const latestDoc = await documentRepository.findLatestByType(caseId, userId, type, tx);
+          nextVer = latestDoc ? latestDoc.version + 1 : 1;
+        }
+      } else {
+        const latestDoc = await documentRepository.findLatestByType(caseId, userId, type, tx);
+        nextVer = latestDoc ? latestDoc.version + 1 : 1;
+      }
 
       // c. Save the GeneratedDocument
       const documentTitle = `${config.titlePrefix} - v${nextVer}`;
@@ -110,7 +132,7 @@ export class DocumentGeneratorService {
         caseId,
         type,
         title: documentTitle,
-        content: result,
+        content: requestId ? { ...result, _requestId: requestId } : result,
         version: nextVer,
       }, tx);
 

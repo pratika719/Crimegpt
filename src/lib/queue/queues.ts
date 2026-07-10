@@ -1,6 +1,7 @@
 import { Queue, QueueEvents } from "bullmq";
 import { getRedisConnection } from "@/lib/redis";
 import { QUEUE_NAMES } from "@/lib/queue/queue-names";
+import { QUEUE_RETRY_POLICY } from "@/lib/queue/retry-policy";
 import type {
   AIGenerationJobPayload,
   CleanupJobPayload,
@@ -17,21 +18,7 @@ export const aiGenerationQueue = new Queue<AIGenerationJobPayload, any, string>(
   {
     connection,
     skipVersionCheck: true,
-    defaultJobOptions: {
-      attempts: 3,
-      backoff: {
-        type: "exponential",
-        delay: 5_000,
-      },
-      removeOnComplete: {
-        age: 86_400,
-        count: 1_000,
-      },
-      removeOnFail: {
-        age: 604_800,
-        count: 5_000,
-      },
-    },
+    defaultJobOptions: QUEUE_RETRY_POLICY.AI_GENERATION,
   },
 );
 
@@ -39,21 +26,7 @@ export const documentGenerationQueue =
   new Queue<DocumentGenerationJobPayload, any, string>(QUEUE_NAMES.DOCUMENT_GENERATION, {
     connection,
     skipVersionCheck: true,
-    defaultJobOptions: {
-      attempts: 3,
-      backoff: {
-        type: "exponential",
-        delay: 10_000,
-      },
-      removeOnComplete: {
-        age: 86_400,
-        count: 1_000,
-      },
-      removeOnFail: {
-        age: 604_800,
-        count: 5_000,
-      },
-    },
+    defaultJobOptions: QUEUE_RETRY_POLICY.DOCUMENT_GENERATION,
   });
 
 export const embeddingQueue = new Queue<EmbeddingJobPayload, any, string>(
@@ -61,21 +34,7 @@ export const embeddingQueue = new Queue<EmbeddingJobPayload, any, string>(
   {
     connection,
     skipVersionCheck: true,
-    defaultJobOptions: {
-      attempts: 5,
-      backoff: {
-        type: "exponential",
-        delay: 3_000,
-      },
-      removeOnComplete: {
-        age: 86_400,
-        count: 2_000,
-      },
-      removeOnFail: {
-        age: 604_800,
-        count: 5_000,
-      },
-    },
+    defaultJobOptions: QUEUE_RETRY_POLICY.EMBEDDING,
   },
 );
 
@@ -84,62 +43,20 @@ export const ingestionQueue = new Queue<IngestionJobPayload, any, string>(
   {
     connection,
     skipVersionCheck: true,
-    defaultJobOptions: {
-      attempts: 3,
-      backoff: {
-        type: "exponential",
-        delay: 5_000,
-      },
-      removeOnComplete: {
-        age: 86_400,
-        count: 1_000,
-      },
-      removeOnFail: {
-        age: 604_800,
-        count: 5_000,
-      },
-    },
+    defaultJobOptions: QUEUE_RETRY_POLICY.INGESTION,
   },
 );
 
 export const emailQueue = new Queue<EmailJobPayload, any, string>(QUEUE_NAMES.EMAIL, {
   connection,
   skipVersionCheck: true,
-  defaultJobOptions: {
-    attempts: 5,
-    backoff: {
-      type: "exponential",
-      delay: 2_000,
-    },
-    removeOnComplete: {
-      age: 86_400,
-      count: 1_000,
-    },
-    removeOnFail: {
-      age: 604_800,
-      count: 5_000,
-    },
-  },
+  defaultJobOptions: QUEUE_RETRY_POLICY.EMAIL,
 });
 
 export const cleanupQueue = new Queue<CleanupJobPayload, any, string>(QUEUE_NAMES.CLEANUP, {
   connection,
   skipVersionCheck: true,
-  defaultJobOptions: {
-    attempts: 2,
-    backoff: {
-      type: "exponential",
-      delay: 10_000,
-    },
-    removeOnComplete: {
-      age: 86_400,
-      count: 500,
-    },
-    removeOnFail: {
-      age: 604_800,
-      count: 1_000,
-    },
-  },
+  defaultJobOptions: QUEUE_RETRY_POLICY.CLEANUP,
 });
 
 export const queueEvents = {

@@ -2,6 +2,7 @@ import type { Job } from "bullmq";
 import type { DocumentGenerationJobPayload } from "@/lib/queue/job-types";
 import { setAITempState } from "@/lib/redis/ai-temp-state";
 import { documentGeneratorService } from "@/services/document-engine/document-generator.service";
+import { NonRetryableError } from "@/lib/error/retryable-error";
 
 export async function processDocumentGenerationJob(
   job: Job<DocumentGenerationJobPayload>,
@@ -12,6 +13,18 @@ export async function processDocumentGenerationJob(
   status: "COMPLETED";
 }> {
   const { requestId, caseId, userId, documentType } = job.data;
+
+  if (!caseId) {
+    throw new NonRetryableError("Document generation job missing caseId.");
+  }
+
+  if (!userId) {
+    throw new NonRetryableError("Document generation job missing userId.");
+  }
+
+  if (!documentType) {
+    throw new NonRetryableError("Document generation job missing documentType.");
+  }
 
   await job.updateProgress({
     status: "STARTED",
@@ -51,10 +64,11 @@ export async function processDocumentGenerationJob(
     },
   });
 
-  const result = await documentGeneratorService.generateDocument(
+  await documentGeneratorService.generateDocument(
     caseId,
     userId,
     documentType,
+    requestId,
   );
 
   await job.updateProgress({

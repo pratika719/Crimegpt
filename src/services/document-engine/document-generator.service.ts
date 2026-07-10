@@ -14,6 +14,7 @@ import { documentRepository } from "@/repositories/document.repository";
 import { redisKeys } from "@/lib/redis/redis-keys";
 import { withRedisLock } from "@/lib/redis/redis-lock";
 import { logger } from "@/lib/logger";
+import { PROMPT_SECURITY_INSTRUCTIONS } from "@/lib/security/prompt-security";
 
 export class DocumentGeneratorService {
   private caseRepository = new CaseRepository();
@@ -87,7 +88,8 @@ export class DocumentGeneratorService {
     }
 
     // 5. Build the LLM prompt
-    const promptText = config.buildPrompt(context, retrievedChunks);
+    const basePrompt = config.buildPrompt(context, retrievedChunks);
+    const promptText = `${PROMPT_SECURITY_INSTRUCTIONS}\n\n${basePrompt}`;
 
     // 6. Call Gemini Flash to generate JSON
     const modelUsed = geminiProvider.getModelName();
@@ -172,7 +174,7 @@ export class DocumentGeneratorService {
       if (!requestId) {
         await aiObservabilityService.logRequest(userId, {
           requestType: config.aiRequestType,
-          prompt: promptText,
+          prompt: basePrompt,
           retrievedContext: retrievedChunks.length > 0 ? JSON.stringify(retrievedChunks) : undefined,
           response: rawResponse,
           latencyMs,

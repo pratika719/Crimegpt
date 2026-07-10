@@ -1,13 +1,13 @@
 # CrimeGPT v2 Automated Audit
 
-Generated at: 2026-07-10T08:41:23.780Z
+Generated at: 2026-07-10T09:39:06.536Z
 
 ## Summary
 
 | Severity | Count |
 |---|---:|
 | Critical | 0 |
-| Warning | 79 |
+| Warning | 82 |
 | Info | 0 |
 
 ## Findings
@@ -65,6 +65,9 @@ Generated at: 2026-07-10T08:41:23.780Z
 | warning | `src/components/case/case-checklist-section.tsx` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/components/search/search-dialog.tsx` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
 | warning | `src/components/search/search-dialog.tsx` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
+| warning | `src/env.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
+| warning | `src/env.ts` | AI_WITHOUT_TIMEOUT | AI call appears to lack timeout/cancellation handling. |
+| warning | `src/env.ts` | AI_WITHOUT_ERROR_BOUNDARY | AI provider call appears to lack explicit error handling. |
 | warning | `src/lib/cache/cache.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
 | warning | `src/lib/cache/cache.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/lib/logger.ts` | AI_WITHOUT_TIMEOUT | AI call appears to lack timeout/cancellation handling. |

@@ -40,6 +40,7 @@ export class JobStatusService {
   async getJobStatus(input: {
     queueName: string;
     jobId: string;
+    userId?: string;
   }): Promise<MinimalJobStatusResponse> {
     const queue = queueMap[input.queueName as keyof typeof queueMap];
 
@@ -61,6 +62,17 @@ export class JobStatusService {
           queueName: input.queueName,
           state: "unknown",
           failedReason: "Job not found.",
+        };
+      }
+
+      // Owner verification (Step 9)
+      const jobUserId = typeof job.data?.userId === "string" ? job.data.userId : null;
+      if (input.userId && jobUserId && jobUserId !== input.userId) {
+        return {
+          jobId: input.jobId,
+          queueName: input.queueName,
+          state: "unknown",
+          failedReason: "Job not found or access denied.",
         };
       }
 

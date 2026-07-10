@@ -11,6 +11,7 @@ import { actionSuccess, actionFailure } from "@/lib/action-response";
 import { queueProducerService } from "@/services/queue/queue-producer.service";
 import { cacheInvalidationService } from "@/services/cache/cache-invalidation.service";
 import { logger } from "@/lib/logger";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 
 const GenerateDocumentSchema = z.object({
   caseId: z.string().min(1, "Case ID is required"),
@@ -44,6 +45,20 @@ export async function generateDocumentAction(input: unknown) {
 
       if (!session?.user?.id) {
         return actionFailure("UNAUTHORIZED", "Unauthorized");
+      }
+
+      const userId = session.user.id;
+      const rateLimit = await checkRateLimit({
+        key: `rate-limit:document-generation:${userId}`,
+        limit: 5,
+        windowSeconds: 600,
+      });
+
+      if (!rateLimit.allowed) {
+        return actionFailure(
+          "RATE_LIMIT_EXCEEDED",
+          `Too many document generation requests. Please try again in ${rateLimit.resetInSeconds} seconds.`,
+        );
       }
 
       logger.info(

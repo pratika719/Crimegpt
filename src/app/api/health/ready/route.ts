@@ -5,5 +5,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  return NextResponse.json(healthService.basic(), { status: 200 });
+  const response = await healthService.ready();
+
+  return NextResponse.json(response, {
+    status: response.status === "ok" ? 200 : 503,
+  });
 }

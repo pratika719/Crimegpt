@@ -6,7 +6,8 @@ export type ErrorCode =
   | "CONFLICT"
   | "INTERNAL_ERROR"
   | "AI_PROVIDER_ERROR"
-  | "AI_TIMEOUT";
+  | "AI_TIMEOUT"
+  | "RATE_LIMIT_EXCEEDED";
 
 export type ActionSuccess<T> = {
   success: true;

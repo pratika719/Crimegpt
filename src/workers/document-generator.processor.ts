@@ -4,6 +4,7 @@ import { setAITempState } from "@/lib/redis/ai-temp-state";
 import { documentGeneratorService } from "@/services/document-engine/document-generator.service";
 import { NonRetryableError } from "@/lib/error/retryable-error";
 import { aiObservabilityService } from "@/services/ai/ai-observability.service";
+import { cacheInvalidationService } from "@/services/cache/cache-invalidation.service";
 import { logger } from "@/lib/logger";
 
 const GEMINI_MODEL = "gemini-2.5-flash";
@@ -111,6 +112,16 @@ export async function processDocumentGenerationJob(
       },
       "Document generation job completed",
     );
+
+    // Invalidate case detail cache so the next page load reflects new document data
+    try {
+      await cacheInvalidationService.invalidateCaseMutation({ userId, caseId });
+    } catch (cacheErr) {
+      logger.warn(
+        { err: cacheErr, caseId, userId },
+        "Failed to invalidate case cache after document generation — non-fatal",
+      );
+    }
   } catch (error) {
     const maxAttempts = job.opts.attempts ?? 1;
     const isFinal = job.attemptsMade >= maxAttempts - 1;

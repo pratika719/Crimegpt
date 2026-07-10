@@ -103,6 +103,8 @@ model Case {
   @@index([createdAt])
   @@index([updatedAt])
   @@index([userId, status])
+  @@index([userId, createdAt])
+  @@index([userId, updatedAt])
 }
 
 //

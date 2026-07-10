@@ -8,12 +8,13 @@ import { processEmailJob } from "@/workers/email.proccessor";
 import { processEmbeddingJob } from "@/workers/embedding.processor";
 import { processIngestionJob } from "@/workers/ingestion.processor";
 import { logger } from "@/lib/logger";
+import { WORKER_CONCURRENCY } from "@/lib/worker/worker-concurrency";
 
 const connection = getRedisConnection() as any;
 
 const defaultWorkerOptions: WorkerOptions = {
   connection,
-  concurrency: Number(process.env.WORKER_CONCURRENCY ?? 2),
+  concurrency: WORKER_CONCURRENCY.DOCUMENT_GENERATION,
   autorun: true,
   skipVersionCheck: true,
 };
@@ -34,22 +35,22 @@ export function createWorkers() {
 
     new Worker(QUEUE_NAMES.EMBEDDING, processEmbeddingJob, {
       ...defaultWorkerOptions,
-      concurrency: Number(process.env.EMBEDDING_WORKER_CONCURRENCY ?? 2),
+      concurrency: WORKER_CONCURRENCY.EMBEDDING,
     }),
 
     new Worker(QUEUE_NAMES.INGESTION, processIngestionJob, {
       ...defaultWorkerOptions,
-      concurrency: Number(process.env.INGESTION_WORKER_CONCURRENCY ?? 1),
+      concurrency: WORKER_CONCURRENCY.INGESTION,
     }),
 
     new Worker(QUEUE_NAMES.EMAIL, processEmailJob, {
       ...defaultWorkerOptions,
-      concurrency: Number(process.env.EMAIL_WORKER_CONCURRENCY ?? 3),
+      concurrency: WORKER_CONCURRENCY.EMAIL,
     }),
 
     new Worker(QUEUE_NAMES.CLEANUP, processCleanupJob, {
       ...defaultWorkerOptions,
-      concurrency: Number(process.env.CLEANUP_WORKER_CONCURRENCY ?? 1),
+      concurrency: WORKER_CONCURRENCY.CLEANUP,
     }),
   ];
 

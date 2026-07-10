@@ -1,6 +1,6 @@
 # CrimeGPT v2 Automated Audit
 
-Generated at: 2026-07-10T09:39:06.536Z
+Generated at: 2026-07-10T10:06:50.834Z
 
 ## Summary
 
@@ -76,9 +76,10 @@ Generated at: 2026-07-10T09:39:06.536Z
 | warning | `src/lib/prisma.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/lib/queue/bullmq-connection.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/lib/redis/redis.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
+| warning | `src/lib/worker/worker-concurrency.ts` | AI_WITHOUT_TIMEOUT | AI call appears to lack timeout/cancellation handling. |
+| warning | `src/lib/worker/worker-concurrency.ts` | AI_WITHOUT_ERROR_BOUNDARY | AI provider call appears to lack explicit error handling. |
 | warning | `src/services/ai/ai-observability.service.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
 | warning | `src/services/case/ai-diagnostics.service.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
-| warning | `src/services/case/case.services.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/services/case/legal-analysis.services.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/services/case-metadata/case-metadata.service.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/services/checklist/checklist.service.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
@@ -89,7 +90,6 @@ Generated at: 2026-07-10T09:39:06.536Z
 | warning | `src/services/investigation-summary/investigation-summary.service.ts` | AI_WITHOUT_ERROR_BOUNDARY | AI provider call appears to lack explicit error handling. |
 | warning | `src/services/pdf/pdf-export.service.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/services/pdf/pdf-template-renderer.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
-| warning | `src/services/person/person.service.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/services/queue/job-status.service.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
 | warning | `src/workers/document-generator.processor.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
 | warning | `src/workers/document-generator.processor.ts` | AI_WITHOUT_TIMEOUT | AI call appears to lack timeout/cancellation handling. |

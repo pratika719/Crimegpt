@@ -8,6 +8,7 @@ import { CaseRepository } from "@/repositories/case.repository";
 import { activityService } from "@/services/activity/activity.service";
 import { cacheService } from "@/lib/cache/cache";
 import { cacheKeys } from "@/lib/cache/cache-keys";
+import { logger } from "@/lib/logger";
 
 export class CaseService {
   private repository = new CaseRepository();
@@ -51,7 +52,7 @@ export class CaseService {
     // Get existing case to build a meaningful activity description
     const existing = await this.getCaseById(id, userId);
 
-    console.log(`💼 [CaseService] Updating case ID: ${id} by user: ${userId}`);
+    logger.info({ caseId: id, userId }, "Updating case");
     const result = await this.repository.update(id, userId, parsed);
 
     // Build change description for activity log
@@ -71,7 +72,7 @@ export class CaseService {
     // Verify ownership before deletion
     const existing = await this.getCaseById(id, userId);
 
-    console.log(`💼 [CaseService] Deleting case: ${existing.title} (ID: ${id}) by user: ${userId}`);
+    logger.info({ caseId: id, userId, title: existing.title }, "Deleting case");
 
     return this.repository.delete(id, userId);
   }

@@ -6,10 +6,12 @@ import {
 
 import { CaseRepository } from "@/repositories/case.repository";
 import { activityService } from "@/services/activity/activity.service";
+import { cacheService } from "@/lib/cache/cache";
+import { cacheKeys } from "@/lib/cache/cache-keys";
+import { logger } from "@/lib/logger";
 
 export class CaseService {
-  private repository =
-    new CaseRepository();
+  private repository = new CaseRepository();
 
   async createCase(
     userId: string,
@@ -21,12 +23,19 @@ export class CaseService {
   }
 
   async getCases(userId: string) {
-    return this.repository.findAll(userId);
+    return cacheService.getOrSet(
+      cacheKeys.caseDashboard(userId),
+      60,
+      () => this.repository.findAll(userId)
+    );
   }
 
   async getCaseById(id: string, userId: string) {
-    const found =
-      await this.repository.findById(id, userId);
+    const found = await cacheService.getOrSet(
+      cacheKeys.caseDetail(userId, id),
+      30,
+      () => this.repository.findById(id, userId)
+    );
 
     if (!found) {
       throw new Error(
@@ -43,7 +52,7 @@ export class CaseService {
     // Get existing case to build a meaningful activity description
     const existing = await this.getCaseById(id, userId);
 
-    console.log(`💼 [CaseService] Updating case ID: ${id} by user: ${userId}`);
+    logger.info({ caseId: id, userId }, "Updating case");
     const result = await this.repository.update(id, userId, parsed);
 
     // Build change description for activity log
@@ -63,10 +72,8 @@ export class CaseService {
     // Verify ownership before deletion
     const existing = await this.getCaseById(id, userId);
 
-    console.log(`💼 [CaseService] Deleting case: ${existing.title} (ID: ${id}) by user: ${userId}`);
+    logger.info({ caseId: id, userId, title: existing.title }, "Deleting case");
 
-    // Note: Activity logs are cascade-deleted with the case,
-    // so logging CASE_DELETED here would be pointless.
     return this.repository.delete(id, userId);
   }
 }

@@ -1,7 +1,7 @@
 import { loadIPCDocuments } from "./loader/ipc.loader";
 import { splitLegalDocuments } from "./splitters/legal.splitter";
-import { createVectorStore, getPool } from "../vector/pgvector";
-import { embeddings } from "@/ai/embeddings/minilm.embeddings";
+import { createVectorStoreForStorage, getPool } from "../vector/pgvector";
+import { getEmbeddingProvider } from "@/ai/embeddings/embedding-provider.factory";
 
 /**
  * Main ingestion script to orchestrate the RAG document processing pipeline.
@@ -28,16 +28,15 @@ async function main() {
 
     // Step 3: Embed and store chunks in PostgreSQL via pgvector
     console.log("\n💾 Step 3/3: Connecting to PostgreSQL database & initializing PGVector...");
-    const store = await createVectorStore();
+    const store = await createVectorStoreForStorage();
 
     // Batch insertion to store chunks in database
-    // Note: Since all-MiniLM-L6-v2 runs locally on CPU, there are no API rate limits.
-    // We can use a larger batch size (50) and a minimal 200ms delay to keep DB pool connections stable.
     const batchSize = 50;
     const totalBatches = Math.ceil(chunks.length / batchSize);
     console.log(`📤 Ingesting chunks into 'ipc_chunks_embeddings' table (Batch Size: ${batchSize})...`);
 
     const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    const embeddingProvider = getEmbeddingProvider();
 
     for (let i = 0; i < chunks.length; i += batchSize) {
       const batch = chunks.slice(i, i + batchSize);
@@ -45,7 +44,10 @@ async function main() {
       const progress = (((i + batch.length) / chunks.length) * 100).toFixed(1);
       
       console.log(`   [Batch ${batchNum}/${totalBatches}] Storing ${batch.length} chunks (${progress}% completed)...`);
-      await store.addDocuments(batch);
+
+      const texts = batch.map((doc) => doc.pageContent);
+      const embeddingResult = await embeddingProvider.embedTexts({ texts });
+      await store.addVectors(embeddingResult.embeddings, batch);
 
       // Short sleep to yield event loop and stabilize Postgres connection pool
       if (i + batchSize < chunks.length) {

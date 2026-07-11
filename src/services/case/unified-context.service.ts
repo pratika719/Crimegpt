@@ -147,7 +147,7 @@ export class UnifiedContextService {
       status: caseItem.status,
       createdAt: caseItem.createdAt,
       updatedAt: caseItem.updatedAt,
-      metadata: caseItem.metadata,
+      metadata: caseItem.caseMetadata,
       investigationProfile: caseItem.investigationProfile || null,
       persons: caseItem.persons.map((p) => ({
         id: p.id,
@@ -212,7 +212,7 @@ export class UnifiedContextService {
         storageLocation: si.storageLocation,
         status: si.status,
       })),
-      medicalInfos: (caseItem.medicalInfos || []).map((mi) => ({
+      medicalInfos: (caseItem.medicalInformation || []).map((mi) => ({
         id: mi.id,
         hospitalName: mi.hospitalName,
         doctorName: mi.doctorName,
@@ -222,7 +222,7 @@ export class UnifiedContextService {
         treatmentDetails: mi.treatmentDetails,
         severity: mi.severity,
       })),
-      courtInfos: (caseItem.courtInfos || []).map((ci) => ({
+      courtInfos: (caseItem.courtInformation || []).map((ci) => ({
         id: ci.id,
         courtName: ci.courtName,
         judgeName: ci.judgeName,
@@ -240,13 +240,13 @@ export class UnifiedContextService {
         notes: e.notes,
         fileUrl: e.fileUrl,
       })),
-      checklist: caseItem.checklist.map((c) => ({
+      checklist: caseItem.checklistItems.map((c) => ({
         id: c.id,
         title: c.title,
         completed: c.completed,
         completedAt: c.completedAt,
       })),
-      documents: caseItem.documents.map((d) => ({
+      documents: caseItem.generatedDocuments.map((d) => ({
         id: d.id,
         type: d.type,
         title: d.title,

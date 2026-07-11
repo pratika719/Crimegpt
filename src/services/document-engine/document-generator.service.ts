@@ -11,6 +11,10 @@ import { activityService } from "@/services/activity/activity.service";
 import { DocumentRegistry } from "./document-registry";
 import { prisma } from "@/lib/prisma";
 import { documentRepository } from "@/repositories/document.repository";
+import { redisKeys } from "@/lib/redis/redis-keys";
+import { withRedisLock } from "@/lib/redis/redis-lock";
+import { logger } from "@/lib/logger";
+import { PROMPT_SECURITY_INSTRUCTIONS } from "@/lib/security/prompt-security";
 
 export class DocumentGeneratorService {
   private caseRepository = new CaseRepository();
@@ -19,8 +23,16 @@ export class DocumentGeneratorService {
    * The core unified AI document generation pipeline.
    * Works for any registered document type.
    */
-  async generateDocument(caseId: string, userId: string, type: DocumentType) {
-    console.log(`🤖 [DocumentGeneratorService] Initiating generation for case: ${caseId}, type: ${type} by user: ${userId}`);
+  async generateDocument(caseId: string, userId: string, type: DocumentType, requestId?: string) {
+      const lockKey = redisKeys.lock.documentGeneration(caseId, type);
+
+  return withRedisLock(lockKey, 120_000, async () => {
+    // keep your existing generation logic here unchanged
+  
+    logger.info(
+      { caseId, userId, documentType: type, requestId },
+      "Initiating document generation",
+    );
     
     // 1. Fetch case details
     const caseItem = await this.caseRepository.findById(caseId, userId);
@@ -32,7 +44,10 @@ export class DocumentGeneratorService {
     const config = DocumentRegistry.getConfig(type);
 
     // 3. Build the Unified Case Context
-    console.log(`🤖 [DocumentGeneratorService] Loading unified case context...`);
+    logger.info(
+      { caseId, userId, documentType: type },
+      "Loading unified case context",
+    );
     let context = await unifiedContextService.buildUnifiedCaseContext(caseId, userId);
 
     // Enrich context with fallback defaults to ensure AI generation succeeds even with partial profile data
@@ -61,42 +76,89 @@ export class DocumentGeneratorService {
     // 4. Retrieve legal context from PGVector if required
     let retrievedChunks: any[] = [];
     if (config.requiresRAG) {
-      console.log(`🤖 [DocumentGeneratorService] Querying PGVector legal retrieval...`);
+      logger.info(
+        { caseId, userId, documentType: type },
+        "Querying PGVector legal retrieval",
+      );
       retrievedChunks = await lawRetriever.retrieve(context.narrative, 5);
-      console.log(`🤖 [DocumentGeneratorService] Retrieved ${retrievedChunks.length} law sections.`);
+      logger.info(
+        { caseId, userId, documentType: type, chunksCount: retrievedChunks.length },
+        "Retrieved law sections from PGVector",
+      );
     }
 
     // 5. Build the LLM prompt
-    const promptText = config.buildPrompt(context, retrievedChunks);
+    const basePrompt = config.buildPrompt(context, retrievedChunks);
+    const promptText = `${PROMPT_SECURITY_INSTRUCTIONS}\n\n${basePrompt}`;
 
     // 6. Call Gemini Flash to generate JSON
     const modelUsed = geminiProvider.getModelName();
     const startTime = Date.now();
-    console.log(`🤖 [DocumentGeneratorService] Dispatching prompt to ${modelUsed}...`);
+    logger.info(
+      { caseId, userId, documentType: type, modelUsed },
+      "Dispatching prompt to Gemini model",
+    );
     const { text: rawResponse, tokenUsage } = await geminiProvider.generateJSON(promptText);
     const latencyMs = Date.now() - startTime;
-    console.log(`🤖 [DocumentGeneratorService] AI responded in ${latencyMs}ms.`);
+    logger.info(
+      { caseId, userId, documentType: type, modelUsed, latencyMs },
+      "Gemini responded to prompt",
+    );
 
     // 7. Validate output using the registered Zod schema
     let result: any;
     try {
       const rawData = JSON.parse(rawResponse);
       result = config.schema.parse(rawData);
-      console.log(`🤖 [DocumentGeneratorService] Document JSON successfully validated against Zod schema.`);
+      logger.info(
+        { caseId, userId, documentType: type },
+        "Document JSON successfully validated against Zod schema",
+      );
     } catch (err: any) {
-      console.error(`❌ Validation Failure for ${type}:`, err);
+      logger.error(
+        { err, caseId, userId, documentType: type },
+        "Validation failure for document",
+      );
       throw new Error(`Failed to parse or validate ${type} AI output: ${err.message}`);
     }
 
     // 8. Execute all database writes atomically inside a single transaction
-    console.log(`🤖 [DocumentGeneratorService] Running database transaction for case: ${caseId}`);
+    logger.info(
+      { caseId, userId, documentType: type },
+      "Running database transaction for document generation",
+    );
     const document = await prisma.$transaction(async (tx) => {
       // a. Pessimistic lock on the Case row to serialize concurrent writes
       await tx.$executeRaw`SELECT id FROM "Case" WHERE id = ${caseId} FOR UPDATE`;
 
-      // b. Query latest document version for this type under the case
-      const latestDoc = await documentRepository.findLatestByType(caseId, userId, type, tx);
-      const nextVer = latestDoc ? latestDoc.version + 1 : 1;
+      // b. Query latest document version for this type under the case or overwrite if request is retried (Idempotency check)
+      let nextVer = 1;
+      if (requestId) {
+        const docs = await tx.generatedDocument.findMany({
+          where: { caseId, type },
+        });
+        const existingDoc = docs.find((d: any) => {
+          const content = d.content as any;
+          return content && content._requestId === requestId;
+        });
+
+        if (existingDoc) {
+          nextVer = existingDoc.version;
+          logger.info(
+            { caseId, userId, documentType: type, requestId, version: nextVer },
+            "Found existing document for requestId, deleting version to overwrite",
+          );
+          await tx.generatedDocument.delete({
+            where: { id: existingDoc.id },
+          });
+        } else {
+          const latestDoc = await documentRepository.findLatestByType(caseId, userId, type, tx);
+          nextVer = latestDoc ? latestDoc.version + 1 : 1;
+        }
+      } else {
+        const latestDoc = await documentRepository.findLatestByType(caseId, userId, type, tx);
+        nextVer = latestDoc ? latestDoc.version + 1 : 1;
+      }
 
       // c. Save the GeneratedDocument
       const documentTitle = `${config.titlePrefix} - v${nextVer}`;
@@ -104,36 +166,50 @@ export class DocumentGeneratorService {
         caseId,
         type,
         title: documentTitle,
-        content: result,
+        content: requestId ? { ...result, _requestId: requestId } : result,
         version: nextVer,
       }, tx);
 
-      // d. Store AIRequestLog for observability
-      await aiObservabilityService.logRequest(userId, {
-        requestType: config.aiRequestType,
-        prompt: promptText,
-        retrievedContext: retrievedChunks.length > 0 ? JSON.stringify(retrievedChunks) : undefined,
-        response: rawResponse,
-        latencyMs,
-        modelUsed,
-        tokenUsage,
-        caseId,
-      }, tx);
+      // d. Store AIRequestLog for observability (only if not background job since worker logs it)
+      if (!requestId) {
+        await aiObservabilityService.logRequest(userId, {
+          requestType: config.aiRequestType,
+          prompt: basePrompt,
+          retrievedContext: retrievedChunks.length > 0 ? JSON.stringify(retrievedChunks) : undefined,
+          response: rawResponse,
+          latencyMs,
+          modelUsed,
+          tokenUsage,
+          caseId,
+        }, tx);
+      }
 
       // e. Create Case Activity Log entry
       await activityService.logDocumentGenerated(caseId, userId, type, doc.title, nextVer, tx);
 
       // f. Transition case status from OPEN to UNDER_INVESTIGATION upon FIR generation
       if (type === DocumentType.FIR && caseItem.status === "OPEN") {
-        console.log(`🤖 [DocumentGeneratorService] Upgrading case status to UNDER_INVESTIGATION inside transaction...`);
+        logger.info(
+          { caseId, userId, documentType: type },
+          "Upgrading case status to UNDER_INVESTIGATION inside transaction",
+        );
         await this.caseRepository.updateStatus(caseId, userId, "UNDER_INVESTIGATION", tx);
       }
 
       return doc;
+    }, {
+      maxWait: 20000,
+      timeout: 40000,
     });
 
-    console.log(`🤖 [DocumentGeneratorService] Generation complete.`);
+    logger.info(
+      { caseId, userId, documentType: type, version: document.version },
+      "Document generation complete",
+    );
     return document;
+
+   
+})
   }
 
   /**

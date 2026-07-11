@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, AlertCircle } from "lucide-react";
-import { CreateEvidenceSchema, CreateEvidenceInput } from "@/schema/evidence.schema";
+import { createEvidenceSchema, CreateEvidenceInput } from "@/schema/evidence.schema";
 import { createEvidenceAction, updateEvidenceAction } from "@/actions/evidence.action";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -52,7 +52,7 @@ export function EvidenceFormDialog({
     formState: { errors },
     reset,
   } = useForm<CreateEvidenceInput>({
-    resolver: zodResolver(CreateEvidenceSchema),
+    resolver: zodResolver(createEvidenceSchema),
     values: {
       title: evidence?.title || "",
       type: evidence?.type || "DOCUMENT",

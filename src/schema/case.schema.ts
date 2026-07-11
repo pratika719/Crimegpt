@@ -1,5 +1,5 @@
 import { z } from "zod";
-
+import type { CaseStatus } from "@/generated/prisma/client";
 export const CreateCaseSchema = z.object({
   title: z
     .string()
@@ -31,4 +31,12 @@ export const UpdateCaseSchema = z.object({
   status: z.enum(["OPEN", "UNDER_INVESTIGATION", "CLOSED"]).optional(),
 });
 
-export type UpdateCaseInput = z.infer<typeof UpdateCaseSchema>;
+export type UpdateCaseInput = z.infer<typeof UpdateCaseSchema>;
+export const updateCaseStatusSchema = z.object({
+  caseId: z.string().cuid(),
+  status: z.enum(["OPEN", "UNDER_INVESTIGATION", "CLOSED"]) as z.ZodType<CaseStatus>,
+});
+
+export const archiveCaseSchema = z.object({
+  caseId: z.string().cuid(),
+});

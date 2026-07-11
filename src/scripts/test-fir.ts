@@ -1,5 +1,8 @@
-import { firGenerationChain } from "../ai/chains/fir-generation.chain";
 import dotenv from "dotenv";
+import { DocumentRegistry } from "../services/document-engine/document-registry";
+import { lawRetriever } from "../ai/retrievers/law.retriever";
+import { geminiProvider } from "../ai/providers/gemini-provider";
+import { DocumentType } from "@/generated/prisma/client";
 
 // Load environment variables
 dotenv.config();
@@ -34,32 +37,56 @@ async function main() {
     activities: [],
   };
 
-  console.log(`🤖 [Test FIR Generation] Running FIR generation chain...`);
+  console.log(`🤖 [Test FIR Generation] Running FIR generation from Registry configuration...`);
   console.log(`   Mock Case Narrative: "${mockNarrative}"\n`);
 
   try {
-    const output = await firGenerationChain.execute(mockContext);
+    const startTime = Date.now();
+    
+    // 1. Get registry configuration for FIR
+    const config = DocumentRegistry.getConfig(DocumentType.FIR);
 
-    console.log(`✅ Chain Executed Successfully in ${output.latencyMs}ms!`);
-    console.log(`🤖 Model Used: ${output.modelUsed}`);
+    // 2. Retrieve law chunks
+    let retrievedChunks: any[] = [];
+    if (config.requiresRAG) {
+      console.log(`🔍 Retrieving PGVector legal context chunks...`);
+      retrievedChunks = await lawRetriever.retrieve(mockContext.narrative, 5);
+      console.log(`🔍 Retrieved ${retrievedChunks.length} chunks.`);
+    }
+
+    // 3. Build prompt
+    const promptText = config.buildPrompt(mockContext, retrievedChunks);
+
+    // 4. Query model
+    const modelUsed = geminiProvider.getModelName();
+    console.log(`🤖 Dispatching prompt to ${modelUsed}...`);
+    const { text: rawResponse } = await geminiProvider.generateJSON(promptText);
+
+    const latencyMs = Date.now() - startTime;
+    console.log(`✅ AI responded in ${latencyMs}ms!`);
+
+    // 5. Parse and validate
+    const rawData = JSON.parse(rawResponse);
+    const result = config.schema.parse(rawData);
+
     console.log(`\n📄 Generated FIR Document:`);
     console.log(`==================================================`);
-    console.log(`Complaint Summary:        ${output.result.complaintSummary}`);
-    console.log(`Incident Date:           ${output.result.incidentDate}`);
-    console.log(`Incident Location:       ${output.result.incidentLocation}`);
-    console.log(`Suspected Offenses:      ${output.result.suspectedOffenses.join(", ")}`);
+    console.log(`Complaint Summary:        ${result.complaintSummary}`);
+    console.log(`Incident Date:           ${result.incidentDate}`);
+    console.log(`Incident Location:       ${result.incidentLocation}`);
+    console.log(`Suspected Offenses:      ${result.suspectedOffenses.join(", ")}`);
     console.log(`Applicable Sections:     `);
-    output.result.applicableSections.forEach((sec, i) => {
+    result.applicableSections.forEach((sec: any) => {
       console.log(`  - Section: ${sec.section}`);
       console.log(`    Reason:  ${sec.reason}`);
     });
-    console.log(`Facts of Case:           ${output.result.factsOfCase}`);
-    console.log(`Investigation Directions: ${output.result.investigationDirections}`);
-    console.log(`Officer Remarks:         ${output.result.officerRemarks}`);
+    console.log(`Facts of Case:           ${result.factsOfCase}`);
+    console.log(`Investigation Directions: ${result.investigationDirections}`);
+    console.log(`Officer Remarks:         ${result.officerRemarks}`);
     console.log(`==================================================`);
 
-    console.log(`\n📚 Retrieved Chunks Context (${output.retrievedChunks.length} chunks):`);
-    output.retrievedChunks.forEach((chunk, idx) => {
+    console.log(`\n📚 Retrieved Chunks Context (${retrievedChunks.length} chunks):`);
+    retrievedChunks.forEach((chunk, idx) => {
       console.log(`  [Chunk ${idx + 1}] Source: ${chunk.source}, Section: ${chunk.section}`);
     });
 

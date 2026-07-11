@@ -1,6 +1,7 @@
 import { personRepository } from "@/repositories/person.repository";
 import { CreatePersonSchema, CreatePersonInput, UpdatePersonSchema, UpdatePersonInput } from "@/schema/person.schema";
 import { activityService } from "@/services/activity/activity.service";
+import { logger } from "@/lib/logger";
 
 export class PersonService {
   private repository = personRepository;
@@ -14,7 +15,7 @@ export class PersonService {
       caseId,
     });
 
-    console.log(`💼 [PersonService] Adding person "${parsed.name}" to case: ${caseId} by user: ${userId}`);
+    logger.info({ caseId, userId, personName: parsed.name }, "Adding person to case");
     const result = await this.repository.create(caseId, userId, parsed);
     
     // Log timeline activity
@@ -48,7 +49,7 @@ export class PersonService {
     const parsed = UpdatePersonSchema.parse(input);
     const existing = await this.getPersonById(id, userId, caseId);
 
-    console.log(`💼 [PersonService] Updating person details for ID: ${id} by user: ${userId}`);
+    logger.info({ personId: id, userId }, "Updating person");
     const result = await this.repository.update(id, userId, parsed, caseId);
     
     // Log timeline activity
@@ -63,7 +64,7 @@ export class PersonService {
   async deletePerson(id: string, userId: string, caseId?: string) {
     const existing = await this.getPersonById(id, userId, caseId);
     
-    console.log(`💼 [PersonService] Deleting person: ${existing.name} (ID: ${id}) by user: ${userId}`);
+    logger.info({ personId: id, userId, personName: existing.name }, "Deleting person");
     const result = await this.repository.delete(id, userId, caseId);
     
     // Log timeline activity

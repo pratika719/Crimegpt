@@ -1,67 +1,91 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { documentService } from "@/services/document-engine/document.service";
 import { auth } from "@/auth";
+import { validateActionInput } from "@/lib/validation/action-guard";
+import { actionSuccess, actionFailure } from "@/lib/action-response";
+import { cacheInvalidationService } from "@/services/cache/cache-invalidation.service";
+
+const RenameDocumentSchema = z.object({
+  id: z.string().min(1, "Document ID is required"),
+  caseId: z.string().min(1, "Case ID is required"),
+  title: z.string().min(1, "Document title is required"),
+});
+
+const DeleteDocumentSchema = z.object({
+  id: z.string().min(1, "Document ID is required"),
+  caseId: z.string().min(1, "Case ID is required"),
+});
 
 /**
  * Server action to rename a generated document.
  */
 export async function renameDocumentAction(id: string, caseId: string, title: string) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { success: false, message: "Unauthorized" };
-    }
-    const userId = session.user.id;
+  return validateActionInput(
+    RenameDocumentSchema,
+    { id, caseId, title },
+    async (validated) => {
+      const session = await auth();
+      if (!session?.user?.id) {
+        return actionFailure("UNAUTHORIZED", "Unauthorized");
+      }
+      const userId = session.user.id;
 
-    if (!id || !caseId) {
-      return { success: false, message: "Document ID and Case ID are required." };
-    }
-    if (!title || !title.trim()) {
-      return { success: false, message: "Document title is required." };
-    }
+      const doc = await documentService.renameDocument(
+        validated.id,
+        userId,
+        validated.title,
+        validated.caseId
+      );
 
-    const doc = await documentService.renameDocument(id, userId, title, caseId);
-    revalidatePath(`/case/${caseId}`);
+      try {
+        await cacheInvalidationService.invalidateCaseMutation({
+          userId,
+          caseId: validated.caseId,
+        });
+      } catch (err) {
+        console.warn(`[Cache Invalidation Warning] Failed to invalidate cache on document rename for case ${validated.caseId}:`, err);
+      }
 
-    return {
-      success: true,
-      data: JSON.parse(JSON.stringify(doc)),
-    };
-  } catch (error: any) {
-    console.error("❌ Action Failure (renameDocumentAction):", error);
-    return {
-      success: false,
-      message: error?.message || "Failed to rename document.",
-    };
-  }
+      revalidatePath(`/case/${validated.caseId}`);
+
+      return actionSuccess({
+        data: JSON.parse(JSON.stringify(doc)),
+      });
+    }
+  );
 }
 
 /**
  * Server action to delete a single generated document.
  */
 export async function deleteDocumentAction(id: string, caseId: string) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { success: false, message: "Unauthorized" };
+  return validateActionInput(
+    DeleteDocumentSchema,
+    { id, caseId },
+    async (validated) => {
+      const session = await auth();
+      if (!session?.user?.id) {
+        return actionFailure("UNAUTHORIZED", "Unauthorized");
+      }
+      const userId = session.user.id;
+
+      await documentService.deleteDocument(validated.id, userId, validated.caseId);
+
+      try {
+        await cacheInvalidationService.invalidateCaseMutation({
+          userId,
+          caseId: validated.caseId,
+        });
+      } catch (err) {
+        console.warn(`[Cache Invalidation Warning] Failed to invalidate cache on document deletion for case ${validated.caseId}:`, err);
+      }
+
+      revalidatePath(`/case/${validated.caseId}`);
+
+      return actionSuccess();
     }
-    const userId = session.user.id;
-
-    if (!id || !caseId) {
-      return { success: false, message: "Document ID and Case ID are required." };
-    }
-
-    await documentService.deleteDocument(id, userId, caseId);
-    revalidatePath(`/case/${caseId}`);
-
-    return { success: true };
-  } catch (error: any) {
-    console.error("❌ Action Failure (deleteDocumentAction):", error);
-    return {
-      success: false,
-      message: error?.message || "Failed to delete document.",
-    };
-  }
+  );
 }

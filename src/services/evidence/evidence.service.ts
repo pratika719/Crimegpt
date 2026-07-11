@@ -1,5 +1,5 @@
 import { evidenceRepository } from "@/repositories/evidence.repository";
-import { CreateEvidenceSchema, CreateEvidenceInput, UpdateEvidenceSchema, UpdateEvidenceInput } from "@/schema/evidence.schema";
+import { createEvidenceSchema, CreateEvidenceInput, updateEvidenceSchema, UpdateEvidenceInput } from "@/schema/evidence.schema";
 import { activityService } from "@/services/activity/activity.service";
 
 export class EvidenceService {
@@ -9,7 +9,7 @@ export class EvidenceService {
    * Registers a new evidence item. Validates metadata and logs EVIDENCE_ADDED timeline log.
    */
   async createEvidence(caseId: string, userId: string, input: Omit<CreateEvidenceInput, "caseId">) {
-    const parsed = CreateEvidenceSchema.parse({
+    const parsed = createEvidenceSchema.parse({
       ...input,
       caseId,
     });
@@ -45,7 +45,7 @@ export class EvidenceService {
    * Updates details for an evidence item. Validates input and logs EVIDENCE_UPDATED timeline log.
    */
   async updateEvidence(id: string, userId: string, input: UpdateEvidenceInput, caseId?: string) {
-    const parsed = UpdateEvidenceSchema.parse(input);
+    const parsed = updateEvidenceSchema.parse(input);
     const existing = await this.getEvidenceById(id, userId, caseId);
 
     console.log(`💼 [EvidenceService] Updating evidence details for ID: ${id} by user: ${userId}`);

@@ -1,13 +1,28 @@
 import { PGVectorStore } from "@langchain/pgvector";
 import { pool as sharedPool } from "@/lib/prisma";
-import { embeddings } from "../embeddings/minilm.embeddings";
 import { BaseRetriever, BaseRetrieverInput } from "@langchain/core/retrievers";
 import { Document } from "@langchain/core/documents";
 import { CallbackManagerForRetrieverRun } from "@langchain/core/callbacks/manager";
 import dotenv from "dotenv";
+import { Embeddings } from "@langchain/core/embeddings";
+import { getEmbeddingProvider } from "@/ai/embeddings/embedding-provider.factory";
 
 // Load environment variables for standalone scripts or Next.js boundary
 dotenv.config();
+
+class NoopEmbeddings extends Embeddings {
+  constructor() {
+    super({});
+  }
+
+  async embedDocuments(): Promise<number[][]> {
+    throw new Error("NoopEmbeddings cannot embed documents. Use FastAPI provider.");
+  }
+
+  async embedQuery(): Promise<number[]> {
+    throw new Error("NoopEmbeddings cannot embed queries. Use FastAPI provider.");
+  }
+}
 
 let vectorStoreInstance: PGVectorStore | null = null;
 
@@ -25,7 +40,7 @@ export function getPool() {
  * 
  * @returns Reusable PGVectorStore instance.
  */
-export async function createVectorStore(): Promise<PGVectorStore> {
+export async function createVectorStoreForStorage(): Promise<PGVectorStore> {
   if (vectorStoreInstance) {
     return vectorStoreInstance;
   }
@@ -41,8 +56,8 @@ export async function createVectorStore(): Promise<PGVectorStore> {
       client.release();
     }
 
-    // Initialize the vector store using our local MiniLM embedding model singleton
-    vectorStoreInstance = await PGVectorStore.initialize(embeddings, {
+    // Initialize the vector store using our NoopEmbeddings placeholder
+    vectorStoreInstance = await PGVectorStore.initialize(new NoopEmbeddings(), {
       pool: dbPool,
       tableName: "ipc_chunks_embeddings",
       schemaName: "public",
@@ -62,6 +77,10 @@ export async function createVectorStore(): Promise<PGVectorStore> {
     console.error("❌ Failed to initialize PGVectorStore:", error);
     throw error;
   }
+}
+
+export async function createVectorStore(): Promise<PGVectorStore> {
+  return createVectorStoreForStorage();
 }
 
 /**
@@ -91,8 +110,14 @@ export class DeduplicatedVectorStoreRetriever extends BaseRetriever {
     query: string,
     _runManager?: CallbackManagerForRetrieverRun
   ): Promise<Document[]> {
+    const embeddingProvider = getEmbeddingProvider();
+    const embeddingResult = await embeddingProvider.embedTexts({
+      texts: [query],
+    });
+    const queryVector = embeddingResult.embeddings[0];
+
     // Retrieve k * 2 candidates to ensure we have enough unique documents
-    const resultsWithScores = await this.store.similaritySearchWithScore(query, this.k * 2);
+    const resultsWithScores = await this.store.similaritySearchVectorWithScore(queryVector, this.k * 2);
     
     const seen = new Set<string>();
     const uniqueDocs: Document[] = [];
@@ -137,10 +162,16 @@ export async function similaritySearchDeduplicated(
   k = 3, 
   minSimilarity = 0.35
 ): Promise<[Document, number][]> {
-  const store = await createVectorStore();
+  const store = await createVectorStoreForStorage();
+
+  const embeddingProvider = getEmbeddingProvider();
+  const embeddingResult = await embeddingProvider.embedTexts({
+    texts: [query],
+  });
+  const queryVector = embeddingResult.embeddings[0];
   
   // Retrieve k * 2 candidates to account for potential duplicates
-  const results = await store.similaritySearchWithScore(query, k * 2);
+  const results = await store.similaritySearchVectorWithScore(queryVector, k * 2);
   
   const seen = new Set<string>();
   const uniqueResults: [Document, number][] = [];

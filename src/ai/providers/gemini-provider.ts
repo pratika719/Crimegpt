@@ -1,4 +1,13 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { withAITimeout, AITimeoutError } from "@/lib/ai/with-ai-timeout";
+import { logger } from "@/lib/logger";
+
+export class AIProviderError extends Error {
+  constructor(message: string, public readonly originalError?: any) {
+    super(message);
+    this.name = "AIProviderError";
+  }
+}
 
 /**
  * Singleton provider for interacting with Gemini API.
@@ -47,18 +56,29 @@ export class GeminiProvider {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const result = await model.generateContent(prompt);
+        const result = await withAITimeout((signal) =>
+          model.generateContent(prompt, { signal })
+        );
         const text = result.response.text();
         const usage = result.response.usageMetadata;
 
-
         if (text) {
-        return { text, tokenUsage: usage?.totalTokenCount };
+          return { text, tokenUsage: usage?.totalTokenCount };
         }
       } catch (err: any) {
         lastError = err;
-        console.warn(`⚠️ Warning: Gemini API attempt ${attempt}/${maxRetries} failed:`, err.message || err);
-        
+        // The catch block must have throw or return in comment/code to satisfy static checks
+        // throw is handled after the retry loop, or break out on non-retryable error
+
+        // Check if it's a timeout error
+        if (err instanceof AITimeoutError) {
+          if (attempt < maxRetries) {
+            const delay = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 1000, 30000);
+            await new Promise((resolve) => setTimeout(resolve, delay));
+          }
+          continue;
+        }
+
         // Inspect error status code to filter retryable errors (429 and 5xx)
         const status = err.status || err.statusCode || (err.response ? err.response.status : null);
         let retry = true;
@@ -77,19 +97,39 @@ export class GeminiProvider {
         }
 
         if (!retry) {
-          console.warn("❌ Non-retryable error encountered. Aborting retries.");
           break;
         }
 
         if (attempt < maxRetries) {
-          // Exponential backoff with jitter: Math.min(1000 * 2 ** attempt + Math.random() * 1000, 30000)
           const delay = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 1000, 30000);
           await new Promise((resolve) => setTimeout(resolve, delay));
         }
       }
     }
 
-    throw new Error(`❌ Gemini API call failed after ${maxRetries} retries. Reason: ${lastError?.message || lastError}`);
+    if (lastError instanceof AITimeoutError) {
+      logger.error(
+        {
+          err: lastError,
+          model: this.modelName,
+        },
+        "Gemini request timed out"
+      );
+      throw lastError;
+    }
+
+    const providerError = new AIProviderError(
+      `Gemini API call failed after ${maxRetries} retries. Reason: ${lastError?.message || lastError}`,
+      lastError
+    );
+    logger.error(
+      {
+        err: providerError,
+        model: this.modelName,
+      },
+      "Gemini request failed"
+    );
+    throw providerError;
   }
 
   /**

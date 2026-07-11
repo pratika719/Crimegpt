@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+
+jobs:
+  app-checks:
+    name: App Checks
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
+      REDIS_URL: redis://localhost:6379
+      AUTH_SECRET: ci-auth-secret-placeholder
+      GEMINI_API_KEY: ci-gemini-placeholder
+      EMBEDDING_PROVIDER: fastapi
+      EMBEDDING_SERVICE_URL: http://localhost:8000
+      HEALTHCHECK_SECRET: ci-health-secret
+      SERVICE_NAME: crimegpt-ci
+      LOG_LEVEL: info
+      DOCUMENT_GENERATION_CONCURRENCY: "1"
+      EMBEDDING_CONCURRENCY: "2"
+      INGESTION_CONCURRENCY: "1"
+      EMAIL_CONCURRENCY: "2"
+      CLEANUP_CONCURRENCY: "1"
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Build app
+        run: npm run build
+
+  embedding-service-check:
+    name: Embedding Service Check
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: embedding-service
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install fastapi uvicorn pydantic
+
+      - name: Check FastAPI app imports
+        run: python -m py_compile main.py

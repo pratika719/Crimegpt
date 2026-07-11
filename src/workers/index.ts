@@ -47,3 +47,28 @@ process.on("unhandledRejection", async (reason) => {
 });
 
 logger.info("CrimeGPT workers started.");
+
+import http from "node:http";
+
+const healthPort = Number(process.env.PORT || 10000);
+
+const healthServer = http.createServer((req, res) => {
+  if (req.url === "/health") {
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(
+      JSON.stringify({
+        status: "ok",
+        service: process.env.SERVICE_NAME ?? "crimegpt-worker",
+        timestamp: new Date().toISOString(),
+      })
+    );
+    return;
+  }
+
+  res.writeHead(404, { "content-type": "application/json" });
+  res.end(JSON.stringify({ error: "not_found" }));
+});
+
+healthServer.listen(healthPort, "0.0.0.0", () => {
+  console.log(`Worker health server listening on port ${healthPort}`);
+});

@@ -1,0 +1,65 @@
+# syntax=docker/dockerfile:1.7
+
+FROM node:22-alpine AS deps
+RUN apk add --no-cache libc6-compat openssl
+WORKDIR /app
+
+COPY package*.json ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./prisma.config.ts
+
+RUN --mount=type=cache,target=/root/.npm npm ci --ignore-scripts --no-audit --no-fund
+
+
+FROM node:22-alpine AS prod-deps
+RUN apk add --no-cache libc6-compat openssl
+WORKDIR /app
+
+COPY package*.json ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./prisma.config.ts
+
+RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+
+
+FROM node:22-alpine AS builder
+RUN apk add --no-cache libc6-compat openssl
+WORKDIR /app
+
+ENV DATABASE_URL="postgresql://crimegpt:crimegpt@postgres:5432/crimegpt?schema=public"
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY package*.json ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./prisma.config.ts
+COPY src ./src
+COPY tsconfig.json ./
+
+RUN npx prisma generate
+
+
+FROM node:22-alpine AS runner
+RUN apk add --no-cache libc6-compat openssl
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV SERVICE_NAME=crimegpt-worker
+ENV LOG_LEVEL=info
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 worker
+
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY package*.json ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./prisma.config.ts
+COPY src ./src
+COPY tsconfig.json ./
+COPY --from=builder /app/src/generated/prisma ./src/generated/prisma
+
+RUN chown -R worker:nodejs /app
+USER worker
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 CMD node -e "const Redis = require('ioredis'); const { Pool } = require('pg'); const redisUrl = process.env.REDIS_URL; const databaseUrl = process.env.DATABASE_URL; if (!redisUrl || !databaseUrl) process.exit(1); const redis = new Redis(redisUrl, { lazyConnect: true, enableReadyCheck: false, maxRetriesPerRequest: 1, tls: redisUrl.startsWith('rediss://') ? {} : undefined }); const pool = new Pool({ connectionString: databaseUrl, connectionTimeoutMillis: 5000, ssl: databaseUrl.includes('sslmode=require') || databaseUrl.includes('neon.tech') ? { rejectUnauthorized: false } : false }); Promise.all([redis.connect().then(() => redis.ping()), pool.query('SELECT 1')]).then(async () => { await redis.quit(); await pool.end(); process.exit(0); }).catch(async () => { try { redis.disconnect(); } catch {} try { await pool.end(); } catch {} process.exit(1); });"
+
+CMD ["npm", "run", "worker:start"]

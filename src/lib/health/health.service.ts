@@ -6,7 +6,7 @@ import type {
   HealthStatus,
 } from "@/lib/health/health.types";
 
-function getOverallStatus(
+export function getOverallStatus(
   checks: Record<string, HealthCheckResult>,
 ): HealthStatus {
   const statuses = Object.values(checks).map((check) => check.status);

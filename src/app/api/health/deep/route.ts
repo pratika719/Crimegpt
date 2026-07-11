@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { healthService } from "@/lib/health/health.service";
-import { env } from "@/env";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function isAuthorized(request: NextRequest): boolean {
-  const secret = env.HEALTHCHECK_SECRET;
+  const secret = process.env.HEALTHCHECK_SECRET;
 
   if (!secret) {
-    return env.NODE_ENV !== "production";
+    return process.env.NODE_ENV !== "production";
   }
 
   const providedSecret = request.headers.get("x-healthcheck-secret");

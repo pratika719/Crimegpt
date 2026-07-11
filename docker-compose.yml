@@ -1,0 +1,98 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: crimegpt-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: crimegpt
+      POSTGRES_PASSWORD: crimegpt
+      POSTGRES_DB: crimegpt
+    ports:
+      - "5434:5432"
+    volumes:
+      - crimegpt-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: crimegpt-redis
+    restart: unless-stopped
+    ports:
+      - "6381:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: crimegpt-app
+    restart: unless-stopped
+    init: true
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      SERVICE_NAME: crimegpt-app
+      DATABASE_URL: postgresql://crimegpt:crimegpt@postgres:5432/crimegpt?schema=public
+      REDIS_URL: redis://redis:6379
+      AUTH_SECRET: local-dev-auth-secret-change-me
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      EMBEDDING_PROVIDER: fastapi
+      EMBEDDING_SERVICE_URL: ${DOCKER_EMBEDDING_SERVICE_URL:-http://host.docker.internal:8000}
+      HEALTHCHECK_SECRET: local-health-secret
+      LOG_LEVEL: info
+    depends_on:
+      - postgres
+      - redis
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: crimegpt-worker
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    environment:
+      NODE_ENV: production
+      SERVICE_NAME: crimegpt-worker
+      DATABASE_URL: postgresql://crimegpt:crimegpt@postgres:5432/crimegpt?schema=public
+      REDIS_URL: redis://redis:6379
+      AUTH_SECRET: local-dev-auth-secret-change-me
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      EMBEDDING_PROVIDER: fastapi
+      EMBEDDING_SERVICE_URL: ${DOCKER_EMBEDDING_SERVICE_URL:-http://host.docker.internal:8000}
+      HEALTHCHECK_SECRET: local-health-secret
+      LOG_LEVEL: info
+      DOCUMENT_GENERATION_CONCURRENCY: "1"
+      EMBEDDING_CONCURRENCY: "2"
+      INGESTION_CONCURRENCY: "1"
+      EMAIL_CONCURRENCY: "2"
+      CLEANUP_CONCURRENCY: "1"
+    depends_on:
+      - postgres
+      - redis
+
+  embedding-api:
+    profiles:
+      - embedding
+    build:
+      context: ./embedding-service
+      dockerfile: Dockerfile
+    container_name: crimegpt-embedding-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+
+volumes:
+  crimegpt-postgres-data:

@@ -1,13 +1,13 @@
 # CrimeGPT v2 Automated Audit
 
-Generated at: 2026-07-10T10:06:50.834Z
+Generated at: 2026-07-10T10:28:18.280Z
 
 ## Summary
 
 | Severity | Count |
 |---|---:|
 | Critical | 0 |
-| Warning | 82 |
+| Warning | 84 |
 | Info | 0 |
 
 ## Findings
@@ -78,6 +78,8 @@ Generated at: 2026-07-10T10:06:50.834Z
 | warning | `src/lib/redis/redis.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/lib/worker/worker-concurrency.ts` | AI_WITHOUT_TIMEOUT | AI call appears to lack timeout/cancellation handling. |
 | warning | `src/lib/worker/worker-concurrency.ts` | AI_WITHOUT_ERROR_BOUNDARY | AI provider call appears to lack explicit error handling. |
+| warning | `src/services/ai/ai-observability.service.test.ts` | AI_WITHOUT_TIMEOUT | AI call appears to lack timeout/cancellation handling. |
+| warning | `src/services/ai/ai-observability.service.test.ts` | AI_WITHOUT_ERROR_BOUNDARY | AI provider call appears to lack explicit error handling. |
 | warning | `src/services/ai/ai-observability.service.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
 | warning | `src/services/case/ai-diagnostics.service.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/services/case/legal-analysis.services.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |

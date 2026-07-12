@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { AIRequestType } from "@/generated/prisma/client";
+import { AIRequestType, Prisma } from "@/generated/prisma/client";
 
 export type CreateAIRequestLogInput = {
   caseId?: string;
@@ -12,6 +12,9 @@ export type CreateAIRequestLogInput = {
   retrievedChunksCount?: number;
   cacheHit?: boolean;
   failureReason?: string;
+  tokenUsage?: Record<string, unknown>;
+  retryCount?: number;
+  errorCode?: string;
 };
 
 export class AIRequestLogRepository {
@@ -99,6 +102,9 @@ export class AIRequestLogRepository {
           retrievedChunksCount: input.retrievedChunksCount,
           cacheHit: input.cacheHit ?? false,
           failureReason: input.failureReason,
+          tokenUsage: input.tokenUsage as Prisma.InputJsonValue | undefined,
+          retryCount: input.retryCount ?? 0,
+          errorCode: input.errorCode,
         },
       });
     }

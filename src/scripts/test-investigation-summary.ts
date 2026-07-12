@@ -1,7 +1,8 @@
 import "dotenv/config";
 import { prisma } from "../lib/prisma";
 import { caseMetadataService } from "../services/case-metadata/case-metadata.service";
-import { investigationSummaryService } from "../services/investigation-summary/investigation-summary.service";
+import { documentGeneratorService } from "../services/document-engine/document-generator.service";
+import { DocumentType } from "@/generated/prisma/client";
 
 async function main() {
   console.log("🚀 Starting Investigation Summary RAG Test Pipeline...");
@@ -18,13 +19,14 @@ async function main() {
           "authorized this transaction, shared their OTP, or received any call. The suspect is believed to have " +
           "used a phishing link disguised as a bank KYC update, which the victim clicked the night before. " +
           "The victim believes the phisher is named 'Rajesh Verma' who had called them posing as a bank manager.",
+        userId: "cmr4p4vq30000hockjtrgqv3d",
       },
     });
     console.log(`   Created Case ID: ${testCase.id}`);
 
     // 2. Add structured case metadata using the service
     console.log("📂 Step 2: Populating case investigation metadata...");
-    const metadata = await caseMetadataService.upsertMetadata(testCase.id, {
+    const metadata = await caseMetadataService.upsertMetadata(testCase.id, "cmr4p4vq30000hockjtrgqv3d", {
       incidentDate: new Date("2026-06-16"),
       incidentTime: "10:00 AM",
       incidentLocation: "Online Banking Portal / Victim's Residence in Dwarka, Delhi",
@@ -42,7 +44,12 @@ async function main() {
 
     // 3. Run Investigation Summary RAG Generation
     console.log("📂 Step 3: Triggering Investigation Summary AI Generation...");
-    const document = await investigationSummaryService.generateSummary(testCase.id);
+    const { document } = await documentGeneratorService.generateDocument(
+      testCase.id,
+      "cmr4p4vq30000hockjtrgqv3d",
+      DocumentType.INVESTIGATION_SUMMARY,
+      `test-req-${Date.now()}`
+    );
 
     console.log("\n==================================================");
     console.log(`🎉 SUCCESS: Investigation Summary v${document.version} Generated!`);

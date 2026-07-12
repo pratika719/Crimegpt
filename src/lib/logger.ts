@@ -33,6 +33,7 @@ export const logger = pino({
       "DATABASE_URL",
       "REDIS_URL",
       "GEMINI_API_KEY",
+      "GROQ_API_KEY",
       "AUTH_SECRET",
       "OPENAI_API_KEY",
       "GOOGLE_CLIENT_SECRET",

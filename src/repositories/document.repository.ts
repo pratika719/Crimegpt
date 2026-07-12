@@ -30,6 +30,85 @@ export class DocumentRepository {
   }
 
   /**
+   * Creates a GENERATING placeholder document that will be updated by the worker on completion.
+   */
+  async createGenerating(userId: string, data: {
+    caseId: string;
+    type: DocumentType;
+    title: string;
+    sourceSnapshot?: any;
+  }, tx?: any) {
+    await this.checkCaseOwnership(data.caseId, userId, tx);
+    const client = tx || prisma;
+    return client.generatedDocument.create({
+      data: {
+        caseId: data.caseId,
+        type: data.type,
+        title: data.title,
+        content: {},
+        status: "GENERATING",
+        sourceSnapshot: data.sourceSnapshot,
+        generatedBy: userId,
+      },
+    });
+  }
+
+  /**
+   * Transitions a GENERATING document to COMPLETED with real content.
+   */
+  async updateToCompleted(id: string, data: {
+    title: string;
+    content: any;
+    version: number;
+  }, tx?: any) {
+    const client = tx || prisma;
+    return client.generatedDocument.update({
+      where: { id },
+      data: {
+        title: data.title,
+        content: data.content,
+        version: data.version,
+        status: "COMPLETED",
+        generatedAt: new Date(),
+      },
+    });
+  }
+
+  /**
+   * Transitions a GENERATING document to FAILED with an error message.
+   */
+  async updateToFailed(id: string, errorMessage: string, tx?: any) {
+    const client = tx || prisma;
+    return client.generatedDocument.update({
+      where: { id },
+      data: {
+        status: "FAILED",
+        errorMessage,
+      },
+    });
+  }
+
+  /**
+   * Finds a GENERATING document for a given case and type by looking at the sourceSnapshot jobId.
+   */
+  async findGeneratingByJobId(caseId: string, type: DocumentType, jobId: string) {
+    const docs = await prisma.generatedDocument.findMany({
+      where: {
+        caseId,
+        type,
+        status: "GENERATING",
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // Match by jobId stored in sourceSnapshot
+    return docs.find((d) => {
+      const snapshot = d.sourceSnapshot as { jobId?: string } | null;
+      return snapshot?.jobId === jobId;
+    }) ?? null;
+  }
+
+  /**
    * Fetches the latest generated document of a specific type for a case.
    */
   async findLatestByType(caseId: string, userId: string, type: DocumentType, tx?: any) {

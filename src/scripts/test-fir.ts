@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import { DocumentRegistry } from "../services/document-engine/document-registry";
 import { lawRetriever } from "../ai/retrievers/law.retriever";
-import { geminiProvider } from "../ai/providers/gemini-provider";
+import { createAIProvider } from "../ai/providers/provider-factory";
 import { DocumentType } from "@/generated/prisma/client";
 
 // Load environment variables
@@ -58,9 +58,13 @@ async function main() {
     const promptText = config.buildPrompt(mockContext, retrievedChunks);
 
     // 4. Query model
-    const modelUsed = geminiProvider.getModelName();
-    console.log(`🤖 Dispatching prompt to ${modelUsed}...`);
-    const { text: rawResponse } = await geminiProvider.generateJSON(promptText);
+    const provider = createAIProvider();
+    const modelUsed = provider.model;
+    console.log(`🤖 Dispatching prompt to ${modelUsed} using ${provider.name} provider...`);
+    const generated = await provider.generateJSON<unknown>({
+      userPrompt: promptText,
+    });
+    const rawResponse = JSON.stringify(generated.data);
 
     const latencyMs = Date.now() - startTime;
     console.log(`✅ AI responded in ${latencyMs}ms!`);

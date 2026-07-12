@@ -13,7 +13,10 @@ Description: ${law.description}
 --------------------------------------------------`).join("\n")
     : "No direct law references found. Do NOT cite any IPC sections. Mark confidence as LOW and explain that no legal references were found.";
 
-  const serializedContext = formatUnifiedContextForPrompt(context);
+  // Charge sheets need current investigative facts, not the full activity feed.
+  const serializedContext = formatUnifiedContextForPrompt(context, {
+    includeActivities: false,
+  });
   const sanitizedNarrative = sanitizeUserNarrative(context.narrative);
 
   return `You are a Senior Police Officer and Legal Counsel drafting a formal and prosecution-ready Charge Sheet (Final Report) under Section 173 of the Code of Criminal Procedure (CrPC) / Bharatiya Nagarik Suraksha Sanhita (BNSS).

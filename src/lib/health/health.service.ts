@@ -57,10 +57,17 @@ export class HealthService {
       "DATABASE_URL",
       "REDIS_URL",
       "AUTH_SECRET",
-      "GEMINI_API_KEY",
       "EMBEDDING_SERVICE_URL",
       "EMBEDDING_PROVIDER",
     ];
+
+    const provider = process.env.AI_PROVIDER ?? "groq";
+    required.push(provider === "gemini" ? "GEMINI_API_KEY" : "GROQ_API_KEY");
+    if ((process.env.ENABLE_AI_FALLBACK ?? "true").toLowerCase() === "true") {
+      required.push((process.env.AI_FALLBACK_PROVIDER ?? "gemini") === "groq"
+        ? "GROQ_API_KEY"
+        : "GEMINI_API_KEY");
+    }
 
     const missing = required.filter((key) => !process.env[key]);
 
@@ -307,16 +314,18 @@ export class HealthService {
   }
 
   checkGeminiConfig(): HealthCheckResult {
-    if (!process.env.GEMINI_API_KEY) {
+    const provider = process.env.AI_PROVIDER ?? "groq";
+    const keyName = provider === "gemini" ? "GEMINI_API_KEY" : "GROQ_API_KEY";
+    if (!process.env[keyName]) {
       return {
         status: "failed",
-        message: "GEMINI_API_KEY is not configured.",
+        message: `${keyName} is not configured.`,
       };
     }
 
     return {
       status: "ok",
-      message: "Gemini API key is configured.",
+      message: `${provider} API key is configured.`,
     };
   }
 

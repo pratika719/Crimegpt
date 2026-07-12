@@ -1,5 +1,12 @@
 import "dotenv/config";
-import { ingestionQueue, embeddingQueue } from "@/lib/queue/queues";
+import { 
+  ingestionQueue, 
+  embeddingQueue, 
+  aiGenerationQueue, 
+  documentGenerationQueue, 
+  emailQueue, 
+  cleanupQueue 
+} from "@/lib/queue/queues";
 
 async function checkQueue(queueName: string, queue: any) {
   const [waiting, active, completed, failed, delayed] = await Promise.all([
@@ -31,6 +38,10 @@ async function checkQueue(queueName: string, queue: any) {
 async function main() {
   await checkQueue("ingestion", ingestionQueue);
   await checkQueue("embedding", embeddingQueue);
+  await checkQueue("ai-generation", aiGenerationQueue);
+  await checkQueue("document-generation", documentGenerationQueue);
+  await checkQueue("email", emailQueue);
+  await checkQueue("cleanup", cleanupQueue);
 }
 
 main()

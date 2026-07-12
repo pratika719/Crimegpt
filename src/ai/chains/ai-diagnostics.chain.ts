@@ -1,6 +1,6 @@
 import { lawRetriever, CleanedLawReference } from "../retrievers/law.retriever";
 import { buildAIDiagnosticsPrompt } from "../prompts/ai-diagnostics.prompt";
-import { geminiProvider } from "../providers/gemini-provider";
+import { getResilientAIProvider } from "../providers/provider-factory";
 import { parseAIDiagnosticsResult, AIDiagnosticsResult } from "../types/ai-diagnostics.types";
 import { UnifiedCaseContext } from "@/services/case/unified-context.service";
 
@@ -15,7 +15,6 @@ export interface DiagnosticsChainOutput {
 
 export class AIDiagnosticsChain {
   async execute(context: UnifiedCaseContext, k = 5): Promise<DiagnosticsChainOutput> {
-    const startTime = Date.now();
     console.log(`🤖 [AIDiagnosticsChain] Initiating diagnostics chain...`);
 
     // 1. Retrieve unique law sections from PGVector using the narrative
@@ -26,11 +25,17 @@ export class AIDiagnosticsChain {
     const promptText = buildAIDiagnosticsPrompt(context, retrievedChunks);
 
     // 3. Query Gemini
-    const modelUsed = geminiProvider.getModelName();
+    const provider = getResilientAIProvider();
+    const modelUsed = `${provider.name}:${provider.model}`;
     console.log(`🤖 [AIDiagnosticsChain] Dispatching diagnostics prompt to ${modelUsed}...`);
-    const { text: rawResponse } = await geminiProvider.generateJSON(promptText);
+    const aiResult = await provider.generateJSON<unknown>({
+      userPrompt: promptText,
+      temperature: 0.1,
+      maxTokens: Number(process.env.AI_MAX_OUTPUT_TOKENS ?? 4_000),
+    });
+    const rawResponse = JSON.stringify(aiResult.data);
 
-    const latencyMs = Date.now() - startTime;
+    const latencyMs = aiResult.latencyMs;
     console.log(`🤖 [AIDiagnosticsChain] Model responded in ${latencyMs}ms.`);
 
     // 4. Parse and validate

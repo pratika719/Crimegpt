@@ -8,16 +8,11 @@ import { CaseService } from "@/services/case/case.services";
 import { auth } from "@/auth";
 import { validateActionInput } from "@/lib/validation/action-guard";
 import { actionSuccess, actionFailure } from "@/lib/action-response";
-import { queueProducerService } from "@/services/queue/queue-producer.service";
 import { cacheInvalidationService } from "@/services/cache/cache-invalidation.service";
 import { logger } from "@/lib/logger";
-import { checkRateLimit } from "@/lib/security/rate-limit";
-
-const GenerateDocumentSchema = z.object({
-  caseId: z.string().min(1, "Case ID is required"),
-  type: z.string().min(1, "Document Type is required"),
-  isRegenerate: z.boolean().optional().default(false),
-});
+import { documentGenerationRequestService } from "@/services/document-engine/document-generation-request.service";
+import { AppError } from "@/lib/error/app-error";
+import { classifyAIError } from "@/lib/error/ai-error-classifier";
 
 const LogDocumentActivitySchema = z.object({
   caseId: z.string().min(1, "Case ID is required"),
@@ -47,20 +42,6 @@ export async function generateDocumentAction(input: unknown) {
         return actionFailure("UNAUTHORIZED", "Unauthorized");
       }
 
-      const userId = session.user.id;
-      const rateLimit = await checkRateLimit({
-        key: `rate-limit:document-generation:${userId}`,
-        limit: 5,
-        windowSeconds: 600,
-      });
-
-      if (!rateLimit.allowed) {
-        return actionFailure(
-          "RATE_LIMIT_EXCEEDED",
-          `Too many document generation requests. Please try again in ${rateLimit.resetInSeconds} seconds.`,
-        );
-      }
-
       logger.info(
         {
           caseId: data.caseId,
@@ -72,7 +53,8 @@ export async function generateDocumentAction(input: unknown) {
       );
 
       try {
-        const queued = await queueProducerService.addDocumentGenerationJob({
+        const result =
+          await documentGenerationRequestService.requestDocumentGeneration({
           caseId: data.caseId,
           userId: session.user.id,
           documentType: data.documentType,
@@ -81,12 +63,14 @@ export async function generateDocumentAction(input: unknown) {
 
         logger.info(
           {
-            jobId: queued.jobId,
+            jobId: "jobId" in result ? result.jobId : undefined,
+            documentId: "documentId" in result ? result.documentId : undefined,
             caseId: data.caseId,
             userId: session.user.id,
             documentType: data.documentType,
+            existingDocumentFound: result.existingDocumentFound,
           },
-          "Document generation job enqueued successfully",
+          "Document generation request handled successfully",
         );
 
         try {
@@ -105,21 +89,35 @@ export async function generateDocumentAction(input: unknown) {
 
         return actionSuccess({
           data: {
-            message: "Document generation started.",
-            ...queued,
+            ...result,
           },
         });
       } catch (err) {
+        const classified = classifyAIError(err);
         logger.error(
           {
-            err,
             caseId: data.caseId,
             userId: session.user.id,
             documentType: data.documentType,
+            errorCategory: classified.category,
+            retryable: classified.retryable,
+            statusCode: classified.statusCode,
           },
           "Document generation enqueue failed",
         );
-        throw err;
+
+        if (err instanceof AppError) {
+          return actionFailure(err.code as any, err.message);
+        }
+
+        return actionFailure(
+          classified.category === "validation_error"
+            ? "VALIDATION_ERROR"
+            : classified.category === "quota_error"
+              ? "RATE_LIMIT_EXCEEDED"
+              : "AI_PROVIDER_ERROR",
+          classified.userMessage,
+        );
       }
     },
   );

@@ -10,6 +10,9 @@ type LogAISuccessInput = {
   latencyMs: number;
   retrievedChunksCount?: number;
   cacheHit?: boolean;
+  tokenUsage?: Record<string, unknown>;
+  retryCount?: number;
+  errorCode?: string;
 };
 
 type LogAIFailureInput = {
@@ -21,6 +24,9 @@ type LogAIFailureInput = {
   latencyMs?: number;
   retrievedChunksCount?: number;
   cacheHit?: boolean;
+  tokenUsage?: Record<string, unknown>;
+  retryCount?: number;
+  errorCode?: string;
   failureReason: string;
 };
 

@@ -1,13 +1,13 @@
 # CrimeGPT v2 Automated Audit
 
-Generated at: 2026-07-10T10:28:18.280Z
+Generated at: 2026-07-12T07:26:24.609Z
 
 ## Summary
 
 | Severity | Count |
 |---|---:|
 | Critical | 0 |
-| Warning | 84 |
+| Warning | 99 |
 | Info | 0 |
 
 ## Findings
@@ -40,6 +40,7 @@ Generated at: 2026-07-10T10:28:18.280Z
 | warning | `src/ai/chains/legal-analysis.chain.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/ai/chains/legal-analysis.chain.ts` | AI_WITHOUT_TIMEOUT | AI call appears to lack timeout/cancellation handling. |
 | warning | `src/ai/chains/legal-analysis.chain.ts` | AI_WITHOUT_ERROR_BOUNDARY | AI provider call appears to lack explicit error handling. |
+| warning | `src/ai/embeddings/fastapi-embedding.provider.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
 | warning | `src/ai/ingestion/ingest-laws.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
 | warning | `src/ai/ingestion/ingest-laws.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/ai/ingestion/loader/ipc.loader.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
@@ -51,6 +52,17 @@ Generated at: 2026-07-10T10:28:18.280Z
 | warning | `src/ai/prompts/investigation-summary.prompt.ts` | AI_WITHOUT_ERROR_BOUNDARY | AI provider call appears to lack explicit error handling. |
 | warning | `src/ai/prompts/legal-analysis.prompt.ts` | AI_WITHOUT_TIMEOUT | AI call appears to lack timeout/cancellation handling. |
 | warning | `src/ai/prompts/legal-analysis.prompt.ts` | AI_WITHOUT_ERROR_BOUNDARY | AI provider call appears to lack explicit error handling. |
+| warning | `src/ai/providers/ai-provider.ts` | AI_WITHOUT_ERROR_BOUNDARY | AI provider call appears to lack explicit error handling. |
+| warning | `src/ai/providers/gemini-provider.ts` | AI_WITHOUT_TIMEOUT | AI call appears to lack timeout/cancellation handling. |
+| warning | `src/ai/providers/gemini-provider.ts` | AI_WITHOUT_ERROR_BOUNDARY | AI provider call appears to lack explicit error handling. |
+| warning | `src/ai/providers/groq-provider.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
+| warning | `src/ai/providers/provider-factory.test.ts` | AI_WITHOUT_TIMEOUT | AI call appears to lack timeout/cancellation handling. |
+| warning | `src/ai/providers/provider-factory.test.ts` | AI_WITHOUT_ERROR_BOUNDARY | AI provider call appears to lack explicit error handling. |
+| warning | `src/ai/providers/provider-factory.ts` | AI_WITHOUT_TIMEOUT | AI call appears to lack timeout/cancellation handling. |
+| warning | `src/ai/providers/provider-factory.ts` | AI_WITHOUT_ERROR_BOUNDARY | AI provider call appears to lack explicit error handling. |
+| warning | `src/ai/providers/resilient-ai-provider.test.ts` | AI_WITHOUT_TIMEOUT | AI call appears to lack timeout/cancellation handling. |
+| warning | `src/ai/providers/resilient-ai-provider.test.ts` | AI_WITHOUT_ERROR_BOUNDARY | AI provider call appears to lack explicit error handling. |
+| warning | `src/ai/providers/resilient-ai-provider.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
 | warning | `src/ai/types/legal-analysis.types.ts` | AI_WITHOUT_TIMEOUT | AI call appears to lack timeout/cancellation handling. |
 | warning | `src/ai/vector/pgvector.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/app/case/[id]/page.tsx` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
@@ -66,10 +78,12 @@ Generated at: 2026-07-10T10:28:18.280Z
 | warning | `src/components/search/search-dialog.tsx` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
 | warning | `src/components/search/search-dialog.tsx` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/env.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
-| warning | `src/env.ts` | AI_WITHOUT_TIMEOUT | AI call appears to lack timeout/cancellation handling. |
 | warning | `src/env.ts` | AI_WITHOUT_ERROR_BOUNDARY | AI provider call appears to lack explicit error handling. |
 | warning | `src/lib/cache/cache.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
 | warning | `src/lib/cache/cache.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
+| warning | `src/lib/error/ai-error-classifier.test.ts` | AI_WITHOUT_TIMEOUT | AI call appears to lack timeout/cancellation handling. |
+| warning | `src/lib/error/ai-error-classifier.test.ts` | AI_WITHOUT_ERROR_BOUNDARY | AI provider call appears to lack explicit error handling. |
+| warning | `src/lib/error/ai-error-classifier.ts` | AI_WITHOUT_ERROR_BOUNDARY | AI provider call appears to lack explicit error handling. |
 | warning | `src/lib/logger.ts` | AI_WITHOUT_TIMEOUT | AI call appears to lack timeout/cancellation handling. |
 | warning | `src/lib/logger.ts` | AI_WITHOUT_ERROR_BOUNDARY | AI provider call appears to lack explicit error handling. |
 | warning | `src/lib/pdf-export.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
@@ -97,6 +111,7 @@ Generated at: 2026-07-10T10:28:18.280Z
 | warning | `src/workers/document-generator.processor.ts` | AI_WITHOUT_TIMEOUT | AI call appears to lack timeout/cancellation handling. |
 | warning | `src/workers/embedding.processor.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
 | warning | `src/workers/index.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
+| warning | `src/workers/index.ts` | CONSOLE_LOGGING | Use structured logging instead of console statements. |
 | warning | `src/workers/ingestion.processor.ts` | WEAK_CATCH | Catch block may swallow errors without returning or throwing. |
 
 ## Notes

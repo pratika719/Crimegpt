@@ -2,7 +2,7 @@ import { CaseRepository } from "@/repositories/case.repository";
 import { documentRepository } from "@/repositories/document.repository";
 import { legalAnalysisChain } from "@/ai/chains/legal-analysis.chain";
 import { DocumentType, AIRequestType } from "@/generated/prisma/client";
-import { generatedDocumentService, aiObservabilityService } from "@/services/shared/ai-shared.service";
+import { aiObservabilityService } from "@/services/ai/ai-observability.service";
 import { activityService } from "@/services/activity/activity.service";
 import { unifiedContextService } from "@/services/case/unified-context.service";
 
@@ -41,25 +41,24 @@ export class LegalAnalysisService {
     console.log(`💼 [LegalAnalysisService] Cleaning up old analysis records...`);
     await this.documentRepository.deleteManyByType(caseId, userId, DocumentType.LEGAL_ANALYSIS);
 
-    // 4. Save results to GeneratedDocument table using shared service
+    // 4. Save results to GeneratedDocument table directly
     console.log(`💼 [LegalAnalysisService] Storing legal analysis document...`);
-    const document = await generatedDocumentService.saveDocument(userId, {
+    const document = await this.documentRepository.create(userId, {
       caseId,
       type: DocumentType.LEGAL_ANALYSIS,
       title: `AI Legal Analysis: ${caseItem.title}`,
       content: chainOutput.result, // Zod-validated structured JSON
     });
 
-    // 5. Store telemetry and RAG observability in AIRequestLog table using shared service
+    // 5. Store telemetry and RAG observability in AIRequestLog table using unified service
     console.log(`💼 [LegalAnalysisService] Storing AI request logs for observability...`);
-    await aiObservabilityService.logRequest(userId, {
-      requestType: AIRequestType.LEGAL_ANALYSIS,
-      prompt: chainOutput.promptText,
-      retrievedContext: JSON.stringify(chainOutput.retrievedChunks),
-      response: chainOutput.rawResponse,
-      latencyMs: chainOutput.latencyMs,     
-      modelUsed: chainOutput.modelUsed,
+    await aiObservabilityService.logSuccess({
       caseId,
+      userId,
+      requestType: "LEGAL_ANALYSIS",
+      modelUsed: chainOutput.modelUsed,
+      latencyMs: chainOutput.latencyMs,
+      retrievedChunksCount: chainOutput.retrievedChunks.length,
     });
 
     // Log Document Generated Activity

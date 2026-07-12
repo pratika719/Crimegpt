@@ -1,6 +1,6 @@
 import { lawRetriever, CleanedLawReference } from "../retrievers/law.retriever";
 import { buildLegalAnalysisPrompt } from "../prompts/legal-analysis.prompt";
-import { geminiProvider } from "../providers/gemini-provider";
+import { getResilientAIProvider } from "../providers/provider-factory";
 import { parseLegalAnalysisResult, LegalAnalysisResult } from "../types/legal-analysis.types";
 import { UnifiedCaseContext } from "@/services/case/unified-context.service";
 
@@ -26,7 +26,6 @@ export class LegalAnalysisChain {
    * @returns ChainOutput containing validated structured results and metadata logs.
    */
   async execute(context: UnifiedCaseContext, k = 5): Promise<ChainOutput> {
-    const startTime = Date.now();
     console.log(`🤖 [LegalAnalysisChain] Initiating chain execution...`);
 
     // 1. Retrieve unique law sections from PGVector using the narrative
@@ -37,11 +36,17 @@ export class LegalAnalysisChain {
     const promptText = buildLegalAnalysisPrompt(context, retrievedChunks);
 
     // 3. Query Gemini Flash
-    const modelUsed = geminiProvider.getModelName();
+    const provider = getResilientAIProvider();
+    const modelUsed = `${provider.name}:${provider.model}`;
     console.log(`🤖 [LegalAnalysisChain] Dispatching RAG prompt to ${modelUsed}...`);
-    const { text: rawResponse } = await geminiProvider.generateJSON(promptText);
+    const aiResult = await provider.generateJSON<unknown>({
+      userPrompt: promptText,
+      temperature: 0.1,
+      maxTokens: Number(process.env.AI_MAX_OUTPUT_TOKENS ?? 4_000),
+    });
+    const rawResponse = JSON.stringify(aiResult.data);
 
-    const latencyMs = Date.now() - startTime;
+    const latencyMs = aiResult.latencyMs;
     console.log(`🤖 [LegalAnalysisChain] Model responded in ${latencyMs}ms.`);
 
     // 4. Parse JSON and validate against Zod schema

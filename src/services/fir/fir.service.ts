@@ -1,5 +1,5 @@
 import { DocumentType } from "@/generated/prisma/client";
-import { documentGeneratorService } from "@/services/document-engine/document-generator.service";
+import { documentGenerationRequestService } from "@/services/document-engine/document-generation-request.service";
 
 /**
  * Service orchestrating the retrieval, LLM analysis, incremental versioning, database persistence, 
@@ -15,7 +15,7 @@ export class FIRService {
    * @returns Persisted GeneratedDocument instance.
    */
   async generateFIR(caseId: string, userId: string) {
-    return documentGeneratorService.generateDocument(caseId, userId, DocumentType.FIR);
+    return documentGenerationRequestService.requestDocumentGeneration({ caseId, userId, documentType: DocumentType.FIR });
   }
 }
 

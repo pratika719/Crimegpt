@@ -1,7 +1,7 @@
 import { CaseRepository } from "@/repositories/case.repository";
 import { aiDiagnosticsChain } from "@/ai/chains/ai-diagnostics.chain";
 import { AIRequestType } from "@/generated/prisma/client";
-import { aiObservabilityService } from "@/services/shared/ai-shared.service";
+import { aiObservabilityService } from "@/services/ai/ai-observability.service";
 import { unifiedContextService } from "@/services/case/unified-context.service";
 
 export class AIDiagnosticsService {
@@ -26,14 +26,13 @@ export class AIDiagnosticsService {
     // 3. Log observability (Telemetry for the LLM request)
     console.log(`🧠 [AIDiagnosticsService] Storing AI request logs...`);
     try {
-      await aiObservabilityService.logRequest(userId, {
-        requestType: AIRequestType.AI_DIAGNOSTICS_GENERATION,
-        prompt: chainOutput.promptText,
-        retrievedContext: JSON.stringify(chainOutput.retrievedChunks),
-        response: chainOutput.rawResponse,
-        latencyMs: chainOutput.latencyMs,     
-        modelUsed: chainOutput.modelUsed,
+      await aiObservabilityService.logSuccess({
         caseId,
+        userId,
+        requestType: "AI_DIAGNOSTICS",
+        modelUsed: chainOutput.modelUsed,
+        latencyMs: chainOutput.latencyMs,
+        retrievedChunksCount: chainOutput.retrievedChunks.length,
       });
     } catch (obsError) {
       // We don't throw or return early here because telemetry failure shouldn't abort the run

@@ -32,8 +32,9 @@ export class QueueProducerService {
     documentType: DocumentType;
     forceRegenerate?: boolean;
     inputHash?: string;
+    requestId?: string;
   }) {
-    const requestId = createRequestId("docgen");
+    const requestId = input.requestId ?? createRequestId("docgen");
 
     const baseJobId = input.inputHash
       ? createSafeJobId([input.inputHash])

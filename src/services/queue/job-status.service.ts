@@ -9,6 +9,7 @@ import {
 } from "@/lib/queue/queues";
 import { QUEUE_NAMES } from "@/lib/queue/queue-names";
 import { logger } from "@/lib/logger";
+import { classifyProviderError as classifyAIError } from "@/lib/error/ai-provider-error-classifier";
 
 export type MinimalJobState =
   | "waiting"
@@ -23,7 +24,11 @@ export type MinimalJobStatusResponse = {
   jobId: string;
   queueName: string;
   state: MinimalJobState;
+  stage?: string | null;
+  message?: string | null;
+  percentage?: number | null;
   failedReason?: string | null;
+  retryable?: boolean | null;
   result?: unknown;
 };
 
@@ -77,12 +82,34 @@ export class JobStatusService {
       }
 
       const state = await job.getState();
+      const progress =
+        typeof job.progress === "object" && job.progress !== null
+          ? (job.progress as {
+              stage?: string;
+              message?: string;
+              percentage?: number;
+            })
+          : null;
+      const classifiedFailure =
+        state === "failed" && job.failedReason
+          ? classifyAIError(new Error(job.failedReason))
+          : null;
 
       return {
         jobId: input.jobId,
         queueName: input.queueName,
         state: state as MinimalJobState,
-        failedReason: job.failedReason ?? null,
+        stage: progress?.stage ?? null,
+        message:
+          state === "failed"
+            ? classifiedFailure?.userMessage ?? "AI generation failed. Please try again."
+            : progress?.message ?? null,
+        percentage: progress?.percentage ?? null,
+        failedReason:
+          state === "failed"
+            ? classifiedFailure?.userMessage ?? job.failedReason ?? null
+            : job.failedReason ?? null,
+        retryable: classifiedFailure?.retryable ?? null,
         result: job.returnvalue ?? null,
       };
     } catch (error) {

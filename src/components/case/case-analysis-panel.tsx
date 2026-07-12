@@ -72,6 +72,9 @@ interface GeneratedDocument {
   title: string;
   content: any;
   version: number;
+  status?: string; // "DRAFT" | "GENERATING" | "COMPLETED" | "FAILED" | "ARCHIVED"
+  errorMessage?: string | null;
+  sourceSnapshot?: any;
   createdAt: Date | string;
 }
 
@@ -187,14 +190,40 @@ export default function CaseAnalysisPanel({
   const [generationStep, setGenerationStep] = useState<"analyzing" | "generating" | "saving" | "completed">("analyzing");
 
   // Keep track of generating background jobs per document type
-  const [generatingJobs, setGeneratingJobs] = useState<Record<string, { jobId: string; queueName: string }>>({});
+  const [generatingJobs, setGeneratingJobs] = useState<Record<string, { jobId: string; queueName: string; generationId?: string }>>({});
+
+  // On mount, scan initialDocuments for any documents in GENERATING state and auto-resume polling
+  useEffect(() => {
+    const activePlaceholderJobs: Record<string, { jobId: string; queueName: string; generationId?: string }> = {};
+    for (const doc of initialDocuments) {
+      if (doc.status === "GENERATING" && doc.sourceSnapshot?.jobId && doc.sourceSnapshot?.queueName) {
+        activePlaceholderJobs[doc.type] = {
+          jobId: doc.sourceSnapshot.jobId,
+          queueName: doc.sourceSnapshot.queueName,
+          generationId: doc.sourceSnapshot.requestId,
+        };
+      }
+    }
+    if (Object.keys(activePlaceholderJobs).length > 0) {
+      setGeneratingJobs((prev) => ({ ...prev, ...activePlaceholderJobs }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount
+
+  // Find the first active job across ALL types for the polling hook (not just activeType)
+  // This prevents tab-switching from killing the polling loop.
+  const allActiveJobTypes = Object.keys(generatingJobs);
+  const pollingJobType = allActiveJobTypes.includes(activeType)
+    ? activeType
+    : allActiveJobTypes[0] ?? null;
+  const pollingJobInfo = pollingJobType ? generatingJobs[pollingJobType] : null;
 
   const activeJobInfo = generatingJobs[activeType] || null;
 
   const { status, error, isPolling } = useJobPolling({
-    jobId: activeJobInfo?.jobId ?? null,
-    queueName: activeJobInfo?.queueName ?? null,
-    enabled: Boolean(activeJobInfo),
+    jobId: pollingJobInfo?.jobId ?? null,
+    queueName: pollingJobInfo?.queueName ?? null,
+    enabled: Boolean(pollingJobInfo),
     intervalMs: 5000,
   });
 
@@ -206,47 +235,55 @@ export default function CaseAnalysisPanel({
 
   // Handle completion, failure, and error in polling
   useEffect(() => {
-    if (status?.state === "completed") {
-      toast.success(`${activeMeta.title} generated successfully!`);
+    if (status?.state === "completed" && pollingJobType) {
+      console.info("ui_completion_detected", {
+        generationId: pollingJobInfo?.generationId ?? null,
+        jobId: pollingJobInfo?.jobId ?? null,
+        caseId,
+        documentType: pollingJobType,
+      });
+      const completedMeta = DOCUMENT_TYPES_METADATA.find((m) => m.type === pollingJobType);
+      toast.success(`${completedMeta?.title ?? pollingJobType} generated successfully!`);
       setGeneratingJobs((prev) => {
         const next = { ...prev };
-        delete next[activeType];
+        delete next[pollingJobType];
         return next;
       });
       setActionType(null);
       router.refresh();
-    } else if (status?.state === "failed") {
-      toast.error(`Generation failed: ${status.failedReason || "Please try again."}`);
+    } else if (status?.state === "failed" && pollingJobType) {
+      toast.error(status.failedReason || "AI generation failed. Please try again.");
       setGeneratingJobs((prev) => {
         const next = { ...prev };
-        delete next[activeType];
+        delete next[pollingJobType];
         return next;
       });
       setActionType(null);
-    } else if (status?.state === "unknown") {
+      router.refresh();
+    } else if (status?.state === "unknown" && pollingJobType) {
       if (status.failedReason) {
         toast.error(`Generation status: ${status.failedReason}`);
         setGeneratingJobs((prev) => {
           const next = { ...prev };
-          delete next[activeType];
+          delete next[pollingJobType];
           return next;
         });
         setActionType(null);
       }
     }
-  }, [status?.state, status?.failedReason, activeType, router, activeMeta.title]);
+  }, [status?.state, status?.failedReason, pollingJobType, router]);
 
   useEffect(() => {
-    if (error) {
+    if (error && pollingJobType) {
       toast.error(error);
       setGeneratingJobs((prev) => {
         const next = { ...prev };
-        delete next[activeType];
+        delete next[pollingJobType];
         return next;
       });
       setActionType(null);
     }
-  }, [error, activeType]);
+  }, [error, pollingJobType]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -292,8 +329,10 @@ export default function CaseAnalysisPanel({
     return matchesSearch && matchesFilter;
   });
 
-  // Find all generated documents of the active type
-  const activeTypeDocs = initialDocuments.filter((d) => d.type === activeType);
+  // Find all generated documents of the active type (filter out pending/failed generation placeholder records)
+  const activeTypeDocs = initialDocuments.filter(
+    (d) => d.type === activeType && d.status !== "GENERATING" && d.status !== "FAILED"
+  );
   
   // Find currently selected version
   const availableVersions = activeTypeDocs.map((d) => d.version).sort((a, b) => b - a);
@@ -374,6 +413,7 @@ export default function CaseAnalysisPanel({
               [type]: {
                 jobId: jobData.jobId,
                 queueName: jobData.queueName,
+                generationId: jobData.requestId,
               },
             }));
             toast.info("Document generation started in the background...");

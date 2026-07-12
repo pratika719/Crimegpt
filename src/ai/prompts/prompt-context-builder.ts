@@ -4,7 +4,10 @@ import { UnifiedCaseContext } from "@/services/case/unified-context.service";
  * Utility to format the UnifiedCaseContext relational lists into structured text blocks
  * suitable for embedding in LLM prompts.
  */
-export function formatUnifiedContextForPrompt(context: UnifiedCaseContext): string {
+export function formatUnifiedContextForPrompt(
+  context: UnifiedCaseContext,
+  options: { includeActivities?: boolean } = {},
+): string {
   const profile = context.investigationProfile;
   const policeInfo = profile 
     ? `- Police Station: ${profile.policeStation || "Not Specified"}
@@ -99,7 +102,7 @@ export function formatUnifiedContextForPrompt(context: UnifiedCaseContext): stri
 - Notes: ${e.notes || "None"}`).join("\n\n")
     : "None recorded.";
 
-  const activitiesTimeline = context.activities.length > 0
+  const activitiesTimeline = options.includeActivities !== false && context.activities.length > 0
     ? context.activities.map((a) => `[${new Date(a.createdAt).toLocaleString()}] ${a.description}`).join("\n")
     : "No logged timeline activities.";
 
@@ -133,8 +136,7 @@ ${courtList}
 --- EVIDENCE ASSETS ---
 ${evidenceList}
  
---- CHRONOLOGICAL ACTIVITIES ---
-${activitiesTimeline}`;
+${options.includeActivities === false ? "" : `--- CHRONOLOGICAL ACTIVITIES ---\n${activitiesTimeline}`}`;
 }
 
 /**
@@ -149,4 +151,22 @@ export function sanitizeUserNarrative(narrative: string | null | undefined): str
   const escaped = narrative.replace(/"""/g, '\\"\\"\\"');
   // Limit total length to prevent huge injection payloads (10,000 characters)
   return escaped.substring(0, 10000);
+}
+
+import { CleanedLawReference } from "../retrievers/law.retriever";
+
+export function formatLawsContext(
+  laws: CleanedLawReference[], 
+  fallbackText = "No direct law references found in the database. Do NOT cite any IPC/BNS sections. Mark confidence as LOW and explain that no legal references were found."
+): string {
+  return laws.length > 0 
+    ? laws.map((law, index) => `
+[LAW REFERENCE ${index + 1}]
+Source: ${law.source}
+Section: ${law.section}
+Offense: ${law.offense}
+Punishment: ${law.punishment}
+Description: ${law.description}
+--------------------------------------------------`).join("\n")
+    : fallbackText;
 }

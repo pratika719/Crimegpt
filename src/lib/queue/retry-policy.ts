@@ -1,6 +1,6 @@
 export const QUEUE_RETRY_POLICY = {
   DOCUMENT_GENERATION: {
-    attempts: 3,
+    attempts: 1,
     backoff: {
       type: "exponential" as const,
       delay: 5_000,

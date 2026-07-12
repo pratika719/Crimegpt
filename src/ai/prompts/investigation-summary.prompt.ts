@@ -1,7 +1,6 @@
 import { CleanedLawReference } from "../retrievers/law.retriever";
-import { promptExecutionHelper } from "@/services/shared/ai-shared.service";
+import { formatLawsContext, sanitizeUserNarrative } from "./prompt-context-builder";
 import { UnifiedCaseContext } from "@/services/case/unified-context.service";
-import { sanitizeUserNarrative } from "./prompt-context-builder";
 
 /**
  * Builds the strict instruction prompt for Gemini 2.5 Flash to generate an Investigation Summary.
@@ -15,7 +14,7 @@ export function buildInvestigationSummaryPrompt(
   context: UnifiedCaseContext,
   laws: CleanedLawReference[]
 ): string {
-  const lawsContext = promptExecutionHelper.formatLawsContext(
+  const lawsContext = formatLawsContext(
     laws, 
     "No direct law references found in the database. Do NOT cite any IPC sections. Mark confidence as LOW and explain that no legal references were found."
   );

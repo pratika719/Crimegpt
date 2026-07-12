@@ -1,5 +1,5 @@
 import { DocumentType } from "@/generated/prisma/client";
-import { documentGeneratorService } from "@/services/document-engine/document-generator.service";
+import { documentGenerationRequestService } from "@/services/document-engine/document-generation-request.service";
 
 /**
  * Service coordinating Case, CaseMetadata, PGVector similarity search, Gemini, and DB log/document updates.
@@ -14,7 +14,7 @@ export class InvestigationSummaryService {
    * @returns Persisted GeneratedDocument instance.
    */
   async generateSummary(caseId: string, userId: string) {
-    return documentGeneratorService.generateDocument(caseId, userId, DocumentType.INVESTIGATION_SUMMARY);
+    return documentGenerationRequestService.requestDocumentGeneration({ caseId, userId, documentType: DocumentType.INVESTIGATION_SUMMARY });
   }
 }
 

@@ -2,6 +2,7 @@ import { similaritySearchDeduplicated } from "../vector/pgvector";
 import { cacheService } from "@/lib/cache/cache";
 import { cacheKeys } from "@/lib/cache/cache-keys";
 import { createCacheHash } from "@/lib/cache/cache-hash";
+import { diagnosticFlags } from "@/lib/ai/diagnostic-flags";
 
 export interface CleanedLawReference {
   section: string;
@@ -18,6 +19,9 @@ export async function retrieveLawsCached<T>(input: {
   topK: number;
   retrieve: () => Promise<T>;
 }): Promise<T> {
+  if (!diagnosticFlags.useCache()) {
+    return input.retrieve();
+  }
   const hash = createCacheHash({
     query: input.query.trim().toLowerCase(),
     topK: input.topK,

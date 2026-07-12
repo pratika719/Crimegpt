@@ -2,6 +2,8 @@
 
 CrimeGPT is a next-generation backend-engineered legal intelligence system designed for law enforcement agencies, investigators, and legal professionals. It leverages advanced Retrieval-Augmented Generation (RAG) to automate incident narrative ingestion, perform semantic search against legal structures, draft compliant documents (such as FIRs and Investigation Summaries), and generate detailed compliance audit trails.
 
+Production url demo -> https://crimegpt-eight.vercel.app/
+
 ---
 
 ## 🚀 Key Features

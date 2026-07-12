@@ -15,6 +15,8 @@ const envSchema = z.object({
   EMBEDDING_PROVIDER: z.literal("fastapi"),
   EMBEDDING_SERVICE_URL: z.string().url(),
 
+  WORKER_HEALTH_URL: z.string().url().optional(),
+
   HEALTHCHECK_SECRET: z.string().optional(),
 
   LOG_LEVEL: z.string().optional(),

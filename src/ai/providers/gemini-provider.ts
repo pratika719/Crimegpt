@@ -3,9 +3,15 @@ import { withAITimeout, AITimeoutError } from "@/lib/ai/with-ai-timeout";
 import { logger } from "@/lib/logger";
 
 export class AIProviderError extends Error {
+  public readonly statusCode?: number;
+
   constructor(message: string, public readonly originalError?: any) {
     super(message);
     this.name = "AIProviderError";
+    // Extract status code from original error for downstream detection
+    if (originalError) {
+      this.statusCode = originalError.status ?? originalError.statusCode ?? originalError.response?.status ?? undefined;
+    }
   }
 }
 

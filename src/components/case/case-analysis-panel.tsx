@@ -185,6 +185,7 @@ export default function CaseAnalysisPanel({
 
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationStep, setGenerationStep] = useState<"analyzing" | "generating" | "saving" | "completed">("analyzing");
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
   // Keep track of generating background jobs per document type
   const [generatingJobs, setGeneratingJobs] = useState<Record<string, { jobId: string; queueName: string }>>({});
@@ -216,7 +217,13 @@ export default function CaseAnalysisPanel({
       setActionType(null);
       router.refresh();
     } else if (status?.state === "failed") {
-      toast.error(`Generation failed: ${status.failedReason || "Please try again."}`);
+      const failedMsg = status.failedReason || "Please try again.";
+      // Map 429 errors to user-friendly message
+      const displayMsg = failedMsg.includes("overloaded")
+        ? "AI service is currently overloaded. Please wait a moment and try again."
+        : `Generation failed: ${failedMsg}`;
+      toast.error(displayMsg);
+      setGenerationError(displayMsg);
       setGeneratingJobs((prev) => {
         const next = { ...prev };
         delete next[activeType];
@@ -225,14 +232,14 @@ export default function CaseAnalysisPanel({
       setActionType(null);
     } else if (status?.state === "unknown") {
       if (status.failedReason) {
-        toast.error(`Generation status: ${status.failedReason}`);
-        setGeneratingJobs((prev) => {
-          const next = { ...prev };
-          delete next[activeType];
-          return next;
-        });
-        setActionType(null);
+        setGenerationError(status.failedReason);
       }
+      setGeneratingJobs((prev) => {
+        const next = { ...prev };
+        delete next[activeType];
+        return next;
+      });
+      setActionType(null);
     }
   }, [status?.state, status?.failedReason, activeType, router, activeMeta.title]);
 
@@ -342,6 +349,7 @@ export default function CaseAnalysisPanel({
 
   // Document action trigger
   const handleGenerate = (type: string, isRegen = false) => {
+    setGenerationError(null);
     setActionType(isRegen ? "REGENERATE" : "GENERATE");
     startTransition(async () => {
       let response;
@@ -378,7 +386,9 @@ export default function CaseAnalysisPanel({
             }));
             toast.info("Document generation started in the background...");
           } else {
-            toast.error("Failed to retrieve queued job details.");
+            const errMsg = (response as any).message || `Failed to generate ${type}.`;
+            toast.error(errMsg);
+            setGenerationError(errMsg);
             setActionType(null);
           }
         }
@@ -482,6 +492,25 @@ export default function CaseAnalysisPanel({
           </p>
         </div>
       </div>
+
+      {/* Persistent error banner */}
+      {generationError && (
+        <div className="rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/20 p-4 flex items-start gap-3 animate-fade-in">
+          <AlertTriangle className="h-5 w-5 text-rose-500 mt-0.5 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-rose-800 dark:text-rose-300">
+              {generationError}
+            </p>
+          </div>
+          <button
+            onClick={() => setGenerationError(null)}
+            className="text-rose-400 hover:text-rose-600 transition-colors flex-shrink-0"
+            aria-label="Dismiss error"
+          >
+            <span className="text-lg leading-none">&times;</span>
+          </button>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-12 items-start">
         {/* LEFT COLUMN: DOCUMENT NAVIGATION & SEARCH */}

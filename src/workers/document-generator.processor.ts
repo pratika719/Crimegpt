@@ -3,6 +3,7 @@ import type { DocumentGenerationJobPayload } from "@/lib/queue/job-types";
 import { setAITempState } from "@/lib/redis/ai-temp-state";
 import { documentGeneratorService } from "@/services/document-engine/document-generator.service";
 import { NonRetryableError } from "@/lib/error/retryable-error";
+import { AIProviderError } from "@/ai/providers/gemini-provider";
 import { aiObservabilityService } from "@/services/ai/ai-observability.service";
 import { cacheInvalidationService } from "@/services/cache/cache-invalidation.service";
 import { logger } from "@/lib/logger";
@@ -141,8 +142,29 @@ export async function processDocumentGenerationJob(
       "Document generation job failed",
     );
 
+    const errorMessage = error instanceof Error ? error.message : "Unknown AI generation error.";
+
+    // 429 (quota/rate-limit) → discard immediately, show user-friendly message
+    if (error instanceof AIProviderError && error.statusCode === 429) {
+      logger.warn(
+        { err: error, caseId, userId, documentType },
+        "Gemini quota exhausted (429) — discarding job",
+      );
+      await job.discard();
+      throw new NonRetryableError("AI service is currently overloaded. Please wait a moment and try again.");
+    }
+
+    // NonRetryableError → discard immediately (validation failures etc.)
+    if (error instanceof NonRetryableError) {
+      logger.warn(
+        { err: error, caseId, userId, documentType },
+        "Non-retryable error — discarding job",
+      );
+      await job.discard();
+      throw error;
+    }
+
     if (isFinal) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown AI generation error.";
       await aiObservabilityService.logFailure({
         caseId,
         userId,

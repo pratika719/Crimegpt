@@ -70,9 +70,6 @@ export class DocumentGeneratorService {
     }
     // ==========================================
 
-    // Enrich context with fallback defaults...
-    context = this.enrichContext(context)
-
     // 4. Retrieve legal context from PGVector if required
     let retrievedChunks: any[] = [];
     if (config.requiresRAG) {
@@ -131,7 +128,7 @@ export class DocumentGeneratorService {
       // a. Pessimistic lock on the Case row to serialize concurrent writes
       await tx.$executeRaw`SELECT id FROM "Case" WHERE id = ${caseId} FOR UPDATE`;
 
-      // b. Query latest document version for this type under the case or overwrite if request is retried (Idempotency check)
+      // b. Determine version: retry → overwrite same version; regeneration → replace all, start fresh; first-time → increment
       let nextVer = 1;
       if (requestId) {
         const docs = await tx.generatedDocument.findMany({
@@ -143,6 +140,7 @@ export class DocumentGeneratorService {
         });
 
         if (existingDoc) {
+          // Same requestId → job retry → overwrite same version
           nextVer = existingDoc.version;
           logger.info(
             { caseId, userId, documentType: type, requestId, version: nextVer },
@@ -151,11 +149,20 @@ export class DocumentGeneratorService {
           await tx.generatedDocument.delete({
             where: { id: existingDoc.id },
           });
-        } else {
-          const latestDoc = await documentRepository.findLatestByType(caseId, userId, type, tx);
-          nextVer = latestDoc ? latestDoc.version + 1 : 1;
+        } else if (docs.length > 0) {
+          // New requestId with existing docs → regeneration → replace all, start at version 1
+          logger.info(
+            { caseId, userId, documentType: type, existingCount: docs.length },
+            "Regeneration detected — deleting all existing documents and starting at version 1",
+          );
+          await tx.generatedDocument.deleteMany({
+            where: { caseId, type },
+          });
+          nextVer = 1;
         }
+        // else: first-time generation via worker → version 1 (default)
       } else {
+        // Sync (non-worker) path: increment version
         const latestDoc = await documentRepository.findLatestByType(caseId, userId, type, tx);
         nextVer = latestDoc ? latestDoc.version + 1 : 1;
       }

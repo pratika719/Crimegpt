@@ -4,7 +4,7 @@ import { QUEUE_NAMES } from "@/lib/queue/queue-names";
 import { processAIGenerationJob } from "@/workers/ai-generation.processor";
 import { processCleanupJob } from "@/workers/cleanup.processor";
 import { processDocumentGenerationJob } from "@/workers/document-generator.processor";
-import { processEmailJob } from "@/workers/email.proccessor";
+import { processEmailJob } from "@/workers/email.processor";
 import { processEmbeddingJob } from "@/workers/embedding.processor";
 import { processIngestionJob } from "@/workers/ingestion.processor";
 import { logger } from "@/lib/logger";
@@ -14,9 +14,16 @@ const connection = getRedisConnection() as any;
 
 const defaultWorkerOptions: WorkerOptions = {
   connection,
-  concurrency: WORKER_CONCURRENCY.DOCUMENT_GENERATION,
   autorun: true,
   skipVersionCheck: true,
+};
+
+// Document generation involves long-running Gemini API calls (up to ~60s) and DB transactions.
+// Use a longer lock duration to prevent BullMQ from marking jobs as stalled prematurely.
+const documentGenerationWorkerOptions: WorkerOptions = {
+  ...defaultWorkerOptions,
+  concurrency: WORKER_CONCURRENCY.DOCUMENT_GENERATION,
+  lockDuration: 120_000,
 };
 
 export function createWorkers() {
@@ -24,13 +31,16 @@ export function createWorkers() {
     new Worker(
       QUEUE_NAMES.DOCUMENT_GENERATION,
       processDocumentGenerationJob,
-      defaultWorkerOptions,
+      documentGenerationWorkerOptions,
     ),
 
     new Worker(
       QUEUE_NAMES.AI_GENERATION,
       processAIGenerationJob,
-      defaultWorkerOptions,
+      {
+        ...defaultWorkerOptions,
+        concurrency: WORKER_CONCURRENCY.DOCUMENT_GENERATION,
+      },
     ),
 
     new Worker(QUEUE_NAMES.EMBEDDING, processEmbeddingJob, {

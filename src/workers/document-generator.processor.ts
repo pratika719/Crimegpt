@@ -2,6 +2,7 @@ import type { Job } from "bullmq";
 import type { DocumentGenerationJobPayload } from "@/lib/queue/job-types";
 import { setAITempState } from "@/lib/redis/ai-temp-state";
 import { documentGeneratorService } from "@/services/document-engine/document-generator.service";
+import type { ProgressCallback } from "@/services/document-engine/document-generator.service";
 import { NonRetryableError } from "@/lib/error/retryable-error";
 import { AIProviderError } from "@/ai/providers/gemini-provider";
 import { aiObservabilityService } from "@/services/ai/ai-observability.service";
@@ -45,62 +46,42 @@ export async function processDocumentGenerationJob(
     "Document generation job started",
   );
 
-  await job.updateProgress({
-    status: "STARTED",
-    progress: 5,
-    message: "Document generation started.",
-  });
-
-  await setAITempState({
-    requestId,
-    caseId,
-    status: "RUNNING",
-    progress: 5,
-    message: "Document generation started.",
-    updatedAt: new Date().toISOString(),
-    metadata: {
-      documentType,
-      jobId: job.id,
-    },
-  });
-
-  await job.updateProgress({
-    status: "BUILDING_CONTEXT",
-    progress: 20,
-    message: "Building case context.",
-  });
-
-  await setAITempState({
-    requestId,
-    caseId,
-    status: "RETRIEVING_CONTEXT",
-    progress: 20,
-    message: "Building case context and retrieving laws.",
-    updatedAt: new Date().toISOString(),
-    metadata: {
-      documentType,
-      jobId: job.id,
-    },
-  });
-
   const startedAt = Date.now();
 
+  // Build a progress callback that updates BullMQ + AI temp state in lockstep
+  const onProgress: ProgressCallback = async (status, progress, message) => {
+    await job.updateProgress({ status, progress, message });
+
+    const aiStatus = status === "STARTED" ? "RUNNING"
+      : status === "COMPLETED" ? "COMPLETED"
+      : status === "SAVING" ? "SAVING"
+      : status === "FAILED" ? "FAILED"
+      : "GENERATING";
+
+    await setAITempState({
+      requestId,
+      caseId,
+      status: aiStatus as any,
+      progress,
+      message,
+      updatedAt: new Date().toISOString(),
+      metadata: {
+        documentType,
+        jobId: job.id,
+      },
+    });
+  };
+
   try {
+    // generateDocument now reports progress via the callback
+    // AND always writes rich observability data (prompt, response, tokens) inside the transaction.
     await documentGeneratorService.generateDocument(
       caseId,
       userId,
       documentType,
       requestId,
+      onProgress,
     );
-
-    await aiObservabilityService.logSuccess({
-      caseId,
-      userId,
-      jobId: job.id,
-      requestType: documentType,
-      modelUsed: GEMINI_MODEL,
-      latencyMs: Date.now() - startedAt,
-    });
 
     logger.info(
       {
@@ -144,78 +125,40 @@ export async function processDocumentGenerationJob(
 
     const errorMessage = error instanceof Error ? error.message : "Unknown AI generation error.";
 
-    // 429 (quota/rate-limit) → discard immediately, show user-friendly message
+    // Always set FAILED temp state so UI reflects failure immediately
+    await setAITempState({
+      requestId,
+      caseId,
+      status: "FAILED",
+      progress: 0,
+      message: errorMessage,
+      updatedAt: new Date().toISOString(),
+      metadata: { documentType, jobId: job.id },
+    });
+
+    // 429 (quota/rate-limit) → discard immediately with user-friendly message
     if (error instanceof AIProviderError && error.statusCode === 429) {
-      logger.warn(
-        { err: error, caseId, userId, documentType },
-        "Gemini quota exhausted (429) — discarding job",
-      );
+      logger.warn({ err: error, caseId, userId, documentType }, "Gemini quota exhausted (429) — discarding job");
       await job.discard();
       throw new NonRetryableError("AI service is currently overloaded. Please wait a moment and try again.");
     }
 
     // NonRetryableError → discard immediately (validation failures etc.)
     if (error instanceof NonRetryableError) {
-      logger.warn(
-        { err: error, caseId, userId, documentType },
-        "Non-retryable error — discarding job",
-      );
+      logger.warn({ err: error, caseId, userId, documentType }, "Non-retryable error — discarding job");
       await job.discard();
       throw error;
     }
 
     if (isFinal) {
       await aiObservabilityService.logFailure({
-        caseId,
-        userId,
-        jobId: job.id,
-        requestType: documentType,
-        modelUsed: GEMINI_MODEL,
-        latencyMs: Date.now() - startedAt,
-        failureReason: errorMessage,
+        caseId, userId, jobId: job.id, requestType: documentType,
+        modelUsed: GEMINI_MODEL, latencyMs: Date.now() - startedAt, failureReason: errorMessage,
       });
     }
 
     throw error;
   }
-
-  await job.updateProgress({
-    status: "SAVING",
-    progress: 90,
-    message: "Saving generated document.",
-  });
-
-  await setAITempState({
-    requestId,
-    caseId,
-    status: "SAVING",
-    progress: 90,
-    message: "Saving generated document.",
-    updatedAt: new Date().toISOString(),
-    metadata: {
-      documentType,
-      jobId: job.id,
-    },
-  });
-
-  await job.updateProgress({
-    status: "COMPLETED",
-    progress: 100,
-    message: "Document generation completed.",
-  });
-
-  await setAITempState({
-    requestId,
-    caseId,
-    status: "COMPLETED",
-    progress: 100,
-    message: "Document generation completed.",
-    updatedAt: new Date().toISOString(),
-    metadata: {
-      documentType,
-      jobId: job.id,
-    },
-  });
 
   return {
     requestId,

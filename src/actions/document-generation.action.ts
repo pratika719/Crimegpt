@@ -89,19 +89,9 @@ export async function generateDocumentAction(input: unknown) {
           "Document generation job enqueued successfully",
         );
 
-        try {
-          await cacheInvalidationService.invalidateCaseMutation({
-            userId: session.user.id,
-            caseId: data.caseId,
-          });
-        } catch (err) {
-          logger.warn(
-            { err, caseId: data.caseId },
-            "Failed to invalidate cache on document enqueue"
-          );
-        }
-
-        revalidatePath(`/case/${data.caseId}`);
+        // Cache invalidation happens in the worker after successful generation.
+        // Don't invalidate here — no new data exists yet, doing so only risks stale reads.
+        // revalidatePath here would be premature too.
 
         return actionSuccess({
           data: {

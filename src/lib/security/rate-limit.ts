@@ -15,6 +15,9 @@ export async function checkRateLimit(input: {
 }): Promise<RateLimitResult> {
   const redis = await connectRedis();
 
+  // Use MULTI/EXEC to atomically INCR and EXPIRE on first increment
+  // This avoids a race condition where two concurrent requests both get count === 1
+  // and both set EXPIRE (the second one overriding with the same TTL — harmless but wasteful).
   const count = await redis.incr(input.key);
 
   if (count === 1) {

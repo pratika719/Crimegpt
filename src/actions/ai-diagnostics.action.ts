@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/auth";
+import { aiDiagnosticsService } from "@/services/case/ai-diagnostics.service";
 
 /**
  * Server action to trigger AI diagnostics for a case.
@@ -20,7 +21,6 @@ export async function runAIDiagnosticsAction(caseId: string) {
       };
     }
 
-    const { aiDiagnosticsService } = await import("@/services/case/ai-diagnostics.service");
     const result = await aiDiagnosticsService.runDiagnostics(caseId, userId);
 
     return {

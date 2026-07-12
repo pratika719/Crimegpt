@@ -26,6 +26,7 @@ export class AIObservabilityService {
     modelUsed?: string;
     tokenUsage?: number;
     caseId?: string;
+    queueJobId?: string;
   }, tx?: any) {
     return aiRequestLogRepository.create(userId, data, tx);
   }

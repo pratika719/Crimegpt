@@ -52,7 +52,7 @@ import http from "node:http";
 
 const healthPort = Number(process.env.PORT || 10000);
 
-const healthServer = http.createServer((req, res) => {
+const healthServer = http.createServer(async (req, res) => {
   if (req.url === "/health") {
     res.writeHead(200, { "content-type": "application/json" });
     res.end(
@@ -63,6 +63,35 @@ const healthServer = http.createServer((req, res) => {
       })
     );
     return;
+  }
+
+  // Readiness probe: verify Redis is connected and responsive
+  if (req.url === "/ready") {
+    try {
+      const { pingRedis } = await import("@/lib/redis");
+      const redisOk = (await pingRedis()) === "ok";
+
+      if (!redisOk) {
+        res.writeHead(503, { "content-type": "application/json" });
+        res.end(JSON.stringify({ status: "not_ready", reason: "Redis not reachable" }));
+        return;
+      }
+
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(
+        JSON.stringify({
+          status: "ok",
+          ready: true,
+          service: process.env.SERVICE_NAME ?? "crimegpt-worker",
+          timestamp: new Date().toISOString(),
+        })
+      );
+      return;
+    } catch (err) {
+      res.writeHead(503, { "content-type": "application/json" });
+      res.end(JSON.stringify({ status: "not_ready", reason: "Readiness check failed" }));
+      return;
+    }
   }
 
   res.writeHead(404, { "content-type": "application/json" });

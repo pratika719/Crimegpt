@@ -2,6 +2,7 @@ import type { Job } from "bullmq";
 import type { DocumentGenerationJobPayload } from "@/lib/queue/job-types";
 import { setAITempState } from "@/lib/redis/ai-temp-state";
 import { documentGeneratorService } from "@/services/document-engine/document-generator.service";
+import type { ProgressCallback } from "@/services/document-engine/document-generator.service";
 import { NonRetryableError } from "@/lib/error/retryable-error";
 import { aiObservabilityService } from "@/services/ai/ai-observability.service";
 import { cacheInvalidationService } from "@/services/cache/cache-invalidation.service";
@@ -44,62 +45,42 @@ export async function processDocumentGenerationJob(
     "Document generation job started",
   );
 
-  await job.updateProgress({
-    status: "STARTED",
-    progress: 5,
-    message: "Document generation started.",
-  });
-
-  await setAITempState({
-    requestId,
-    caseId,
-    status: "RUNNING",
-    progress: 5,
-    message: "Document generation started.",
-    updatedAt: new Date().toISOString(),
-    metadata: {
-      documentType,
-      jobId: job.id,
-    },
-  });
-
-  await job.updateProgress({
-    status: "BUILDING_CONTEXT",
-    progress: 20,
-    message: "Building case context.",
-  });
-
-  await setAITempState({
-    requestId,
-    caseId,
-    status: "RETRIEVING_CONTEXT",
-    progress: 20,
-    message: "Building case context and retrieving laws.",
-    updatedAt: new Date().toISOString(),
-    metadata: {
-      documentType,
-      jobId: job.id,
-    },
-  });
-
   const startedAt = Date.now();
 
+  // Build a progress callback that updates BullMQ + AI temp state in lockstep
+  const onProgress: ProgressCallback = async (status, progress, message) => {
+    await job.updateProgress({ status, progress, message });
+
+    const aiStatus = status === "STARTED" ? "RUNNING"
+      : status === "COMPLETED" ? "COMPLETED"
+      : status === "SAVING" ? "SAVING"
+      : status === "FAILED" ? "FAILED"
+      : "GENERATING";
+
+    await setAITempState({
+      requestId,
+      caseId,
+      status: aiStatus as any,
+      progress,
+      message,
+      updatedAt: new Date().toISOString(),
+      metadata: {
+        documentType,
+        jobId: job.id,
+      },
+    });
+  };
+
   try {
+    // generateDocument now reports progress via the callback
+    // AND always writes rich observability data (prompt, response, tokens) inside the transaction.
     await documentGeneratorService.generateDocument(
       caseId,
       userId,
       documentType,
       requestId,
+      onProgress,
     );
-
-    await aiObservabilityService.logSuccess({
-      caseId,
-      userId,
-      jobId: job.id,
-      requestType: documentType,
-      modelUsed: GEMINI_MODEL,
-      latencyMs: Date.now() - startedAt,
-    });
 
     logger.info(
       {
@@ -141,8 +122,24 @@ export async function processDocumentGenerationJob(
       "Document generation job failed",
     );
 
+    const errorMessage = error instanceof Error ? error.message : "Unknown AI generation error.";
+
+    // Set FAILED temp state so the UI can immediately reflect the error
+    // without waiting for the next polling cycle.
+    await setAITempState({
+      requestId,
+      caseId,
+      status: "FAILED",
+      progress: 0,
+      message: errorMessage,
+      updatedAt: new Date().toISOString(),
+      metadata: {
+        documentType,
+        jobId: job.id,
+      },
+    });
+
     if (isFinal) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown AI generation error.";
       await aiObservabilityService.logFailure({
         caseId,
         userId,
@@ -156,44 +153,6 @@ export async function processDocumentGenerationJob(
 
     throw error;
   }
-
-  await job.updateProgress({
-    status: "SAVING",
-    progress: 90,
-    message: "Saving generated document.",
-  });
-
-  await setAITempState({
-    requestId,
-    caseId,
-    status: "SAVING",
-    progress: 90,
-    message: "Saving generated document.",
-    updatedAt: new Date().toISOString(),
-    metadata: {
-      documentType,
-      jobId: job.id,
-    },
-  });
-
-  await job.updateProgress({
-    status: "COMPLETED",
-    progress: 100,
-    message: "Document generation completed.",
-  });
-
-  await setAITempState({
-    requestId,
-    caseId,
-    status: "COMPLETED",
-    progress: 100,
-    message: "Document generation completed.",
-    updatedAt: new Date().toISOString(),
-    metadata: {
-      documentType,
-      jobId: job.id,
-    },
-  });
 
   return {
     requestId,

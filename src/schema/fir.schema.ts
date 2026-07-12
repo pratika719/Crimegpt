@@ -29,7 +29,8 @@ export const FIRSchema = z.object({
         reason: z.string().min(1, "Applicability reasoning is required"),
       })
     )
-    .min(1, "At least one applicable section is required"),
+    .optional()
+    .default([]),
 
   factsOfCase: z
     .string()

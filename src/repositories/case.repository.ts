@@ -134,12 +134,14 @@ export class CaseRepository {
       title?: string;
       narrative?: string;
       status?: CaseStatus;
-    }
+    },
+    tx?: any
   ) {
-    const c = await prisma.case.findFirst({ where: { id, userId } });
+    const client = tx || prisma;
+    const c = await client.case.findFirst({ where: { id, userId } });
     if (!c) throw new Error("Case not found or unauthorized");
 
-    return prisma.case.update({
+    return client.case.update({
       where: { id },
       data,
     });

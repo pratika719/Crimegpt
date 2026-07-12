@@ -8,7 +8,7 @@ const globalForBullMQ = globalThis as unknown as {
 
 
 function getBullMQRedisUrl(): string {
-  const redisUrl = process.env.REDIS_URL || process.env.REDIS_URL;
+  const redisUrl = process.env.REDIS_URL || process.env.REDIS_TLS_URL;
 
   if (!redisUrl) {
     // Prevent Next.js compilation crashes during build if environment variables are not supplied

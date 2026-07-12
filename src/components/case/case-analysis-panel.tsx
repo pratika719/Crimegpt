@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { 
   Brain, 
@@ -183,8 +183,7 @@ export default function CaseAnalysisPanel({
   // Custom version state for each document type
   const [customVersion, setCustomVersion] = useState<Record<string, number>>({});
 
-  const [generationProgress, setGenerationProgress] = useState(0);
-  const [generationStep, setGenerationStep] = useState<"analyzing" | "generating" | "saving" | "completed">("analyzing");
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
   // Keep track of generating background jobs per document type
   const [generatingJobs, setGeneratingJobs] = useState<Record<string, { jobId: string; queueName: string }>>({});
@@ -196,6 +195,10 @@ export default function CaseAnalysisPanel({
     queueName: activeJobInfo?.queueName ?? null,
     enabled: Boolean(activeJobInfo),
     intervalMs: 5000,
+    // If worker is down, detect within ~3 poll cycles (15s)
+    // If generation runs long, hard timeout at 90s
+    maxPollingMs: 90_000,
+    waitingStallMs: 15_000,
   });
 
   const isJobRunning =
@@ -205,8 +208,22 @@ export default function CaseAnalysisPanel({
     isPolling;
 
   // Handle completion, failure, and error in polling
+  // Unified error handler — called by BOTH the status effect AND the error effect
+  const handleGenerationError = useCallback((errorMessage: string) => {
+    setGenerationError(errorMessage);
+    toast.error(errorMessage);
+    setGeneratingJobs((prev) => {
+      const next = { ...prev };
+      delete next[activeType];
+      return next;
+    });
+    setActionType(null);
+  }, [activeType]);
+
+  // Handle completion, failure, and error in polling
   useEffect(() => {
     if (status?.state === "completed") {
+      setGenerationError(null);
       toast.success(`${activeMeta.title} generated successfully!`);
       setGeneratingJobs((prev) => {
         const next = { ...prev };
@@ -216,73 +233,28 @@ export default function CaseAnalysisPanel({
       setActionType(null);
       router.refresh();
     } else if (status?.state === "failed") {
-      toast.error(`Generation failed: ${status.failedReason || "Please try again."}`);
-      setGeneratingJobs((prev) => {
-        const next = { ...prev };
-        delete next[activeType];
-        return next;
-      });
-      setActionType(null);
+      handleGenerationError(status.failedReason || `${activeMeta.title} generation failed. Please try again.`);
     } else if (status?.state === "unknown") {
-      if (status.failedReason) {
-        toast.error(`Generation status: ${status.failedReason}`);
-        setGeneratingJobs((prev) => {
-          const next = { ...prev };
-          delete next[activeType];
-          return next;
-        });
-        setActionType(null);
-      }
+      handleGenerationError(
+        status.failedReason || "Job status could not be determined — the job may have been cleaned up."
+      );
     }
-  }, [status?.state, status?.failedReason, activeType, router, activeMeta.title]);
+  }, [status?.state, status?.failedReason, activeType, router, activeMeta.title, handleGenerationError]);
 
   useEffect(() => {
     if (error) {
-      toast.error(error);
-      setGeneratingJobs((prev) => {
-        const next = { ...prev };
-        delete next[activeType];
-        return next;
-      });
-      setActionType(null);
+      handleGenerationError(error);
     }
-  }, [error, activeType]);
+  }, [error, handleGenerationError]);
 
+  // Clear the persistent error when starting a new generation
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isPending) {
-      setGenerationProgress(0);
-      setGenerationStep("analyzing");
-      
-      const startTime = Date.now();
-      // Simulate progress over roughly 15 seconds
-      interval = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        let progress = Math.min((elapsed / 15000) * 100, 95);
-        
-        // Add minor random variance to make it feel natural
-        progress += Math.random() * 2;
-        progress = Math.min(progress, 95);
-        
-        setGenerationProgress(progress);
-        
-        if (progress < 30) {
-          setGenerationStep("analyzing");
-        } else if (progress < 80) {
-          setGenerationStep("generating");
-        } else {
-          setGenerationStep("saving");
-        }
-      }, 300);
-    } else {
-      setGenerationProgress(100);
-      setGenerationStep("completed");
+    if (activeJobInfo) {
+      setGenerationError(null);
     }
-    
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isPending]);
+  }, [activeJobInfo]);
+
+  // Keep the isPending transition for the server action (sub-second), but no fake progress bar
 
   // Filter types based on search and type filter
   const filteredDocTypes = DOCUMENT_TYPES_METADATA.filter((docMeta) => {
@@ -583,78 +555,17 @@ export default function CaseAnalysisPanel({
 
         {/* RIGHT COLUMN: DOCUMENT PREVIEW & CONTROL CENTER */}
         <div className="lg:col-span-8 space-y-4">
-          {/* Active Generation Loading State */}
+          {/* Quick-loading state while the server action queues the job */}
           {isPending && (
-            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 md:p-12 shadow-sm space-y-8 animate-fade-in">
+            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 shadow-sm animate-fade-in">
               <div className="flex flex-col items-center justify-center text-center space-y-3">
                 <div className="relative">
                   <div className="absolute inset-0 rounded-full bg-blue-500/20 blur-md animate-pulse" />
-                  <Loader2 className="h-10 w-10 text-blue-500 animate-spin relative" />
+                  <Loader2 className="h-8 w-8 text-blue-500 animate-spin relative" />
                 </div>
-                <div className="space-y-1">
-                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                    {actionType === "REGENERATE" ? "Regenerating Document..." : "Drafting Police Document..."}
-                  </h4>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm">
-                    {generationStep === "analyzing" && "Structuring incident context, mapping facts, and compiling dossier profiles..."}
-                    {generationStep === "generating" && `Querying PGVector legal database & running Gemini ${activeMeta.requiresRAG ? "RAG" : ""} reasoning...`}
-                    {generationStep === "saving" && "Validating document JSON output, committing database transaction, and logging activities..."}
-                  </p>
-                </div>
-              </div>
-
-              {/* Progress Bar Container */}
-              <div className="space-y-2 max-w-md mx-auto">
-                <div className="flex items-center justify-between text-[10px] font-mono font-bold text-zinc-500 dark:text-zinc-400">
-                  <span>PROGRESS</span>
-                  <span>{Math.round(generationProgress)}%</span>
-                </div>
-                <div className="h-2 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden border border-zinc-200/50 dark:border-zinc-700/50">
-                  <div 
-                    className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-full transition-all duration-300 ease-out" 
-                    style={{ width: `${generationProgress}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Step Indicators */}
-              <div className="max-w-md mx-auto grid grid-cols-3 gap-4 pt-2 border-t border-zinc-100 dark:border-zinc-800/80">
-                <div className="flex flex-col items-center text-center space-y-1">
-                  <div className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold border transition-colors ${
-                    generationProgress > 30 
-                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500"
-                      : "bg-blue-500/10 border-blue-500/30 text-blue-500 animate-pulse"
-                  }`}>
-                    {generationProgress > 30 ? "✓" : "1"}
-                  </div>
-                  <span className="text-[10px] font-medium text-zinc-700 dark:text-zinc-300">Intake Analysis</span>
-                </div>
-
-                <div className="flex flex-col items-center text-center space-y-1">
-                  <div className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold border transition-colors ${
-                    generationProgress > 80 
-                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500"
-                      : generationProgress > 30 
-                        ? "bg-blue-500/10 border-blue-500/30 text-blue-500 animate-pulse"
-                        : "bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-400"
-                  }`}>
-                    {generationProgress > 80 ? "✓" : "2"}
-                  </div>
-                  <span className="text-[10px] font-medium text-zinc-700 dark:text-zinc-300">Gemini Generation</span>
-                </div>
-
-                <div className="flex flex-col items-center text-center space-y-1">
-                  <div className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold border transition-colors ${
-                    generationProgress >= 95 
-                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500"
-                      : generationProgress > 80 
-                        ? "bg-blue-500/10 border-blue-500/30 text-blue-500 animate-pulse"
-                        : "bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-400"
-                  }`}>
-                    {generationProgress >= 95 ? "✓" : "3"}
-                  </div>
-                  <span className="text-[10px] font-medium text-zinc-700 dark:text-zinc-300">Commit Transaction</span>
-                </div>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Queuing document generation...
+                </p>
               </div>
             </div>
           )}
@@ -740,6 +651,30 @@ export default function CaseAnalysisPanel({
                     </button>
                   </div>
                 </div>
+              ) : generationError ? (
+                /* Persistent Error State */
+                <div className="rounded-xl border border-rose-200 dark:border-rose-900/40 bg-rose-50/50 dark:bg-rose-950/20 p-6 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="h-8 w-8 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center flex-shrink-0">
+                      <AlertTriangle className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-semibold text-rose-800 dark:text-rose-300">
+                        Generation Failed
+                      </h4>
+                      <p className="text-xs text-rose-600 dark:text-rose-400 leading-relaxed">
+                        {generationError}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleGenerate(activeType, false)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/20 transition-colors"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Try Again
+                  </button>
+                </div>
               ) : isJobRunning ? (
                 /* Un-generated Active Polling State */
                 <div className="rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-12 text-center flex flex-col items-center justify-center space-y-4">
@@ -765,21 +700,6 @@ export default function CaseAnalysisPanel({
                         Document is generating in the background.
                       </p>
                     )}
-                    {status?.state === "completed" && (
-                      <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-                        Document generated successfully. Refreshing documents...
-                      </p>
-                    )}
-                    {status?.state === "failed" && (
-                      <p className="text-xs text-rose-600 dark:text-rose-400">
-                        Generation failed: {status.failedReason ?? "Please try again."}
-                      </p>
-                    )}
-                    {error && (
-                      <p className="text-xs text-rose-600 dark:text-rose-400 font-medium">
-                        {error}
-                      </p>
-                    )}
                   </div>
                 </div>
               ) : (
@@ -793,14 +713,14 @@ export default function CaseAnalysisPanel({
                       Draft {activeMeta.title}
                     </h3>
                     <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                      {activeMeta.description} Use CrimeGPT&apos;s Unified Case Data Pool to compile a validated, structured legal draft.
+                      {activeMeta.description}
                     </p>
                   </div>
                   <button
-                    onClick={() => handleGenerate(activeType, false)}
+                    onClick={() => handleGenerate(activeType)}
                     className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90 transition-opacity"
                   >
-                    <Cpu className="h-4 w-4 animate-pulse" />
+                    <Cpu className="h-4 w-4" />
                     Generate Document
                   </button>
                 </div>
@@ -810,16 +730,11 @@ export default function CaseAnalysisPanel({
               {activeDoc && (
                 <div className="space-y-6">
                   {isJobRunning && (
-                    <div className="rounded-xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/40 dark:bg-blue-950/20 p-4 flex items-center gap-3 animate-pulse">
+                    <div className="rounded-xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/40 dark:bg-blue-950/20 p-4 flex items-center gap-3">
                       <Loader2 className="h-5 w-5 text-blue-500 animate-spin flex-shrink-0" />
-                      <div className="text-xs text-zinc-800 dark:text-zinc-200">
-                        {activeJobInfo && !status && "Regeneration started. This may take 30–60 seconds."}
-                        {status?.state === "waiting" && "Document generation is queued."}
-                        {status?.state === "active" && "Document is generating in the background."}
-                        {status?.state === "completed" && "Document regenerated successfully. Refreshing..."}
-                        {status?.state === "failed" && `Regeneration failed: ${status.failedReason ?? "Please try again."}`}
-                        {error && error}
-                      </div>
+                      <p className="text-xs text-zinc-800 dark:text-zinc-200">
+                        Document is regenerating in the background.
+                      </p>
                     </div>
                   )}
                   {/* Legal Analysis View */}

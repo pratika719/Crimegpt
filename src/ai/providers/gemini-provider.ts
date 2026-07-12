@@ -51,7 +51,9 @@ export class GeminiProvider {
       },
     });
 
-    const maxRetries = 3;
+    // Retry once only — BullMQ at the queue level provides the outer retry layer.
+    // Stacking retries here × BullMQ retries multiplies cost without benefit.
+    const maxRetries = 1;
     let lastError: any = null;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {

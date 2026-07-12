@@ -330,7 +330,9 @@ export default function CaseAnalysisPanel({
       }
 
       if (!response.success) {
-        toast.error((response as any).message || `Failed to generate ${type}.`);
+        const errMsg = (response as any).message || `Failed to generate ${type}.`;
+        setGenerationError(errMsg);
+        toast.error(errMsg);
         setActionType(null);
       } else {
         if (type === "LEGAL_ANALYSIS") {

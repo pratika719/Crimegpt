@@ -89,17 +89,26 @@ export class DocumentGeneratorService {
       }
 
       // 4. Retrieve legal context from PGVector if required
+      //    RAG failure is non-fatal — the AI can still generate a document without legal context.
       let retrievedChunks: any[] = [];
       if (config.requiresRAG) {
         logger.info(
           { caseId, userId, documentType: type },
           "Querying PGVector legal retrieval",
         );
-        retrievedChunks = await lawRetriever.retrieve(context.narrative, 5);
-        logger.info(
-          { caseId, userId, documentType: type, chunksCount: retrievedChunks.length },
-          "Retrieved law sections from PGVector",
-        );
+        try {
+          retrievedChunks = await lawRetriever.retrieve(context.narrative, 5);
+          logger.info(
+            { caseId, userId, documentType: type, chunksCount: retrievedChunks.length },
+            "Retrieved law sections from PGVector",
+          );
+        } catch (ragErr) {
+          logger.warn(
+            { err: ragErr, caseId, userId, documentType: type },
+            "RAG retrieval failed — continuing without legal context"
+          );
+          retrievedChunks = [];
+        }
       }
 
       // Report: RETRIEVING_CONTEXT
@@ -231,8 +240,15 @@ export class DocumentGeneratorService {
         "Document generation complete",
       );
 
-      // Report: COMPLETED
-      await onProgress?.("COMPLETED", 100, "Document generation completed.");
+      // Report: COMPLETED — non-critical, must not crash the transaction
+      try {
+        await onProgress?.("COMPLETED", 100, "Document generation completed.");
+      } catch (progressErr) {
+        logger.warn(
+          { err: progressErr, caseId, userId, documentType: type },
+          "Progress callback failed after document save — non-fatal"
+        );
+      }
 
       return document;
     });

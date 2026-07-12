@@ -151,6 +151,15 @@ export async function processDocumentGenerationJob(
       });
     }
 
+    // Prevent BullMQ from retrying NonRetryableErrors
+    if (error instanceof NonRetryableError) {
+      await job.discard();
+      logger.info(
+        { jobId: job.id, caseId, userId, documentType },
+        "Discarded job — non-retryable error",
+      );
+    }
+
     throw error;
   }
 

@@ -31,6 +31,7 @@ export class AIRequestLogRepository {
       modelUsed?: string;
       tokenUsage?: number;
       caseId?: string;
+      queueJobId?: string;
     },
     tx?: any
   ): Promise<any>;
@@ -45,6 +46,7 @@ export class AIRequestLogRepository {
       modelUsed?: string;
       tokenUsage?: number;
       caseId?: string;
+      queueJobId?: string;
     },
     tx?: any
   ): Promise<any> {

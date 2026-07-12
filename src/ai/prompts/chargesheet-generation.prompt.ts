@@ -1,17 +1,13 @@
 import { UnifiedCaseContext } from "@/services/case/unified-context.service";
 import { formatUnifiedContextForPrompt, sanitizeUserNarrative } from "./prompt-context-builder";
 import { CleanedLawReference } from "../retrievers/law.retriever";
+import { promptExecutionHelper } from "@/services/shared/ai-shared.service";
 
 export function buildChargeSheetPrompt(context: UnifiedCaseContext, laws: CleanedLawReference[]): string {
-  const lawsContext = laws.length > 0
-    ? laws.map((law, index) => `
-[LAW REFERENCE ${index + 1}]
-Source: ${law.source}
-Section: ${law.section}
-Offense: ${law.offense}
-Description: ${law.description}
---------------------------------------------------`).join("\n")
-    : "No direct law references found. Do NOT cite any IPC sections. Mark confidence as LOW and explain that no legal references were found.";
+  const lawsContext = promptExecutionHelper.formatLawsContext(
+    laws,
+    "No direct law references found. Do NOT cite any IPC sections. Mark confidence as LOW and explain that no legal references were found."
+  );
 
   const serializedContext = formatUnifiedContextForPrompt(context);
   const sanitizedNarrative = sanitizeUserNarrative(context.narrative);

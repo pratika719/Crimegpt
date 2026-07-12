@@ -1,6 +1,7 @@
 import { CleanedLawReference } from "../retrievers/law.retriever";
 import { UnifiedCaseContext } from "@/services/case/unified-context.service";
 import { sanitizeUserNarrative } from "./prompt-context-builder";
+import { promptExecutionHelper } from "@/services/shared/ai-shared.service";
 
 /**
  * Builds the strict instruction prompt for Gemini 2.5 Flash to generate a structured FIR.
@@ -11,16 +12,10 @@ import { sanitizeUserNarrative } from "./prompt-context-builder";
  * @returns Formatted prompt string.
  */
 export function buildFIRGenerationPrompt(context: UnifiedCaseContext, laws: CleanedLawReference[]): string {
-  const lawsContext = laws.length > 0 
-    ? laws.map((law, index) => `
-[LAW REFERENCE ${index + 1}]
-Source: ${law.source}
-Section: ${law.section}
-Offense: ${law.offense}
-Punishment: ${law.punishment}
-Description: ${law.description}
---------------------------------------------------`).join("\n")
-    : "No direct law references found in the database. Do NOT cite any IPC sections. Mark confidence as LOW and explain that no legal references were found.";
+  const lawsContext = promptExecutionHelper.formatLawsContext(
+    laws,
+    "No direct law references found in the database. Do NOT cite any IPC sections. Mark confidence as LOW and explain that no legal references were found."
+  );
 
   const profile = context.investigationProfile;
   const policeInfo = profile 

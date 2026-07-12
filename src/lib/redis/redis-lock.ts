@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
 import { connectRedis } from "./redis";
+import { RetryableError } from "@/lib/error/retryable-error";
+
 
 export type AcquiredRedisLock = {
   key: string;
@@ -47,7 +49,7 @@ export async function withRedisLock<T>(
   const lock = await acquireRedisLock(key, ttlMs);
 
   if (!lock) {
-    throw new Error("Resource is locked. Another operation is already running.");
+    throw new RetryableError("Resource is locked. Another operation is already running.");
   }
 
   try {

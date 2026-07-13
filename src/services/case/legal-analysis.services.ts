@@ -1,17 +1,18 @@
 import { CaseRepository } from "@/repositories/case.repository";
-import { documentRepository } from "@/repositories/document.repository";
 import { legalAnalysisChain } from "@/ai/chains/legal-analysis.chain";
 import { DocumentType, AIRequestType } from "@/generated/prisma/client";
 import { generatedDocumentService, aiObservabilityService } from "@/services/shared/ai-shared.service";
 import { activityService } from "@/services/activity/activity.service";
 import { unifiedContextService } from "@/services/case/unified-context.service";
+import { prisma } from "@/lib/prisma";
+import { withRedisLock } from "@/lib/redis/redis-lock";
+import { logger } from "@/lib/logger";
 
 /**
  * Service orchestrating the retrieval, LLM analysis, database persistence, and observability log generation.
  */
 export class LegalAnalysisService {
   private caseRepository = new CaseRepository();
-  private documentRepository = documentRepository;
 
   /**
    * Runs legal analysis on a case statement, saves the results as a legal document,
@@ -22,57 +23,79 @@ export class LegalAnalysisService {
    * @returns Persisted GeneratedDocument instance.
    */
   async analyzeCase(caseId: string, userId: string) {
-    console.log(`💼 [LegalAnalysisService] Fetching case narrative for ID: ${caseId} by user: ${userId}`);
-    
-    // 1. Fetch case details
-    const caseItem = await this.caseRepository.findById(caseId, userId);
-    if (!caseItem) {
-      throw new Error(`Case not found for ID: ${caseId}`);
-    }
+    return withRedisLock(`lock:legal-analysis:${caseId}`, 120_000, async () => {
+      logger.info({ caseId, userId }, "Legal analysis started");
 
-    // 2. Execute the RAG Chain with Unified Case Context
-    console.log(`💼 [LegalAnalysisService] Building unified case context...`);
-    const context = await unifiedContextService.buildUnifiedCaseContext(caseId, userId);
+      // 1. Fetch case details
+      const caseItem = await this.caseRepository.findById(caseId, userId);
+      if (!caseItem) {
+        throw new Error(`Case not found for ID: ${caseId}`);
+      }
 
-    console.log(`💼 [LegalAnalysisService] Launching AI legal analysis chain...`);
-    const chainOutput = await legalAnalysisChain.execute(context);
+      // 2. Execute the RAG Chain with Unified Case Context
+      logger.info({ caseId, userId }, "Building unified case context for legal analysis");
+      const context = await unifiedContextService.buildUnifiedCaseContext(caseId, userId);
 
-    // 3. Delete any previous AI Legal Analysis documents for this case (supports regeneration)
-    console.log(`💼 [LegalAnalysisService] Cleaning up old analysis records...`);
-    await this.documentRepository.deleteManyByType(caseId, userId, DocumentType.LEGAL_ANALYSIS);
+      logger.info({ caseId, userId }, "Launching AI legal analysis chain");
+      const chainOutput = await legalAnalysisChain.execute(context);
 
-    // 4. Save results to GeneratedDocument table using shared service
-    console.log(`💼 [LegalAnalysisService] Storing legal analysis document...`);
-    const document = await generatedDocumentService.saveDocument(userId, {
-      caseId,
-      type: DocumentType.LEGAL_ANALYSIS,
-      title: `AI Legal Analysis: ${caseItem.title}`,
-      content: chainOutput.result, // Zod-validated structured JSON
+      // 3. Execute all DB writes atomically inside a single transaction
+      const document = await prisma.$transaction(async (tx) => {
+        // a. Pessimistic lock on the Case row to serialize concurrent writes
+        await tx.$executeRaw`SELECT id FROM "Case" WHERE id = ${caseId} FOR UPDATE`;
+
+        // b. Compute next version from existing docs
+        const existingDocs = await tx.generatedDocument.findMany({
+          where: { caseId, type: DocumentType.LEGAL_ANALYSIS },
+        });
+        const nextVer = existingDocs.length > 0
+          ? Math.max(...existingDocs.map((d: any) => d.version)) + 1
+          : 1;
+
+        // c. Delete all previous legal analysis docs (keep table clean)
+        if (existingDocs.length > 0) {
+          await tx.generatedDocument.deleteMany({
+            where: { caseId, type: DocumentType.LEGAL_ANALYSIS },
+          });
+        }
+
+        // d. Save new document with incremented version
+        const doc = await generatedDocumentService.saveDocument(userId, {
+          caseId,
+          type: DocumentType.LEGAL_ANALYSIS,
+          title: `AI Legal Analysis: ${caseItem.title} - v${nextVer}`,
+          content: chainOutput.result,
+          version: nextVer,
+        }, tx);
+
+        // e. Store telemetry in AIRequestLog
+        await aiObservabilityService.logRequest(userId, {
+          requestType: AIRequestType.LEGAL_ANALYSIS,
+          prompt: chainOutput.promptText,
+          retrievedContext: JSON.stringify(chainOutput.retrievedChunks),
+          response: chainOutput.rawResponse,
+          latencyMs: chainOutput.latencyMs,
+          modelUsed: chainOutput.modelUsed,
+          caseId,
+        }, tx);
+
+        // f. Log activity
+        await activityService.logDocumentGenerated(caseId, userId, DocumentType.LEGAL_ANALYSIS, doc.title, nextVer, tx);
+
+        // g. Transition case status from OPEN to UNDER_INVESTIGATION
+        if (caseItem.status === "OPEN") {
+          await this.caseRepository.updateStatus(caseId, userId, "UNDER_INVESTIGATION", tx);
+        }
+
+        return doc;
+      }, {
+        maxWait: 20000,
+        timeout: 40000,
+      });
+
+      logger.info({ caseId, userId, version: document.version }, "Legal analysis complete");
+      return document;
     });
-
-    // 5. Store telemetry and RAG observability in AIRequestLog table using shared service
-    console.log(`💼 [LegalAnalysisService] Storing AI request logs for observability...`);
-    await aiObservabilityService.logRequest(userId, {
-      requestType: AIRequestType.LEGAL_ANALYSIS,
-      prompt: chainOutput.promptText,
-      retrievedContext: JSON.stringify(chainOutput.retrievedChunks),
-      response: chainOutput.rawResponse,
-      latencyMs: chainOutput.latencyMs,     
-      modelUsed: chainOutput.modelUsed,
-      caseId,
-    });
-
-    // Log Document Generated Activity
-    await activityService.logDocumentGenerated(caseId, userId, DocumentType.LEGAL_ANALYSIS, document.title);
-
-    // 6. Automatically transition Case status from OPEN to UNDER_INVESTIGATION
-    if (caseItem.status === "OPEN") {
-      console.log(`💼 [LegalAnalysisService] Upgrading case status to UNDER_INVESTIGATION...`);
-      await this.caseRepository.updateStatus(caseId, userId, "UNDER_INVESTIGATION");
-    }
-
-    console.log(`💼 [LegalAnalysisService] Case analysis complete.`);
-    return document;
   }
 }
 

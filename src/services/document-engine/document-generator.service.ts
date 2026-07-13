@@ -164,7 +164,10 @@ export class DocumentGeneratorService {
         // a. Pessimistic lock on the Case row to serialize concurrent writes
         await tx.$executeRaw`SELECT id FROM "Case" WHERE id = ${caseId} FOR UPDATE`;
 
-        // b. Query latest document version — retry → overwrite same version; regeneration → replace all; first-time → v1
+        // b. Query latest document version:
+        //    - Same requestId → job retry → overwrite same version
+        //    - New requestId with existing docs → regeneration → increment version
+        //    - No docs → first-time → version 1
         let nextVer = 1;
         if (requestId) {
           const docs = await tx.generatedDocument.findMany({
@@ -186,15 +189,16 @@ export class DocumentGeneratorService {
               where: { id: existingDoc.id },
             });
           } else if (docs.length > 0) {
-            // New requestId with existing docs → regeneration → replace all, start at version 1
+            // New requestId with existing docs → regeneration → increment version
+            const maxVersion = Math.max(...docs.map((d) => d.version));
+            nextVer = maxVersion + 1;
             logger.info(
-              { caseId, userId, documentType: type, existingCount: docs.length },
-              "Regeneration detected — deleting all existing documents and starting at version 1",
+              { caseId, userId, documentType: type, existingCount: docs.length, nextVersion: nextVer },
+              "Regeneration detected — deleting all existing documents and creating new version",
             );
             await tx.generatedDocument.deleteMany({
               where: { caseId, type },
             });
-            nextVer = 1;
           }
           // else: first-time generation via worker → version 1 (default)
         } else {

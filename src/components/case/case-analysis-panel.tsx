@@ -196,8 +196,9 @@ export default function CaseAnalysisPanel({
     jobId: activeJobInfo?.jobId ?? null,
     queueName: activeJobInfo?.queueName ?? null,
     enabled: Boolean(activeJobInfo),
-    intervalMs: 5000,
-    // If worker is down, detect within ~3 poll cycles (15s)
+    // Poll every 15s — saves Redis commands vs 5s, generation takes ~30-60s anyway
+    intervalMs: 15000,
+    // If worker is down, detect within ~3 poll cycles (45s)
     // If generation runs long, hard timeout at 90s
     maxPollingMs: 90_000,
     waitingStallMs: 15_000,
@@ -213,6 +214,12 @@ export default function CaseAnalysisPanel({
     if (status?.state === "completed") {
       toast.success(`${activeMeta.title} generated successfully!`);
       setGeneratingJobs((prev) => {
+        const next = { ...prev };
+        delete next[activeType];
+        return next;
+      });
+      // Clear custom version so the dropdown auto-selects the latest (new) version
+      setCustomVersion((prev) => {
         const next = { ...prev };
         delete next[activeType];
         return next;

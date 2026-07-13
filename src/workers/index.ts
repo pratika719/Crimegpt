@@ -87,7 +87,7 @@ const healthServer = http.createServer(async (req, res) => {
         })
       );
       return;
-    } catch (err) {
+    } catch {
       res.writeHead(503, { "content-type": "application/json" });
       res.end(JSON.stringify({ status: "not_ready", reason: "Readiness check failed" }));
       return;

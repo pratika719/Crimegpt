@@ -6,6 +6,8 @@ Production url demo -> https://crimegpt-eight.vercel.app/
 
 ---
 
+remove useless cahcing in future
+
 ## 🚀 Key Features
 
 * **AI Legal Analysis**: Evaluates case narratives against retrieved statutory laws to compile structured offense assessments and legal section recommendations.

@@ -12,13 +12,11 @@ import {
   Gavel,
   FileText,
   Download,
-  Eye,
   FolderOpen,
   Cpu,
   Search,
   RefreshCw,
   Clock,
-  History,
   Lock,
   BookOpen,
   Pencil,
@@ -177,7 +175,7 @@ export default function CaseAnalysisPanel({
   const ActiveIcon = activeMeta.icon;
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [typeFilter, setTypeFilter] = useState<string>("ALL");
-  const [actionType, setActionType] = useState<string | null>(null);
+  const [_actionType, setActionType] = useState<string | null>(null);
   const [renamingDoc, setRenamingDoc] = useState<GeneratedDocument | null>(null);
   const [deletingDoc, setDeletingDoc] = useState<GeneratedDocument | null>(null);
   const [renameTitle, setRenameTitle] = useState("");
@@ -185,8 +183,6 @@ export default function CaseAnalysisPanel({
   // Custom version state for each document type
   const [customVersion, setCustomVersion] = useState<Record<string, number>>({});
 
-  const [generationProgress, setGenerationProgress] = useState(0);
-  const [generationStep, setGenerationStep] = useState<"analyzing" | "generating" | "saving" | "completed">("analyzing");
   const [generationError, setGenerationError] = useState<string | null>(null);
 
   // Keep track of generating background jobs per document type
@@ -343,7 +339,7 @@ export default function CaseAnalysisPanel({
     if (availableVersions.length > 0 && !customVersion[activeType]) {
       setCustomVersion((prev) => ({ ...prev, [activeType]: availableVersions[0] }));
     }
-  }, [activeType, availableVersions]);
+  }, [activeType, availableVersions, customVersion]);
 
   // Find telemetry log for active document
   const getTelemetryLog = (doc: GeneratedDocument | null) => {
@@ -776,7 +772,7 @@ export default function CaseAnalysisPanel({
                       Document Generated But Not Yet Visible
                     </h3>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                      The document was generated successfully in the background, but the view could not be updated automatically due to caching. Please click "Refresh View" below.
+                      The document was generated successfully in the background, but the view could not be updated automatically due to caching. Please click &quot;Refresh View&quot; below.
                     </p>
                   </div>
                   <div className="flex items-center gap-2">

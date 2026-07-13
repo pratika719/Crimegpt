@@ -38,9 +38,9 @@ export function useJobPolling({
   jobId,
   queueName,
   enabled,
-  intervalMs = 15000,
+  intervalMs = 5000,
   maxPollingMs = 90_000,
-  waitingStallMs = 15_000,
+  waitingStallMs = 60_000,
 }: UseJobPollingInput) {
   const [status, setStatus] = useState<MinimalJobStatusResponse | null>(null);
   const [error, setError] = useState<string | null>(null);

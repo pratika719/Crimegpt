@@ -8,10 +8,7 @@ export const QUEUE_RETRY_POLICY = {
       type: "exponential" as const,
       delay: 5_000,
     },
-    removeOnComplete: {
-      age: 0,
-      count: 0,
-    },
+    removeOnComplete: true,
     removeOnFail: {
       age: 300,
       count: 5,
@@ -24,10 +21,7 @@ export const QUEUE_RETRY_POLICY = {
       type: "exponential" as const,
       delay: 3_000,
     },
-    removeOnComplete: {
-      age: 0,
-      count: 0,
-    },
+    removeOnComplete: true,
     removeOnFail: {
       age: 300,
       count: 5,
@@ -40,10 +34,7 @@ export const QUEUE_RETRY_POLICY = {
       type: "exponential" as const,
       delay: 3_000,
     },
-    removeOnComplete: {
-      age: 0,
-      count: 0,
-    },
+    removeOnComplete: true,
     removeOnFail: {
       age: 300,
       count: 5,
@@ -56,10 +47,7 @@ export const QUEUE_RETRY_POLICY = {
       type: "exponential" as const,
       delay: 5_000,
     },
-    removeOnComplete: {
-      age: 0,
-      count: 0,
-    },
+    removeOnComplete: true,
     removeOnFail: {
       age: 300,
       count: 5,
@@ -72,10 +60,7 @@ export const QUEUE_RETRY_POLICY = {
       type: "exponential" as const,
       delay: 5_000,
     },
-    removeOnComplete: {
-      age: 0,
-      count: 0,
-    },
+    removeOnComplete: true,
     removeOnFail: {
       age: 300,
       count: 5,
@@ -88,10 +73,7 @@ export const QUEUE_RETRY_POLICY = {
       type: "exponential" as const,
       delay: 10_000,
     },
-    removeOnComplete: {
-      age: 0,
-      count: 0,
-    },
+    removeOnComplete: true,
     removeOnFail: {
       age: 300,
       count: 5,

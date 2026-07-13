@@ -52,26 +52,42 @@ export class QueueProducerService {
         const state = existingStatus.status;
 
         if (state === "pending" || state === "active") {
-          logger.info(
-            {
-              jobId: baseJobId,
-              queueName: QUEUE_NAMES.DOCUMENT_GENERATION,
-              caseId: input.caseId,
-              userId: input.userId,
-              documentType: input.documentType,
-              state,
-              reused: true,
-            },
-            "Reusing active document generation job",
-          );
+          // Verify if the job actually exists and is active/waiting/delayed/paused in BullMQ
+          const job = await documentGenerationQueue.getJob(baseJobId);
+          const jobState = job ? await job.getState() : null;
 
-          return {
-            jobId: baseJobId,
-            requestId: "",
-            queueName: QUEUE_NAMES.DOCUMENT_GENERATION,
-            reused: true,
-            state,
-          };
+          if (job && (jobState === "active" || jobState === "waiting" || jobState === "delayed" || jobState === "prioritized")) {
+            logger.info(
+              {
+                jobId: baseJobId,
+                queueName: QUEUE_NAMES.DOCUMENT_GENERATION,
+                caseId: input.caseId,
+                userId: input.userId,
+                documentType: input.documentType,
+                state,
+                jobState,
+                reused: true,
+              },
+              "Reusing active document generation job",
+            );
+
+            return {
+              jobId: baseJobId,
+              requestId: "",
+              queueName: QUEUE_NAMES.DOCUMENT_GENERATION,
+              reused: true,
+              state,
+            };
+          } else {
+            logger.warn(
+              {
+                jobId: baseJobId,
+                dbStatus: state,
+                jobState,
+              },
+              "Stale job status found in database but job is missing or inactive in BullMQ. Re-enqueueing.",
+            );
+          }
         }
       }
     }

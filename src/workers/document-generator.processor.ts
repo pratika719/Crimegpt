@@ -50,6 +50,18 @@ export async function processDocumentGenerationJob(
 
   const startedAt = Date.now();
 
+  // Write active status to DB so frontend polling knows the worker is processing it
+  await jobStatusService.setJobStatus({
+    jobId: job.id!,
+    queueName: QUEUE_NAMES.DOCUMENT_GENERATION,
+    status: "active",
+    userId,
+    caseId,
+    documentType,
+  }).catch((err) => {
+    logger.warn({ err, jobId: job.id, caseId }, "Failed to write active job status to DB — non-fatal");
+  });
+
   // Build a progress callback that updates BullMQ + AI temp state in lockstep
   const onProgress: ProgressCallback = async (status, progress, message) => {
     await job.updateProgress({ status, progress, message });

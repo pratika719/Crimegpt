@@ -7,7 +7,6 @@ import { validateActionInput } from "@/lib/validation/action-guard";
 import { actionFailure, actionSuccess } from "@/lib/action-response";
 import { jobStatusService } from "@/services/queue/job-status.service";
 import { logger } from "@/lib/logger";
-import { checkRateLimit } from "@/lib/security/rate-limit";
 
 const getJobStatusSchema = z.object({
   queueName: z.nativeEnum(QUEUE_NAMES),
@@ -23,18 +22,6 @@ export async function getJobStatusAction(input: unknown) {
     }
 
     const userId = session.user.id;
-    const rateLimit = await checkRateLimit({
-      key: `rate-limit:job-status:${userId}`,
-      limit: 60,
-      windowSeconds: 60,
-    });
-
-    if (!rateLimit.allowed) {
-      return actionFailure(
-        "RATE_LIMIT_EXCEEDED",
-        "Too many status checks. Please slow down.",
-      );
-    }
 
     try {
       const status = await jobStatusService.getJobStatus({

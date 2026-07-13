@@ -204,9 +204,8 @@ export default function CaseAnalysisPanel({
   });
 
   const isJobRunning =
-    status?.state === "waiting" ||
+    status?.state === "pending" ||
     status?.state === "active" ||
-    status?.state === "delayed" ||
     isPolling;
 
   // Handle completion, failure, and error in polling
@@ -721,7 +720,7 @@ export default function CaseAnalysisPanel({
                         Generation started. This may take 30–60 seconds.
                       </p>
                     )}
-                    {status?.state === "waiting" && (
+                    {status?.state === "pending" && (
                       <p className="text-xs text-zinc-500 dark:text-zinc-400">
                         Document generation is queued.
                       </p>

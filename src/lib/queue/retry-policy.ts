@@ -1,3 +1,6 @@
+// Redis Cloud free tier (500k commands/month) — purge aggressively.
+// Completed jobs are deleted immediately. Failed jobs kept for 5 minutes max.
+// Job status is tracked in PostgreSQL via JobStatus table, not Redis/BullMQ.
 export const QUEUE_RETRY_POLICY = {
   DOCUMENT_GENERATION: {
     attempts: 3,
@@ -6,12 +9,12 @@ export const QUEUE_RETRY_POLICY = {
       delay: 5_000,
     },
     removeOnComplete: {
-      age: 60 * 60,
-      count: 500,
+      age: 0,
+      count: 0,
     },
     removeOnFail: {
-      age: 24 * 60 * 60,
-      count: 1_000,
+      age: 300,
+      count: 5,
     },
   },
 
@@ -22,12 +25,12 @@ export const QUEUE_RETRY_POLICY = {
       delay: 3_000,
     },
     removeOnComplete: {
-      age: 60 * 60,
-      count: 1_000,
+      age: 0,
+      count: 0,
     },
     removeOnFail: {
-      age: 24 * 60 * 60,
-      count: 2_000,
+      age: 300,
+      count: 5,
     },
   },
 
@@ -38,12 +41,12 @@ export const QUEUE_RETRY_POLICY = {
       delay: 3_000,
     },
     removeOnComplete: {
-      age: 60 * 60,
-      count: 1_000,
+      age: 0,
+      count: 0,
     },
     removeOnFail: {
-      age: 24 * 60 * 60,
-      count: 2_000,
+      age: 300,
+      count: 5,
     },
   },
 
@@ -54,12 +57,12 @@ export const QUEUE_RETRY_POLICY = {
       delay: 5_000,
     },
     removeOnComplete: {
-      age: 60 * 60,
-      count: 500,
+      age: 0,
+      count: 0,
     },
     removeOnFail: {
-      age: 24 * 60 * 60,
-      count: 1_000,
+      age: 300,
+      count: 5,
     },
   },
 
@@ -70,12 +73,12 @@ export const QUEUE_RETRY_POLICY = {
       delay: 5_000,
     },
     removeOnComplete: {
-      age: 60 * 60,
-      count: 500,
+      age: 0,
+      count: 0,
     },
     removeOnFail: {
-      age: 24 * 60 * 60,
-      count: 1_000,
+      age: 300,
+      count: 5,
     },
   },
 
@@ -86,12 +89,12 @@ export const QUEUE_RETRY_POLICY = {
       delay: 10_000,
     },
     removeOnComplete: {
-      age: 60 * 60,
-      count: 500,
+      age: 0,
+      count: 0,
     },
     removeOnFail: {
-      age: 24 * 60 * 60,
-      count: 1_000,
+      age: 300,
+      count: 5,
     },
   },
 } as const;

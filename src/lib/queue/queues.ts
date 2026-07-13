@@ -1,4 +1,4 @@
-import { Queue, QueueEvents } from "bullmq";
+import { Queue } from "bullmq";
 import { getRedisConnection } from "@/lib/redis";
 import { QUEUE_NAMES } from "@/lib/queue/queue-names";
 import { QUEUE_RETRY_POLICY } from "@/lib/queue/retry-policy";
@@ -59,14 +59,3 @@ export const cleanupQueue = new Queue<CleanupJobPayload, any, string>(QUEUE_NAME
   defaultJobOptions: QUEUE_RETRY_POLICY.CLEANUP,
 });
 
-export const queueEvents = {
-  aiGeneration: new QueueEvents(QUEUE_NAMES.AI_GENERATION, { connection, skipVersionCheck: true }),
-  documentGeneration: new QueueEvents(QUEUE_NAMES.DOCUMENT_GENERATION, {
-    connection,
-    skipVersionCheck: true,
-  }),
-  embedding: new QueueEvents(QUEUE_NAMES.EMBEDDING, { connection, skipVersionCheck: true }),
-  ingestion: new QueueEvents(QUEUE_NAMES.INGESTION, { connection, skipVersionCheck: true }),
-  email: new QueueEvents(QUEUE_NAMES.EMAIL, { connection, skipVersionCheck: true }),
-  cleanup: new QueueEvents(QUEUE_NAMES.CLEANUP, { connection, skipVersionCheck: true }),
-};

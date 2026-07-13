@@ -7,6 +7,8 @@ import { NonRetryableError } from "@/lib/error/retryable-error";
 import { AIProviderError } from "@/ai/providers/gemini-provider";
 import { aiObservabilityService } from "@/services/ai/ai-observability.service";
 import { cacheInvalidationService } from "@/services/cache/cache-invalidation.service";
+import { jobStatusService } from "@/services/queue/job-status.service";
+import { QUEUE_NAMES } from "@/lib/queue/queue-names";
 import { logger } from "@/lib/logger";
 
 const GEMINI_MODEL = "gemini-2.5-flash";
@@ -81,19 +83,29 @@ export async function processDocumentGenerationJob(
       documentType,
       requestId,
       onProgress,
-    );
+    );    // Write job status to DB so frontend polling can read it without Redis
+    await jobStatusService.setJobStatus({
+      jobId: job.id!,
+      queueName: QUEUE_NAMES.DOCUMENT_GENERATION,
+      status: "completed",
+      userId,
+      caseId,
+      documentType,
+    }).catch((err) => {
+      logger.warn({ err, jobId: job.id, caseId }, "Failed to write completed job status to DB — non-fatal");
+    });
 
-    logger.info(
-      {
-        jobId: job.id,
-        queueName: job.queueName,
-        caseId,
-        userId,
-        documentType,
-        latencyMs: Date.now() - startedAt,
-      },
-      "Document generation job completed",
-    );
+  logger.info(
+    {
+      jobId: job.id,
+      queueName: job.queueName,
+      caseId,
+      userId,
+      documentType,
+      latencyMs: Date.now() - startedAt,
+    },
+    "Document generation job completed",
+  );
 
     // Invalidate case detail cache so the next page load reflects new document data
     try {
@@ -134,6 +146,19 @@ export async function processDocumentGenerationJob(
       message: errorMessage,
       updatedAt: new Date().toISOString(),
       metadata: { documentType, jobId: job.id },
+    });
+
+    // Write failure status to DB so frontend can show error without Redis
+    await jobStatusService.setJobStatus({
+      jobId: job.id!,
+      queueName: QUEUE_NAMES.DOCUMENT_GENERATION,
+      status: "failed",
+      userId,
+      caseId,
+      documentType,
+      errorMessage: error instanceof Error ? error.message : "Unknown error",
+    }).catch((err) => {
+      logger.warn({ err, jobId: job.id, caseId }, "Failed to write failed job status to DB — non-fatal");
     });
 
     // 429 (quota/rate-limit) → discard immediately with user-friendly message

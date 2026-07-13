@@ -12,10 +12,14 @@ import { WORKER_CONCURRENCY } from "@/lib/worker/worker-concurrency";
 
 const connection = getRedisConnection() as any;
 
+// BullMQ v5 WorkerOptions: use longer intervals to reduce Redis idle commands.
+// stalledInterval=240s (4min) ensures stalled checks are infrequent and stays safely
+// above lockDuration (120s) to avoid false stall detection.
 const defaultWorkerOptions: WorkerOptions = {
   connection,
   autorun: true,
   skipVersionCheck: true,
+  stalledInterval: 240_000,
 };
 
 // Document generation involves long-running Gemini API calls (up to ~60s) and DB transactions.

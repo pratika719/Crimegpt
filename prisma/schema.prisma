@@ -581,3 +581,23 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
+
+/// Lightweight table for tracking BullMQ job status in PostgreSQL
+/// instead of polling Redis. Only populated for jobs that need
+/// status polling (e.g., document generation).
+/// Auto-cleaned via TTL-based cleanup job.
+model JobStatus {
+  id           String   @id
+  queueName    String
+  status       String   // pending | active | completed | failed
+  userId       String?
+  caseId       String?
+  documentType String?
+  errorMessage String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([caseId, documentType])
+  @@index([status])
+  @@index([updatedAt])
+}

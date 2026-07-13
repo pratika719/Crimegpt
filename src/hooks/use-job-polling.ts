@@ -23,11 +23,11 @@ type UseJobPollingInput = {
 };
 
 /**
- * Polls a BullMQ job's status until it reaches a terminal state
- * (completed / failed / unknown).
+ * Polls a background job's status (read from PostgreSQL JobStatus table)
+ * until it reaches a terminal state (completed / failed / unknown).
  *
  * Worker-down detection:
- *   If the job sits in "waiting" for longer than `waitingStallMs` (default 15s),
+ *   If the job stays in "pending" for longer than `waitingStallMs` (default 15s),
  *   we assume no worker is available and surface an error immediately
  *   instead of waiting for maxPollingMs.
  *
@@ -38,7 +38,7 @@ export function useJobPolling({
   jobId,
   queueName,
   enabled,
-  intervalMs = 5000,
+  intervalMs = 15000,
   maxPollingMs = 90_000,
   waitingStallMs = 15_000,
 }: UseJobPollingInput) {
@@ -116,8 +116,8 @@ export function useJobPolling({
           return;
         }
 
-        // Track how long the job has been "waiting" (queued but no worker has picked it up)
-        if (state === "waiting") {
+        // Track how long the job has been "pending" (queued but no worker has picked it up)
+        if (state === "pending") {
           if (waitingSinceRef.current === 0) {
             waitingSinceRef.current = Date.now();
           } else {
@@ -132,7 +132,7 @@ export function useJobPolling({
             }
           }
         } else {
-          // Job has left "waiting" (now "active" or "delayed") — reset the counter
+          // Job has left "pending" (now "active") — reset the counter
           waitingSinceRef.current = 0;
         }
 

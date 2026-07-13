@@ -19,6 +19,8 @@ import type {
   EmbeddingJobPayload,
   IngestionJobPayload,
 } from "@/lib/queue/job-types";
+import { jobStatusService } from "@/services/queue/job-status.service";
+import { jobStatusRepository } from "@/repositories/job-status.repository";
 import { logger } from "@/lib/logger";
 
 function createRequestId(prefix: string): string {
@@ -44,21 +46,15 @@ export class QueueProducerService {
       : baseJobId;
 
     if (!input.forceRegenerate) {
-      const existingJob = await documentGenerationQueue.getJob(baseJobId);
+      const existingStatus = await jobStatusRepository.findById(baseJobId);
 
-      if (existingJob) {
-        const state = await existingJob.getState();
+      if (existingStatus) {
+        const state = existingStatus.status;
 
-        if (
-          state === "waiting" ||
-          state === "active" ||
-          state === "delayed" ||
-          state === "prioritized" ||
-          state === "waiting-children"
-        ) {
+        if (state === "pending" || state === "active") {
           logger.info(
             {
-              jobId: String(existingJob.id),
+              jobId: baseJobId,
               queueName: QUEUE_NAMES.DOCUMENT_GENERATION,
               caseId: input.caseId,
               userId: input.userId,
@@ -70,16 +66,12 @@ export class QueueProducerService {
           );
 
           return {
-            jobId: String(existingJob.id),
-            requestId: existingJob.data.requestId,
+            jobId: baseJobId,
+            requestId: "",
             queueName: QUEUE_NAMES.DOCUMENT_GENERATION,
             reused: true,
             state,
           };
-        }
-
-        if (state === "completed" || state === "failed") {
-          await existingJob.remove();
         }
       }
     }
@@ -103,6 +95,16 @@ export class QueueProducerService {
       },
     );
 
+    // Write initial pending status to DB (replaces Redis-based polling)
+    await jobStatusService.setJobStatus({
+      jobId: String(job.id),
+      queueName: QUEUE_NAMES.DOCUMENT_GENERATION,
+      status: "pending",
+      userId: input.userId,
+      caseId: input.caseId,
+      documentType: input.documentType,
+    });
+
     logger.info(
       {
         jobId: String(job.id),
@@ -120,7 +122,7 @@ export class QueueProducerService {
       requestId,
       queueName: QUEUE_NAMES.DOCUMENT_GENERATION,
       reused: false,
-      state: "waiting",
+      state: "pending",
     };
   }
 

@@ -92,6 +92,7 @@ interface CaseAnalysisPanelProps {
   aiRequests?: AIRequestLog[];
   caseTitle?: string;
   caseNumber?: string;
+  initialActiveJobs?: Array<{ id: string; queueName: string; documentType: string | null }>;
 }
 
 interface DocumentTypeMetadata {
@@ -166,7 +167,8 @@ export default function CaseAnalysisPanel({
   initialDocuments = [], 
   aiRequests = [],
   caseTitle = "Case File",
-  caseNumber = "PENDING"
+  caseNumber = "PENDING",
+  initialActiveJobs = []
 }: CaseAnalysisPanelProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -188,44 +190,61 @@ export default function CaseAnalysisPanel({
   const [generationError, setGenerationError] = useState<string | null>(null);
 
   // Keep track of generating background jobs per document type
-  const [generatingJobs, setGeneratingJobs] = useState<Record<string, { jobId: string; queueName: string }>>({});
+  const [generatingJobs, setGeneratingJobs] = useState<Record<string, { jobId: string; queueName: string }>>(() => {
+    const initial: Record<string, { jobId: string; queueName: string }> = {};
+    if (initialActiveJobs) {
+      for (const job of initialActiveJobs) {
+        if (job.documentType) {
+          initial[job.documentType] = {
+            jobId: job.id,
+            queueName: job.queueName,
+          };
+        }
+      }
+    }
+    return initial;
+  });
+
+  const [refreshingDocId, setRefreshingDocId] = useState<string | null>(null);
+  const [refreshAttempts, setRefreshAttempts] = useState<number>(0);
 
   const activeJobInfo = generatingJobs[activeType] || null;
 
   const { status, error, isPolling } = useJobPolling({
     jobId: activeJobInfo?.jobId ?? null,
     queueName: activeJobInfo?.queueName ?? null,
-    enabled: Boolean(activeJobInfo),
-    // Poll every 15s — saves Redis commands vs 5s, generation takes ~30-60s anyway
-    intervalMs: 15000,
-    // If worker is down, detect within ~3 poll cycles (45s)
-    // If generation runs long, hard timeout at 90s
-    maxPollingMs: 90_000,
-    waitingStallMs: 15_000,
+    enabled: Boolean(activeJobInfo) && !refreshingDocId,
   });
 
   const isJobRunning =
     status?.state === "pending" ||
     status?.state === "active" ||
-    isPolling;
+    isPolling ||
+    Boolean(refreshingDocId);
 
   // Handle completion, failure, and error in polling
   useEffect(() => {
     if (status?.state === "completed") {
-      toast.success(`${activeMeta.title} generated successfully!`);
-      setGeneratingJobs((prev) => {
-        const next = { ...prev };
-        delete next[activeType];
-        return next;
-      });
-      // Clear custom version so the dropdown auto-selects the latest (new) version
-      setCustomVersion((prev) => {
-        const next = { ...prev };
-        delete next[activeType];
-        return next;
-      });
-      setActionType(null);
-      router.refresh();
+      if (status.documentId) {
+        setRefreshingDocId(status.documentId);
+        setRefreshAttempts(0);
+        router.refresh();
+      } else {
+        toast.success(`${activeMeta.title} generated successfully!`);
+        setGeneratingJobs((prev) => {
+          const next = { ...prev };
+          delete next[activeType];
+          return next;
+        });
+        // Clear custom version so the dropdown auto-selects the latest (new) version
+        setCustomVersion((prev) => {
+          const next = { ...prev };
+          delete next[activeType];
+          return next;
+        });
+        setActionType(null);
+        router.refresh();
+      }
     } else if (status?.state === "failed") {
       const failedMsg = status.failedReason || "Please try again.";
       // Map 429 errors to user-friendly message
@@ -252,7 +271,7 @@ export default function CaseAnalysisPanel({
       });
       setActionType(null);
     }
-  }, [status?.state, status?.failedReason, activeType, router, activeMeta.title]);
+  }, [status?.state, status?.documentId, status?.failedReason, activeType, router, activeMeta.title]);
 
   useEffect(() => {
     if (error) {
@@ -266,6 +285,40 @@ export default function CaseAnalysisPanel({
       setGenerationError(null);
     }
   }, [activeJobInfo]);
+
+  // Monitor initialDocuments to verify visibility of newly generated document
+  useEffect(() => {
+    if (!refreshingDocId) return;
+
+    const docFound = initialDocuments.some((doc) => doc.id === refreshingDocId);
+    if (docFound) {
+      toast.success(`${activeMeta.title} generated successfully!`);
+      setGeneratingJobs((prev) => {
+        const next = { ...prev };
+        delete next[activeType];
+        return next;
+      });
+      setCustomVersion((prev) => {
+        const next = { ...prev };
+        delete next[activeType];
+        return next;
+      });
+      setRefreshingDocId(null);
+      setRefreshAttempts(0);
+      setActionType(null);
+    } else if (refreshAttempts < 3) {
+      const delay = [500, 1000, 2000][refreshAttempts] || 1000;
+      const timer = setTimeout(() => {
+        setRefreshAttempts((prev) => prev + 1);
+        router.refresh();
+      }, delay);
+      return () => clearTimeout(timer);
+    } else {
+      toast.warning(`${activeMeta.title} generated successfully, but the view could not be updated automatically.`);
+    }
+  }, [initialDocuments, refreshingDocId, refreshAttempts, activeType, activeMeta.title, router]);
+
+  const showStaleCacheWarning = Boolean(refreshingDocId) && refreshAttempts >= 3;
 
   // Keep the isPending transition for the server action (sub-second), but no fake progress bar
 
@@ -712,6 +765,47 @@ export default function CaseAnalysisPanel({
                     Try Again
                   </button>
                 </div>
+              ) : showStaleCacheWarning ? (
+                /* Stale Cache Visibility Warning State */
+                <div className="rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/50 dark:bg-amber-950/20 p-12 text-center flex flex-col items-center justify-center space-y-4">
+                  <div className="h-14 w-14 rounded-full bg-amber-50 dark:bg-amber-950 flex items-center justify-center border border-amber-100 dark:border-amber-800">
+                    <AlertTriangle className="h-7 w-7 text-amber-500" />
+                  </div>
+                  <div className="space-y-1.5 max-w-sm">
+                    <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                      Document Generated But Not Yet Visible
+                    </h3>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                      The document was generated successfully in the background, but the view could not be updated automatically due to caching. Please click "Refresh View" below.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setRefreshAttempts(0);
+                        router.refresh();
+                      }}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg bg-amber-600 hover:bg-amber-700 text-white transition-colors"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      Refresh View
+                    </button>
+                    <button
+                      onClick={() => {
+                        setGeneratingJobs((prev) => {
+                          const next = { ...prev };
+                          delete next[activeType];
+                          return next;
+                        });
+                        setRefreshingDocId(null);
+                        setActionType(null);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
               ) : isJobRunning ? (
                 /* Un-generated Active Polling State */
                 <div className="rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-12 text-center flex flex-col items-center justify-center space-y-4">
@@ -722,7 +816,7 @@ export default function CaseAnalysisPanel({
                     <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
                       Drafting {activeMeta.title}...
                     </h3>
-                    {activeJobInfo && !status && (
+                    {activeJobInfo && !status && !refreshingDocId && (
                       <p className="text-xs text-zinc-500 dark:text-zinc-400">
                         Generation started. This may take 30–60 seconds.
                       </p>
@@ -735,6 +829,11 @@ export default function CaseAnalysisPanel({
                     {status?.state === "active" && (
                       <p className="text-xs text-zinc-500 dark:text-zinc-400">
                         Document is generating in the background.
+                      </p>
+                    )}
+                    {refreshingDocId && (
+                      <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium animate-pulse">
+                        Loading generated document...
                       </p>
                     )}
                   </div>
@@ -770,8 +869,49 @@ export default function CaseAnalysisPanel({
                     <div className="rounded-xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/40 dark:bg-blue-950/20 p-4 flex items-center gap-3">
                       <Loader2 className="h-5 w-5 text-blue-500 animate-spin flex-shrink-0" />
                       <p className="text-xs text-zinc-800 dark:text-zinc-200">
-                        Document is regenerating in the background.
+                        {refreshingDocId ? "Loading generated document..." : "Document is regenerating in the background."}
                       </p>
+                    </div>
+                  )}
+                  {showStaleCacheWarning && (
+                    <div className="rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/50 dark:bg-amber-950/20 p-4 space-y-3">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                            Regenerated Version Not Yet Visible
+                          </p>
+                          <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 leading-relaxed">
+                            The document was successfully regenerated, but the view is currently displaying a cached version.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setRefreshAttempts(0);
+                            router.refresh();
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-700 text-white transition-colors"
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" />
+                          Refresh View
+                        </button>
+                        <button
+                          onClick={() => {
+                            setGeneratingJobs((prev) => {
+                              const next = { ...prev };
+                              delete next[activeType];
+                              return next;
+                            });
+                            setRefreshingDocId(null);
+                            setActionType(null);
+                          }}
+                          className="text-xs text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300 transition-colors"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
                     </div>
                   )}
                   {generationError && !isJobRunning && (

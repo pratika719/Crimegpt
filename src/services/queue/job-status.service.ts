@@ -1,5 +1,6 @@
 import { logger } from "@/lib/logger";
 import { jobStatusRepository } from "@/repositories/job-status.repository";
+import { prisma } from "@/lib/prisma";
 
 export type MinimalJobState =
   | "pending"
@@ -13,6 +14,7 @@ export type MinimalJobStatusResponse = {
   queueName: string;
   state: MinimalJobState;
   failedReason?: string | null;
+  documentId?: string | null;
 };
 
 export class JobStatusService {
@@ -43,11 +45,29 @@ export class JobStatusService {
         };
       }
 
+      let documentId: string | null = null;
+      if (record.status === "completed" && record.caseId && record.documentType) {
+        const latestDoc = await prisma.generatedDocument.findFirst({
+          where: {
+            caseId: record.caseId,
+            type: record.documentType as any,
+          },
+          orderBy: {
+            version: "desc",
+          },
+          select: {
+            id: true,
+          },
+        });
+        documentId = latestDoc?.id ?? null;
+      }
+
       return {
         jobId: input.jobId,
         queueName: input.queueName,
         state: record.status as MinimalJobState,
         failedReason: record.errorMessage ?? null,
+        documentId,
       };
     } catch (error) {
       logger.error(

@@ -1,6 +1,7 @@
 import { CaseService } from "@/services/case/case.services";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 import { 
   ArrowLeft, 
   Calendar, 
@@ -43,6 +44,19 @@ export default async function CaseDetailPage({
   }
 
   const documents = caseItem.generatedDocuments || [];
+
+  // Fetch active/pending document generation jobs for state recovery
+  const activeJobs = await prisma.jobStatus.findMany({
+    where: {
+      caseId: id,
+      status: { in: ["pending", "active"] },
+    },
+    select: {
+      id: true,
+      queueName: true,
+      documentType: true,
+    },
+  });
 
 
   // Calculate metadata completeness percentage
@@ -209,6 +223,7 @@ export default async function CaseDetailPage({
         aiRequests={JSON.parse(JSON.stringify(caseItem.aiRequestLogs || []))}
         caseTitle={caseItem.title}
         caseNumber={caseItem.investigationProfile?.firNumber || caseItem.id}
+        initialActiveJobs={JSON.parse(JSON.stringify(activeJobs))}
       />
 
       {/* 9. Chronological Activity Timeline */}

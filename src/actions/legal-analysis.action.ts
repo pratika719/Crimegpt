@@ -25,6 +25,14 @@ export async function analyzeCaseAction(caseId: string) {
       const { legalAnalysisService } = await import("@/services/case/legal-analysis.services");
       await legalAnalysisService.analyzeCase(validatedCaseId, userId);
 
+      // Invalidate the Redis case detail cache so the next load gets fresh data
+      try {
+        const { cacheInvalidationService } = await import("@/services/cache/cache-invalidation.service");
+        await cacheInvalidationService.invalidateCaseMutation({ userId, caseId: validatedCaseId });
+      } catch (err) {
+        console.warn(`[Cache Invalidation Warning] Failed to invalidate cache on legal analysis:`, err);
+      }
+
       // Revalidate the case detail page so the UI displays the generated analysis document and new status
       revalidatePath(`/case/${validatedCaseId}`);
 

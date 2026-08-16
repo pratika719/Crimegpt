@@ -4,6 +4,10 @@ import { setAITempState } from "@/lib/redis/ai-temp-state";
 import { documentGeneratorService } from "@/services/document-engine/document-generator.service";
 import type { ProgressCallback } from "@/services/document-engine/document-generator.service";
 import { NonRetryableError } from "@/lib/error/retryable-error";
+import {
+  DocumentGenerationError,
+  getDocumentErrorMeta,
+} from "@/lib/error/document-error";
 import { AIProviderError } from "@/ai/providers/gemini-provider";
 import { aiObservabilityService } from "@/services/ai/ai-observability.service";
 import { cacheInvalidationService } from "@/services/cache/cache-invalidation.service";
@@ -147,7 +151,58 @@ export async function processDocumentGenerationJob(
       "Document generation job failed",
     );
 
-    const errorMessage = error instanceof Error ? error.message : "Unknown AI generation error.";
+    // 429 (quota/rate-limit) → discard immediately with a user-friendly message
+    if (error instanceof AIProviderError && error.statusCode === 429) {
+      logger.warn({ err: error, caseId, userId, documentType }, "Gemini quota exhausted (429) — discarding job");
+
+      const overloadedError = new DocumentGenerationError(
+        "AI service is currently overloaded. Please wait a moment and try again.",
+        {
+          code: "AI_PROVIDER_OVERLOADED",
+          failureType: "transient",
+          userMessage: "AI service is currently overloaded. Please wait a moment and try again.",
+        },
+      );
+
+      await setAITempState({
+        requestId,
+        caseId,
+        status: "FAILED",
+        progress: 0,
+        message: overloadedError.userMessage,
+        updatedAt: new Date().toISOString(),
+        metadata: {
+          documentType,
+          jobId: job.id,
+          errorCode: overloadedError.code,
+          failureType: overloadedError.failureType,
+        },
+      });
+
+      await jobStatusService.setJobStatus({
+        jobId: job.id!,
+        queueName: QUEUE_NAMES.DOCUMENT_GENERATION,
+        status: "failed",
+        userId,
+        caseId,
+        documentType,
+        errorMessage: overloadedError.userMessage,
+        errorCode: overloadedError.code,
+        failureType: overloadedError.failureType,
+      }).catch((err) => {
+        logger.warn({ err, jobId: job.id, caseId }, "Failed to write failed job status to DB — non-fatal");
+      });
+
+      await aiObservabilityService.logFailure({
+        caseId, userId, jobId: job.id, requestType: documentType,
+        modelUsed: GEMINI_MODEL, latencyMs: Date.now() - startedAt, failureReason: overloadedError.message,
+      });
+
+      await job.discard();
+      throw overloadedError;
+    }
+
+    const errorMeta = getDocumentErrorMeta(error);
 
     // Always set FAILED temp state so UI reflects failure immediately
     await setAITempState({
@@ -155,12 +210,18 @@ export async function processDocumentGenerationJob(
       caseId,
       status: "FAILED",
       progress: 0,
-      message: errorMessage,
+      message: errorMeta.userMessage,
       updatedAt: new Date().toISOString(),
-      metadata: { documentType, jobId: job.id },
+      metadata: {
+        documentType,
+        jobId: job.id,
+        errorCode: errorMeta.code,
+        failureType: errorMeta.failureType,
+      },
     });
 
-    // Write failure status to DB so frontend can show error without Redis
+    // Write failure status to DB so frontend can show error without Redis.
+    // errorMessage holds the user-friendly copy; structured code/type are stored separately.
     await jobStatusService.setJobStatus({
       jobId: job.id!,
       queueName: QUEUE_NAMES.DOCUMENT_GENERATION,
@@ -168,16 +229,20 @@ export async function processDocumentGenerationJob(
       userId,
       caseId,
       documentType,
-      errorMessage: error instanceof Error ? error.message : "Unknown error",
+      errorMessage: errorMeta.userMessage,
+      errorCode: errorMeta.code,
+      failureType: errorMeta.failureType,
     }).catch((err) => {
       logger.warn({ err, jobId: job.id, caseId }, "Failed to write failed job status to DB — non-fatal");
     });
 
-    // 429 (quota/rate-limit) → discard immediately with user-friendly message
-    if (error instanceof AIProviderError && error.statusCode === 429) {
-      logger.warn({ err: error, caseId, userId, documentType }, "Gemini quota exhausted (429) — discarding job");
-      await job.discard();
-      throw new NonRetryableError("AI service is currently overloaded. Please wait a moment and try again.");
+    // Observability: record the failure for non-retryable and final attempts,
+    // so validation failures (which are discarded immediately) are never silent.
+    if (isFinal || error instanceof NonRetryableError) {
+      await aiObservabilityService.logFailure({
+        caseId, userId, jobId: job.id, requestType: documentType,
+        modelUsed: GEMINI_MODEL, latencyMs: Date.now() - startedAt, failureReason: errorMeta.message,
+      });
     }
 
     // NonRetryableError → discard immediately (validation failures etc.)
@@ -185,13 +250,6 @@ export async function processDocumentGenerationJob(
       logger.warn({ err: error, caseId, userId, documentType }, "Non-retryable error — discarding job");
       await job.discard();
       throw error;
-    }
-
-    if (isFinal) {
-      await aiObservabilityService.logFailure({
-        caseId, userId, jobId: job.id, requestType: documentType,
-        modelUsed: GEMINI_MODEL, latencyMs: Date.now() - startedAt, failureReason: errorMessage,
-      });
     }
 
     throw error;

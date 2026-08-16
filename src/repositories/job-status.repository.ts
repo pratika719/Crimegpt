@@ -8,6 +8,8 @@ export type JobStatusRecord = {
   caseId?: string | null;
   documentType?: string | null;
   errorMessage?: string | null;
+  errorCode?: string | null;
+  failureType?: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -21,6 +23,8 @@ export class JobStatusRepository {
     caseId?: string;
     documentType?: string;
     errorMessage?: string;
+    errorCode?: string;
+    failureType?: string;
   }): Promise<JobStatusRecord> {
     const result = await prisma.jobStatus.upsert({
       where: { id: input.id },
@@ -30,6 +34,8 @@ export class JobStatusRepository {
         caseId: input.caseId ?? null,
         documentType: input.documentType ?? null,
         errorMessage: input.errorMessage ?? null,
+        errorCode: input.errorCode ?? null,
+        failureType: input.failureType ?? null,
       },
       create: {
         id: input.id,
@@ -39,6 +45,8 @@ export class JobStatusRepository {
         caseId: input.caseId ?? null,
         documentType: input.documentType ?? null,
         errorMessage: input.errorMessage ?? null,
+        errorCode: input.errorCode ?? null,
+        failureType: input.failureType ?? null,
       },
     });
     return result as unknown as JobStatusRecord;

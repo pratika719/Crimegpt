@@ -29,6 +29,10 @@ import { renameDocumentAction, deleteDocumentAction } from "@/actions/document.a
 import { analyzeCaseAction } from "@/actions/legal-analysis.action";
 import { useJobPolling } from "@/hooks/use-job-polling";
 import { DocumentType } from "@/services/pdf/pdf-template-registry";
+import {
+  getPreflightIssue,
+  type PreflightCaseData,
+} from "@/lib/document-preflight";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -84,6 +88,16 @@ interface AIRequestLog {
   createdAt: Date | string;
 }
 
+interface FailedJobInfo {
+  id: string;
+  queueName: string;
+  documentType: string | null;
+  errorMessage: string | null;
+  errorCode: string | null;
+  failureType: string | null;
+  updatedAt: Date | string;
+}
+
 interface CaseAnalysisPanelProps {
   caseId: string;
   initialDocuments: GeneratedDocument[];
@@ -91,6 +105,8 @@ interface CaseAnalysisPanelProps {
   caseTitle?: string;
   caseNumber?: string;
   initialActiveJobs?: Array<{ id: string; queueName: string; documentType: string | null }>;
+  initialFailedJobs?: FailedJobInfo[];
+  preflightData?: PreflightCaseData;
 }
 
 interface DocumentTypeMetadata {
@@ -166,7 +182,9 @@ export default function CaseAnalysisPanel({
   aiRequests = [],
   caseTitle = "Case File",
   caseNumber = "PENDING",
-  initialActiveJobs = []
+  initialActiveJobs = [],
+  initialFailedJobs = [],
+  preflightData
 }: CaseAnalysisPanelProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -179,11 +197,15 @@ export default function CaseAnalysisPanel({
   const [renamingDoc, setRenamingDoc] = useState<GeneratedDocument | null>(null);
   const [deletingDoc, setDeletingDoc] = useState<GeneratedDocument | null>(null);
   const [renameTitle, setRenameTitle] = useState("");
-  
+      
   // Custom version state for each document type
   const [customVersion, setCustomVersion] = useState<Record<string, number>>({});
 
   const [generationError, setGenerationError] = useState<string | null>(null);
+
+  // Recent failed jobs per case (recovered on reload + live failures) so a
+  // "last generation failed" banner persists until dismissed or retried.
+  const [failedJobs, setFailedJobs] = useState<FailedJobInfo[]>(initialFailedJobs);
 
   // Keep track of generating background jobs per document type
   const [generatingJobs, setGeneratingJobs] = useState<Record<string, { jobId: string; queueName: string }>>(() => {
@@ -206,6 +228,16 @@ export default function CaseAnalysisPanel({
 
   const activeJobInfo = generatingJobs[activeType] || null;
 
+  // Most recent failed job for the active document type (hidden while generating).
+  const activeFailedJob =
+    failedJobs
+      .filter((job) => job.documentType === activeType && !generatingJobs[activeType])
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0] ??
+    null;
+
+  // Client-side pre-flight check for the active document type (mirrors backend checks)
+  const preflight = getPreflightIssue(activeType, preflightData);
+
   const { status, error, isPolling } = useJobPolling({
     jobId: activeJobInfo?.jobId ?? null,
     queueName: activeJobInfo?.queueName ?? null,
@@ -221,6 +253,8 @@ export default function CaseAnalysisPanel({
   // Handle completion, failure, and error in polling
   useEffect(() => {
     if (status?.state === "completed") {
+      // Successful regeneration — clear any stale failure for this type
+      setFailedJobs((prev) => prev.filter((j) => j.documentType !== activeType));
       if (status.documentId) {
         setRefreshingDocId(status.documentId);
         setRefreshAttempts(0);
@@ -243,12 +277,26 @@ export default function CaseAnalysisPanel({
       }
     } else if (status?.state === "failed") {
       const failedMsg = status.failedReason || "Please try again.";
-      // Map 429 errors to user-friendly message
-      const displayMsg = failedMsg.includes("overloaded")
-        ? "AI service is currently overloaded. Please wait a moment and try again."
-        : `Generation failed: ${failedMsg}`;
+      // Map overloaded (429) errors to user-friendly message
+      const displayMsg =
+        status.errorCode === "AI_PROVIDER_OVERLOADED" || failedMsg.includes("overloaded")
+          ? "AI service is currently overloaded. Please wait a moment and try again."
+          : `Generation failed: ${failedMsg}`;
       toast.error(displayMsg);
       setGenerationError(displayMsg);
+      // Keep the failure visible after dismissal / reload
+      setFailedJobs((prev) => [
+        {
+          id: status.jobId,
+          queueName: activeJobInfo?.queueName ?? "document-generation",
+          documentType: activeType,
+          errorMessage: failedMsg,
+          errorCode: status.errorCode ?? null,
+          failureType: status.failureType ?? null,
+          updatedAt: new Date(),
+        },
+        ...prev.filter((j) => j.documentType !== activeType),
+      ]);
       setGeneratingJobs((prev) => {
         const next = { ...prev };
         delete next[activeType];
@@ -259,6 +307,8 @@ export default function CaseAnalysisPanel({
     } else if (status?.state === "unknown") {
       if (status.failedReason) {
         setGenerationError(status.failedReason);
+      } else {
+        setGenerationError("Generation status could not be determined. Please try again.");
       }
       setGeneratingJobs((prev) => {
         const next = { ...prev };
@@ -267,7 +317,18 @@ export default function CaseAnalysisPanel({
       });
       setActionType(null);
     }
-  }, [status?.state, status?.documentId, status?.failedReason, activeType, router, activeMeta.title]);
+  }, [
+    status?.state,
+    status?.documentId,
+    status?.failedReason,
+    status?.errorCode,
+    status?.failureType,
+    status?.jobId,
+    activeJobInfo?.queueName,
+    activeType,
+    router,
+    activeMeta.title,
+  ]);
 
   useEffect(() => {
     if (error) {
@@ -377,6 +438,8 @@ export default function CaseAnalysisPanel({
   // Document action trigger
   const handleGenerate = (type: string, isRegen = false) => {
     setGenerationError(null);
+    // A fresh attempt supersedes any previous failure for this type
+    setFailedJobs((prev) => prev.filter((j) => j.documentType !== type));
     setActionType(isRegen ? "REGENERATE" : "GENERATE");
     startTransition(async () => {
       let response;
@@ -490,6 +553,18 @@ export default function CaseAnalysisPanel({
     });
   };
 
+  const friendlyFailedMessage = (job: FailedJobInfo): string => {
+    if (job.errorCode === "AI_PROVIDER_OVERLOADED") {
+      return "AI service is currently overloaded. Please wait a moment and try again.";
+    }
+    if (job.errorMessage) return job.errorMessage;
+    return "The last generation attempt failed. Please try again.";
+  };
+
+  const dismissFailedJob = (jobId: string) => {
+    setFailedJobs((prev) => prev.filter((j) => j.id !== jobId));
+  };
+
   const renderConfidenceBadge = (confidence: "HIGH" | "MEDIUM" | "LOW") => {
     const styles = {
       HIGH: "bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/30",
@@ -541,6 +616,36 @@ export default function CaseAnalysisPanel({
         </div>
       )}
 
+      {/* Recovered failure banner — shown after reload or when the live error was dismissed */}
+      {!generationError && activeFailedJob && !isJobRunning && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/50 dark:bg-amber-950/20 p-4 flex flex-col sm:flex-row sm:items-start gap-3 animate-fade-in">
+          <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+          <div className="flex-1 min-w-0 space-y-1">
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+              Last {activeMeta.title} generation failed
+            </p>
+            <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+              {friendlyFailedMessage(activeFailedJob)}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => handleGenerate(activeType, false)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-700 text-white transition-colors"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Try Again
+            </button>
+            <button
+              onClick={() => dismissFailedJob(activeFailedJob.id)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/20 transition-colors"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-12 items-start">
         {/* LEFT COLUMN: DOCUMENT NAVIGATION & SEARCH */}
         <div className="lg:col-span-4 space-y-4">
@@ -585,6 +690,7 @@ export default function CaseAnalysisPanel({
                 const isSelected = activeType === docMeta.type;
                 const generatedDocs = initialDocuments.filter((d) => d.type === docMeta.type);
                 const hasGenerated = generatedDocs.length > 0;
+                const itemPreflight = getPreflightIssue(docMeta.type, preflightData);
 
                 return (
                   <button
@@ -617,6 +723,12 @@ export default function CaseAnalysisPanel({
                           </span>
                         ) : (
                           <span className="text-zinc-500 dark:text-zinc-400">Not Generated</span>
+                        )}
+                        {itemPreflight && (
+                          <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 font-bold">
+                            <AlertTriangle className="h-2.5 w-2.5" />
+                            Data needed
+                          </span>
                         )}
                         {docMeta.requiresRAG && (
                           <span className="rounded bg-blue-500/10 border border-blue-500/30 text-blue-400 px-1 py-0.2">
@@ -658,6 +770,21 @@ export default function CaseAnalysisPanel({
 
           {!isPending && (
             <>
+              {/* Pre-flight warning — document type cannot be generated with current case data */}
+              {preflight && !isJobRunning && (
+                <div className="rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/50 dark:bg-amber-950/20 p-4 flex items-start gap-3 animate-fade-in">
+                  <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                      Missing case data
+                    </p>
+                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 leading-relaxed">
+                      {preflight.message}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Document Actions & Metadata Header Bar */}
               {activeDoc ? (
                 <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
@@ -721,8 +848,9 @@ export default function CaseAnalysisPanel({
                     </DropdownMenu>
                     <button
                       onClick={() => handleGenerate(activeType, true)}
-                      disabled={isJobRunning || isPending}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                      disabled={isJobRunning || isPending || Boolean(preflight)}
+                      title={preflight?.message}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <RefreshCw className="h-3.5 w-3.5 animate-spin" />
                       Regenerate
@@ -850,7 +978,9 @@ export default function CaseAnalysisPanel({
                   </div>
                   <button
                     onClick={() => handleGenerate(activeType)}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90 transition-opacity"
+                    disabled={Boolean(preflight)}
+                    title={preflight?.message}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Cpu className="h-4 w-4" />
                     Generate Document

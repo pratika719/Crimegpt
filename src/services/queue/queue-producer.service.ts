@@ -305,3 +305,12 @@ export class QueueProducerService {
 }
 
 export const queueProducerService = new QueueProducerService();
+
+
+//create requestid
+//prevent deduplication by checking repository of jobstatus
+//check job from queue
+//if job is active delayed return log
+//if job is stalled reuse it 
+//if not there queue it 
+//update jobstatus

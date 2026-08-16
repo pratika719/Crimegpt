@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { getJobStatusAction } from "@/actions/job-status.actions";
+import { getJobStatusAction } from "@/actions/job-status.action";
 import type { MinimalJobStatusResponse } from "@/services/queue/job-status.service";
 
 type UseJobPollingInput = {
@@ -17,7 +17,7 @@ type UseJobPollingInput = {
   /**
    * If the job stays in "waiting" state longer than this (ms),
    * we assume the worker is unavailable and surface an error early.
-   * Default 15_000 (15 seconds / ~3 poll cycles).
+   * Default 60_000 (60 seconds — matches the doc-generation wait window).
    */
   waitingStallMs?: number;
 };
@@ -53,6 +53,9 @@ export function useJobPolling({
   const intervalRef = useRef(intervalMs);
   const maxPollingRef = useRef(maxPollingMs);
   const waitingStallRef = useRef(waitingStallMs);
+  // Counts how many times we've re-polled a terminal "failed" state that
+  // arrived without a failedReason (the DB write may lag the state write).
+  const terminalFallbackRef = useRef(0);
 
   // Keep config refs in sync without restarting the effect
   intervalRef.current = intervalMs;
@@ -70,6 +73,7 @@ export function useJobPolling({
     stoppedRef.current = false;
     startedAtRef.current = Date.now();
     waitingSinceRef.current = 0;
+    terminalFallbackRef.current = 0;
     setIsPolling(true);
     setError(null);
 
@@ -110,7 +114,15 @@ export function useJobPolling({
 
         const state = jobStatus.state;
 
-        // Terminal states — stop polling; the component handles via `status`
+        // Terminal states — stop polling; the component handles via `status`.
+        // If a failure arrives without a reason, poll once more to let the DB
+        // failure-write catch up before giving up.
+        if (state === "failed" && !jobStatus.failedReason && terminalFallbackRef.current < 1) {
+          terminalFallbackRef.current += 1;
+          window.setTimeout(poll, intervalRef.current);
+          return;
+        }
+
         if (state === "completed" || state === "failed" || state === "unknown") {
           setIsPolling(false);
           return;

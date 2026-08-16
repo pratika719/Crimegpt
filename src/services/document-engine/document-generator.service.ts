@@ -14,7 +14,20 @@ import { documentRepository } from "@/repositories/document.repository";
 import { redisKeys } from "@/lib/redis/redis-keys";
 import { withRedisLock } from "@/lib/redis/redis-lock";
 import { NonRetryableError } from "@/lib/error/retryable-error";
+import {
+  DocumentGenerationError,
+  buildRepairPrompt,
+  documentTypeLabel,
+  formatDocumentValidationError,
+} from "@/lib/error/document-error";
+import { ZodError, z } from "zod";
 import { logger } from "@/lib/logger";
+
+/**
+ * Whether the document engine may attempt a single bounded repair re-prompt
+ * when the AI output fails to parse/validate. Disable via DOCGEN_REPAIR_RETRY=false.
+ */
+const DOC_GEN_REPAIR_RETRY_ENABLED = process.env.DOCGEN_REPAIR_RETRY !== "false";
 import { PROMPT_SECURITY_INSTRUCTIONS } from "@/lib/security/prompt-security";
 
 /**
@@ -40,7 +53,8 @@ export class DocumentGeneratorService {
   ) {
     const lockKey = redisKeys.lock.documentGeneration(caseId, type);
 
-    return withRedisLock(lockKey, 120_000, async () => {
+    // 240s TTL so the optional repair re-prompt (2 Gemini calls) cannot outlive the lock.
+    return withRedisLock(lockKey, 240_000, async () => {
       logger.info(
         { caseId, userId, documentType: type, requestId },
         "Initiating document generation",
@@ -71,12 +85,21 @@ export class DocumentGeneratorService {
       // Report: BUILDING_CONTEXT
       await onProgress?.("BUILDING_CONTEXT", 20, "Building case context.");
 
-      // Validate required entities for specific document types
+      // Validate required entities for specific document types.
+      // Fail fast with a friendly, actionable error instead of spending a Gemini
+      // call that is guaranteed to fail schema validation downstream.
       if (type === DocumentType.CHARGE_SHEET) {
         const hasAccused = (context.persons || []).some((p: any) => p.role === "SUSPECT") || 
                            (context.accused && context.accused.length > 0);
         if (!hasAccused) {
-          throw new NonRetryableError("Validation Failed: Cannot generate a Charge Sheet without at least one identified Accused person.");
+          throw new DocumentGenerationError(
+            "Cannot generate a Charge Sheet without at least one identified Accused person.",
+            {
+              code: "CASE_DATA_MISSING",
+              failureType: "data",
+              userMessage: "A Charge Sheet requires at least one identified accused person. Add a person with role Suspect/Accused, then regenerate.",
+            },
+          );
         }
       }
 
@@ -84,7 +107,31 @@ export class DocumentGeneratorService {
         const hasVictim = (context.persons || []).some((p: any) => p.role === "VICTIM") || 
                           (context.victims && context.victims.length > 0);
         if (!hasVictim) {
-          throw new NonRetryableError("Validation Failed: Cannot generate an FIR without an identified Victim or Complainant.");
+          throw new DocumentGenerationError(
+            "Cannot generate an FIR without an identified Victim or Complainant.",
+            {
+              code: "CASE_DATA_MISSING",
+              failureType: "data",
+              userMessage: "An FIR requires an identified victim or complainant. Add a person with role Victim, then regenerate.",
+            },
+          );
+        }
+      }
+
+      if (type === DocumentType.REMAND_REQUEST) {
+        const hasArrestedAccused = (context.accused || []).some((a: any) => {
+          const status = String(a.arrestStatus || "").toLowerCase();
+          return /arrest|custody|remand|apprehend|taken into|held|detain/.test(status);
+        });
+        if (!hasArrestedAccused) {
+          throw new DocumentGenerationError(
+            "Cannot generate a Remand Request without an arrested accused person.",
+            {
+              code: "CASE_DATA_MISSING",
+              failureType: "data",
+              userMessage: "A Remand Request requires at least one accused person who has been arrested (arrest status like 'Arrested' or 'In Custody'). Add the accused person with their arrest details, then try again.",
+            },
+          );
         }
       }
 
@@ -121,35 +168,28 @@ export class DocumentGeneratorService {
       // Report: GENERATING
       await onProgress?.("GENERATING", 60, "Generating document with AI model.");
 
-      // 6. Call Gemini Flash to generate JSON
+      // 6+7. Call Gemini and validate the output, with a single bounded repair attempt
       const modelUsed = geminiProvider.getModelName();
-      const startTime = Date.now();
       logger.info(
         { caseId, userId, documentType: type, modelUsed },
         "Dispatching prompt to Gemini model",
       );
-      const { text: rawResponse, tokenUsage } = await geminiProvider.generateJSON(promptText);
-      const latencyMs = Date.now() - startTime;
-      logger.info(
-        { caseId, userId, documentType: type, modelUsed, latencyMs },
-        "Gemini responded to prompt",
+      const generated = await this.generateValidatedOutput(
+        promptText,
+        config.schema,
+        type,
       );
-
-      // 7. Validate output using the registered Zod schema
-      let result: any;
-      try {
-        const rawData = JSON.parse(rawResponse);
-        result = config.schema.parse(rawData);
+      const { result, rawResponse, latencyMs, tokenUsage, repaired, promptUsed } = generated;
+      if (repaired) {
+        logger.warn(
+          { caseId, userId, documentType: type, latencyMs },
+          "Document AI output repaired after validation feedback",
+        );
+      } else {
         logger.info(
-          { caseId, userId, documentType: type },
-          "Document JSON successfully validated against Zod schema",
+          { caseId, userId, documentType: type, modelUsed, latencyMs },
+          "Gemini responded to prompt",
         );
-      } catch (err: any) {
-        logger.error(
-          { err, caseId, userId, documentType: type },
-          "Validation failure for document",
-        );
-        throw new NonRetryableError(`Failed to parse or validate ${type} AI output: ${err.message}`);
       }
 
       // Report: SAVING
@@ -220,7 +260,7 @@ export class DocumentGeneratorService {
         // d. Always store AIRequestLog for observability (rich telemetry — prompt, response, tokens)
         await aiObservabilityService.logRequest(userId, {
           requestType: config.aiRequestType,
-          prompt: basePrompt,
+          prompt: promptUsed,
           retrievedContext: retrievedChunks.length > 0 ? JSON.stringify(retrievedChunks) : undefined,
           response: rawResponse,
           latencyMs,
@@ -265,6 +305,117 @@ export class DocumentGeneratorService {
 
       return document;
     });
+  }
+
+  /**
+   * Calls Gemini and validates the response against the registered schema.
+   * Performs exactly one bounded repair attempt when the output fails to
+   * parse/validate, then throws a structured DocumentGenerationError.
+   */
+  private async generateValidatedOutput<T>(
+    promptText: string,
+    schema: z.ZodType<T>,
+    type: DocumentType,
+  ): Promise<{
+    result: T;
+    rawResponse: string;
+    promptUsed: string;
+    latencyMs: number;
+    tokenUsage?: number;
+    repaired: boolean;
+  }> {
+    const totalStart = Date.now();
+    const initial = await geminiProvider.generateJSON(promptText);
+
+    const firstAttempt = this.parseAndValidate(schema, initial.text);
+    if (firstAttempt.ok) {
+      return {
+        result: firstAttempt.result,
+        rawResponse: initial.text,
+        promptUsed: promptText,
+        latencyMs: Date.now() - totalStart,
+        tokenUsage: initial.tokenUsage,
+        repaired: false,
+      };
+    }
+
+    // Single bounded repair attempt — re-prompt with the schema feedback.
+    if (DOC_GEN_REPAIR_RETRY_ENABLED) {
+      const repairPrompt = buildRepairPrompt(
+        promptText,
+        initial.text,
+        firstAttempt.issues,
+      );
+      logger.warn(
+        { documentType: type, issueCount: firstAttempt.issues.length },
+        "Attempting to repair document AI output",
+      );
+      try {
+        const repaired = await geminiProvider.generateJSON(repairPrompt);
+        const repairedAttempt = this.parseAndValidate(schema, repaired.text);
+        if (repairedAttempt.ok) {
+          return {
+            result: repairedAttempt.result,
+            rawResponse: repaired.text,
+            promptUsed: repairPrompt,
+            latencyMs: Date.now() - totalStart,
+            tokenUsage: repaired.tokenUsage,
+            repaired: true,
+          };
+        }
+        logger.warn(
+          { documentType: type, issueCount: repairedAttempt.issues.length },
+          "Document repair attempt still failed validation",
+        );
+      } catch (repairErr) {
+        logger.warn(
+          { err: repairErr, documentType: type },
+          "Document repair attempt errored — falling back to original failure",
+        );
+      }
+    }
+
+    throw this.buildValidationError(type, firstAttempt.error);
+  }
+
+  private parseAndValidate<T>(
+    schema: z.ZodType<T>,
+    text: string,
+  ):
+    | { ok: true; result: T; error: null; issues: [] }
+    | { ok: false; result: null; error: Error; issues: any[] } {
+    try {
+      const rawData = JSON.parse(text);
+      const result = schema.parse(rawData);
+      return { ok: true, result, error: null, issues: [] };
+    } catch (error: any) {
+      const issues = Array.isArray(error?.issues) ? (error.issues as any[]) : [];
+      return { ok: false, result: null, error, issues };
+    }
+  }
+
+  private buildValidationError(
+    type: DocumentType,
+    error: Error,
+  ): DocumentGenerationError {
+    if (error instanceof ZodError) {
+      const formatted = formatDocumentValidationError(type, error);
+      return new DocumentGenerationError(formatted.message, {
+        code: "VALIDATION_FAILED",
+        failureType: "validation",
+        userMessage: formatted.userMessage,
+        details: formatted.details,
+      });
+    }
+    return new DocumentGenerationError(
+      `Failed to parse ${type} AI output: the model returned malformed JSON.`,
+      {
+        code: "VALIDATION_FAILED",
+        failureType: "validation",
+        userMessage: `The AI returned a response that could not be read as a valid ${documentTypeLabel(type)}. Please try again.`,
+        details: { parseError: error?.message },
+      },
+    );
   }
 
   /**

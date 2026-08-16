@@ -14,6 +14,8 @@ export type MinimalJobStatusResponse = {
   queueName: string;
   state: MinimalJobState;
   failedReason?: string | null;
+  errorCode?: string | null;
+  failureType?: string | null;
   documentId?: string | null;
 };
 
@@ -67,6 +69,8 @@ export class JobStatusService {
         queueName: input.queueName,
         state: record.status as MinimalJobState,
         failedReason: record.errorMessage ?? null,
+        errorCode: record.errorCode ?? null,
+        failureType: record.failureType ?? null,
         documentId,
       };
     } catch (error) {
@@ -99,6 +103,8 @@ export class JobStatusService {
     caseId?: string;
     documentType?: string;
     errorMessage?: string;
+    errorCode?: string;
+    failureType?: string;
   }): Promise<void> {
     try {
       await jobStatusRepository.upsert({
@@ -109,6 +115,8 @@ export class JobStatusService {
         caseId: input.caseId,
         documentType: input.documentType,
         errorMessage: input.errorMessage,
+        errorCode: input.errorCode,
+        failureType: input.failureType,
       });
     } catch (error) {
       logger.error(

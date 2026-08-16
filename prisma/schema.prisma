@@ -594,10 +594,13 @@ model JobStatus {
   caseId       String?
   documentType String?
   errorMessage String?
+  errorCode    String?
+  failureType  String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   @@index([caseId, documentType])
+  @@index([caseId, status])
   @@index([status])
   @@index([updatedAt])
 }

@@ -74,7 +74,7 @@ graph TD
 | **Frontend UI** | React 19, Tailwind CSS, Lucide Icons, Shadcn UI |
 | **Databases** | Neon Serverless PostgreSQL, Redis (BullMQ queue store) |
 | **ORM / Data Access**| Prisma ORM & raw pg pool clients |
-| **AI / NLP** | Google Gemini 1.5 Flash (via LangChain), FastAPI + SentenceTransformers |
+| **AI / NLP** | Google Gemini 2.5 Flash (via LangChain), FastAPI + SentenceTransformers |
 | **Queueing System** | BullMQ & ioredis |
 | **Authentication** | NextAuth v5 (Auth.js) with Google OAuth 2.0 |
 | **Testing** | Vitest for unit & integration testing |

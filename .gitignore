@@ -58,3 +58,4 @@ embedding-service/.pytest_cache/
 embedding-service/.mypy_cache/
 embedding-service/.ruff_cache/
 /docs
+

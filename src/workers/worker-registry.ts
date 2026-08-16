@@ -1,6 +1,9 @@
 import { Worker, type WorkerOptions } from "bullmq";
 import { getRedisConnection } from "@/lib/redis";
 import { QUEUE_NAMES } from "@/lib/queue/queue-names";
+import type { DocumentGenerationJobPayload } from "@/lib/queue/job-types";
+import { jobStatusService } from "@/services/queue/job-status.service";
+import { jobStatusRepository } from "@/repositories/job-status.repository";
 import { processAIGenerationJob } from "@/workers/ai-generation.processor";
 import { processCleanupJob } from "@/workers/cleanup.processor";
 import { processDocumentGenerationJob } from "@/workers/document-generator.processor";
@@ -22,12 +25,13 @@ const defaultWorkerOptions: WorkerOptions = {
   stalledInterval: 240_000,
 };
 
-// Document generation involves long-running Gemini API calls (up to ~60s) and DB transactions.
-// Use a longer lock duration to prevent BullMQ from marking jobs as stalled prematurely.
+// Document generation involves long-running Gemini API calls (up to ~60s each, plus a
+// possible bounded repair re-prompt) and DB transactions. Use a longer lock duration to
+// prevent BullMQ from marking jobs as stalled prematurely.
 const documentGenerationWorkerOptions: WorkerOptions = {
   ...defaultWorkerOptions,
   concurrency: WORKER_CONCURRENCY.DOCUMENT_GENERATION,
-  lockDuration: 120_000,
+  lockDuration: 240_000,
 };
 
 export function createWorkers() {
@@ -103,6 +107,35 @@ export function createWorkers() {
         },
         "BullMQ job failed",
       );
+
+      // Belt-and-braces: if the processor's catch block did not persist a failed
+      // JobStatus row (crash, timeout, unexpected discard path), write one here so
+      // the frontend polling always sees a terminal failure.
+      if (worker.name === QUEUE_NAMES.DOCUMENT_GENERATION && job) {
+        const data = job.data as DocumentGenerationJobPayload | undefined;
+        const jobId = String(job.id);
+
+        jobStatusRepository
+          .findById(jobId)
+          .then((existing) => {
+            if (existing && existing.status === "failed") return;
+            return jobStatusService.setJobStatus({
+              jobId,
+              queueName: QUEUE_NAMES.DOCUMENT_GENERATION,
+              status: "failed",
+              userId: data?.userId,
+              caseId: data?.caseId,
+              documentType: data?.documentType,
+              errorMessage: job.failedReason ?? error.message,
+            });
+          })
+          .catch((err) => {
+            logger.warn(
+              { err, jobId, queueName: worker.name },
+              "Failed to write fallback failed job status to DB",
+            );
+          });
+      }
     });
 
     worker.on("error", (error) => {

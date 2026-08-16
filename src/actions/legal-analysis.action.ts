@@ -22,7 +22,7 @@ export async function analyzeCaseAction(caseId: string) {
       }
       const userId = session.user.id;
 
-      const { legalAnalysisService } = await import("@/services/case/legal-analysis.services");
+      const { legalAnalysisService } = await import("@/services/case/legal-analysis.service");
       await legalAnalysisService.analyzeCase(validatedCaseId, userId);
 
       // Invalidate the Redis case detail cache so the next load gets fresh data

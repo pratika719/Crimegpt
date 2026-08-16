@@ -1,4 +1,4 @@
-import { CaseService } from "@/services/case/case.services";
+import { CaseService } from "@/services/case/case.service";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -45,6 +45,14 @@ export default async function CaseDetailPage({
 
   const documents = caseItem.generatedDocuments || [];
 
+  // Minimal case data for client-side pre-flight validation of document generation
+  // (mirrors the backend checks — warns/disables before a doomed Gemini call is queued).
+  const preflightData = {
+    accused: (caseItem.accused || []).map((a) => ({ arrestStatus: a.arrestStatus ?? null })),
+    persons: (caseItem.persons || []).map((p) => ({ role: p.role })),
+    victims: caseItem.victims || [],
+  };
+
   // Fetch active/pending document generation jobs for state recovery
   const activeJobs = await prisma.jobStatus.findMany({
     where: {
@@ -55,6 +63,27 @@ export default async function CaseDetailPage({
       id: true,
       queueName: true,
       documentType: true,
+    },
+  });
+
+  // Fetch recent failed jobs so the UI can surface "last generation failed"
+  // banners even after a page reload (failed jobs are otherwise invisible).
+  const failedJobs = await prisma.jobStatus.findMany({
+    where: {
+      caseId: id,
+      status: "failed",
+      updatedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+    },
+    orderBy: { updatedAt: "desc" },
+    take: 10,
+    select: {
+      id: true,
+      queueName: true,
+      documentType: true,
+      errorMessage: true,
+      errorCode: true,
+      failureType: true,
+      updatedAt: true,
     },
   });
 
@@ -224,6 +253,8 @@ export default async function CaseDetailPage({
         caseTitle={caseItem.title}
         caseNumber={caseItem.investigationProfile?.firNumber || caseItem.id}
         initialActiveJobs={JSON.parse(JSON.stringify(activeJobs))}
+        initialFailedJobs={JSON.parse(JSON.stringify(failedJobs))}
+        preflightData={JSON.parse(JSON.stringify(preflightData))}
       />
 
       {/* 9. Chronological Activity Timeline */}

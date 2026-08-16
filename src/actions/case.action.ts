@@ -6,7 +6,7 @@ import {
   CreateCaseSchema,
   UpdateCaseSchema,
 } from "@/schema/case.schema";
-import { CaseService } from "@/services/case/case.services";
+import { CaseService } from "@/services/case/case.service";
 import { auth } from "@/auth";
 import { validateActionInput } from "@/lib/validation/action-guard";
 import { actionSuccess, actionFailure } from "@/lib/action-response";

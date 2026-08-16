@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { DocumentType } from "@/generated/prisma/client";
 import { activityService } from "@/services/activity/activity.service";
-import { CaseService } from "@/services/case/case.services";
+import { CaseService } from "@/services/case/case.service";
 import { auth } from "@/auth";
 import { validateActionInput } from "@/lib/validation/action-guard";
 import { actionSuccess, actionFailure } from "@/lib/action-response";

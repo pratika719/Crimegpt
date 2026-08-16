@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { prisma } from "../lib/prisma";
-import { CaseService } from "../services/case/case.services";
+import { CaseService } from "../services/case/case.service";
 import { checklistService } from "../services/checklist/checklist.service";
 import { caseActivityRepository } from "../repositories/case-activity.repository";
 

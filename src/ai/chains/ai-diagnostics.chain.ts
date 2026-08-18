@@ -2,7 +2,7 @@ import { lawRetriever, CleanedLawReference } from "../retrievers/law.retriever";
 import { buildAIDiagnosticsPrompt } from "../prompts/ai-diagnostics.prompt";
 import { geminiProvider } from "../providers/gemini-provider";
 import { parseAIDiagnosticsResult, AIDiagnosticsResult } from "../types/ai-diagnostics.types";
-import { UnifiedCaseContext } from "@/services/case/unified-context.service";
+import { UnifiedCaseContext } from "@/features/case/services/unified-context.service";
 
 export interface DiagnosticsChainOutput {
   result: AIDiagnosticsResult;

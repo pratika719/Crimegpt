@@ -54,7 +54,12 @@ export type AIDiagnosticsResult = z.infer<typeof AIDiagnosticsResultSchema>;
 
 export function parseAIDiagnosticsResult(jsonStr: string): AIDiagnosticsResult {
   try {
-    const rawData = JSON.parse(jsonStr);
+    const cleanedJson = jsonStr
+      .trim()
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/\s*```$/, "")
+      .trim();
+    const rawData = JSON.parse(cleanedJson);
     return AIDiagnosticsResultSchema.parse(rawData);
   } catch (err: any) {
     throw new Error(`Failed to parse or validate AI diagnostics output: ${err.message}`);

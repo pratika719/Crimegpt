@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RemandRequestSchema } from "@/schema/remand-request.schema";
+import { RemandRequestSchema } from "@/features/case/schemas/remand-request.schema";
 import {
   DocumentGenerationError,
   buildRepairPrompt,

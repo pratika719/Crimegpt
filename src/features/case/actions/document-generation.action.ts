@@ -1,0 +1,148 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { DocumentType } from "@/generated/prisma/client";
+import { activityService } from "@/features/case/services/activity.service";
+import { CaseService } from "@/features/case/services/case.service";
+import { requireUser, validateActionInput } from "@/lib/validation/action-guard";
+import { actionFailure, actionSuccess } from "@/lib/action-response";
+import { queueProducerService } from "@/services/queue/queue-producer.service";
+import { cacheInvalidationService } from "@/services/cache/cache-invalidation.service";
+import { logger } from "@/lib/logger";
+import { checkRateLimit } from "@/lib/security/rate-limit";
+
+const caseService = new CaseService();
+
+const LogDocumentActivitySchema = z.object({
+  caseId: z.string().min(1, "Case ID is required"),
+  actionType: z.enum(["DOWNLOAD", "REGENERATE"]),
+  docType: z.string().min(1, "Document Type is required"),
+  docTitle: z.string().min(1, "Document Title is required"),
+  version: z.number().int().min(1),
+});
+
+/**
+ * Server action to generate (or regenerate) any registered document type for a case.
+ */
+const enqueueDocumentGenerationSchema = z.object({
+  caseId: z.string().cuid(),
+  documentType: z.nativeEnum(DocumentType),
+  forceRegenerate: z.boolean().default(false),
+});
+
+export async function generateDocumentAction(input: unknown) {
+  return validateActionInput(
+    enqueueDocumentGenerationSchema,
+    input,
+    async (data) => {
+      const userId = await requireUser();
+      const rateLimit = await checkRateLimit({
+        key: `rate-limit:document-generation:${userId}`,
+        limit: 5,
+        windowSeconds: 600,
+      });
+
+      if (!rateLimit.allowed) {
+        return actionFailure(
+          "RATE_LIMIT_EXCEEDED",
+          `Too many document generation requests. Please try again in ${rateLimit.resetInSeconds} seconds.`,
+        );
+      }
+
+      logger.info(
+        {
+          caseId: data.caseId,
+          userId,
+          documentType: data.documentType,
+          forceRegenerate: data.forceRegenerate,
+        },
+        "Document generation requested",
+      );
+
+      try {
+        const queued = await queueProducerService.addDocumentGenerationJob({
+          caseId: data.caseId,
+          userId,
+          documentType: data.documentType,
+          forceRegenerate: data.forceRegenerate,
+        });
+
+        logger.info(
+          {
+            jobId: queued.jobId,
+            caseId: data.caseId,
+            userId,
+            documentType: data.documentType,
+          },
+          "Document generation job enqueued successfully",
+        );
+
+        // Cache invalidation happens in the worker after successful generation.
+        // Don't invalidate here — no new data exists yet, doing so only risks stale reads.
+        // revalidatePath here would be premature too.
+
+        return actionSuccess({
+          data: {
+            message: "Document generation started.",
+            ...queued,
+          },
+        });
+      } catch (err) {
+        logger.error(
+          {
+            err,
+            caseId: data.caseId,
+            userId,
+            documentType: data.documentType,
+          },
+          "Document generation enqueue failed",
+        );
+        throw err;
+      }
+    },
+  );
+}
+
+/**
+ * Server action to log document related activities (e.g. PDF downloads).
+ */
+export async function logDocumentActivityAction(
+  caseId: string, 
+  actionType: "DOWNLOAD" | "REGENERATE", 
+  docType: string, 
+  docTitle: string, 
+  version: number
+) {
+  return validateActionInput(
+    LogDocumentActivitySchema,
+    { caseId, actionType, docType, docTitle, version },
+    async (validated) => {
+      const userId = await requireUser();
+
+      try {
+        await caseService.getCaseById(validated.caseId, userId);
+      } catch {
+        return actionFailure("UNAUTHORIZED", "Unauthorized or case not found");
+      }
+
+      if (validated.actionType === "DOWNLOAD") {
+        await activityService.logDocumentDownloaded(validated.caseId, userId, validated.docType, validated.docTitle, validated.version);
+      } else if (validated.actionType === "REGENERATE") {
+        await activityService.logDocumentRegenerated(validated.caseId, userId, validated.docType, validated.docTitle, validated.version);
+      }
+
+      try {
+        await cacheInvalidationService.invalidateCaseMutation({
+          userId,
+          caseId: validated.caseId,
+        });
+      } catch (err) {
+        logger.warn({ err }, `Failed to invalidate cache on document activity log for case ${validated.caseId}`);
+      }
+
+      revalidatePath(`/case/${validated.caseId}`);
+      return actionSuccess();
+    }
+  );
+}

@@ -1,6 +1,6 @@
 import { DocumentType, AIRequestType } from "@/generated/prisma/client";
-import { documentRepository } from "@/repositories/document.repository";
-import { aiRequestLogRepository } from "@/repositories/ai-request-log.repository";
+import { documentRepository } from "@/features/case/repositories/document.repository";
+import { aiRequestLogRepository } from "@/features/case/repositories/ai-request-log.repository";
 import { CleanedLawReference } from "@/ai/retrievers/law.retriever";
 
 export class DocumentVersionService {

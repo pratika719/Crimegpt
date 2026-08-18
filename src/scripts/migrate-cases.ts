@@ -33,7 +33,7 @@ async function main() {
     console.log("⚙️ Migrating cases to default user...");
     const updateResult = await prisma.case.updateMany({
       where: {
-        userId: null,
+        userId: "",
       },
       data: {
         userId: defaultUser.id,

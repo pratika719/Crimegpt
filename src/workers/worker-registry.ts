@@ -3,7 +3,7 @@ import { getRedisConnection } from "@/lib/redis";
 import { QUEUE_NAMES } from "@/lib/queue/queue-names";
 import type { DocumentGenerationJobPayload } from "@/lib/queue/job-types";
 import { jobStatusService } from "@/services/queue/job-status.service";
-import { jobStatusRepository } from "@/repositories/job-status.repository";
+import { jobStatusRepository } from "@/features/case/repositories/job-status.repository";
 import { processAIGenerationJob } from "@/workers/ai-generation.processor";
 import { processCleanupJob } from "@/workers/cleanup.processor";
 import { processDocumentGenerationJob } from "@/workers/document-generator.processor";

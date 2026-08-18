@@ -1,4 +1,4 @@
-import { CaseService } from "@/services/case/case.service";
+import { CaseService } from "@/features/case/services/case.service";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -7,20 +7,21 @@ import {
   Calendar, 
   Clock, 
 } from "lucide-react";
-import CaseAnalysisPanel from "@/components/case/case-analysis-panel";
-import CaseMetadataSection from "@/components/case/case-metadata-section";
-import CaseTimeline from "@/components/case/case-timeline";
-import CasePersonsSection from "@/components/case/case-persons-section";
-import CaseEvidenceSection from "@/components/case/case-evidence-section";
-import CaseChecklistSection from "@/components/case/case-checklist-section";
-import CaseNarrativeCollapse from "@/components/case/case-narrative-collapse";
-import CaseOverviewCards from "@/components/case/case-overview-cards";
-import CaseAIInsightsDash from "@/components/case/case-ai-insights-dash";
-import CaseInvestigationProfileSection from "@/components/case/case-investigation-profile-section";
-import CaseHeaderActions from "@/components/case/case-header-actions";
+import CaseAnalysisPanel, { type AIRequestLog } from "@/features/case/components/case-analysis-panel";
+import CaseMetadataSection from "@/features/case/components/case-metadata-section";
+import CaseTimeline from "@/features/case/components/case-timeline";
+import CasePersonsSection from "@/features/case/components/case-persons-section";
+import CaseEvidenceSection from "@/features/case/components/case-evidence-section";
+import CaseChecklistSection from "@/features/case/components/case-checklist-section";
+import CaseNarrativeCollapse from "@/features/case/components/case-narrative-collapse";
+import CaseOverviewCards from "@/features/case/components/case-overview-cards";
+import CaseAIInsightsDash from "@/features/case/components/case-ai-insights-dash";
+import CaseInvestigationProfileSection from "@/features/case/components/case-investigation-profile-section";
+import CaseHeaderActions from "@/features/case/components/case-header-actions";
 
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { toClient } from "@/lib/utils";
 
 export default async function CaseDetailPage({
   params,
@@ -218,49 +219,49 @@ export default async function CaseDetailPage({
       {/* 4. Unified Case Investigation Profile (Single Source of Truth) */}
       <CaseInvestigationProfileSection 
         caseId={caseItem.id} 
-        caseData={JSON.parse(JSON.stringify(caseItem))} 
+        caseData={toClient(caseItem)} 
       />
 
       {/* 5. Metadata Profile Section */}
       <CaseMetadataSection 
         caseId={caseItem.id} 
-        metadata={caseItem.caseMetadata ? JSON.parse(JSON.stringify(caseItem.caseMetadata)) : null} 
+        metadata={caseItem.caseMetadata ? toClient(caseItem.caseMetadata) : null} 
       />
 
       {/* 5. Persons/Parties Profile Section */}
       <CasePersonsSection 
         caseId={caseItem.id} 
-        initialPersons={caseItem.persons ? JSON.parse(JSON.stringify(caseItem.persons)) : []} 
+        initialPersons={caseItem.persons ? toClient(caseItem.persons) : []} 
       />
 
       {/* 6. Evidence List Profile Section */}
       <CaseEvidenceSection 
         caseId={caseItem.id} 
-        initialEvidence={caseItem.evidence ? JSON.parse(JSON.stringify(caseItem.evidence)) : []} 
+        initialEvidence={caseItem.evidence ? toClient(caseItem.evidence) : []} 
       />
 
       {/* 7. Checklist / Procedures Section */}
       <CaseChecklistSection 
         caseId={caseItem.id} 
-        initialChecklist={caseItem.checklistItems ? JSON.parse(JSON.stringify(caseItem.checklistItems)) : []} 
+        initialChecklist={caseItem.checklistItems ? toClient(caseItem.checklistItems) : []} 
       />
 
       {/* 8. AI Generated Documents / Analysis Section */}
       <CaseAnalysisPanel 
         caseId={caseItem.id} 
-        initialDocuments={JSON.parse(JSON.stringify(documents))} 
-        aiRequests={JSON.parse(JSON.stringify(caseItem.aiRequestLogs || []))}
+        initialDocuments={toClient(documents)} 
+        aiRequests={toClient(caseItem.aiRequestLogs || []) as AIRequestLog[]}
         caseTitle={caseItem.title}
         caseNumber={caseItem.investigationProfile?.firNumber || caseItem.id}
-        initialActiveJobs={JSON.parse(JSON.stringify(activeJobs))}
-        initialFailedJobs={JSON.parse(JSON.stringify(failedJobs))}
-        preflightData={JSON.parse(JSON.stringify(preflightData))}
+        initialActiveJobs={toClient(activeJobs)}
+        initialFailedJobs={toClient(failedJobs)}
+        preflightData={toClient(preflightData)}
       />
 
       {/* 9. Chronological Activity Timeline */}
       <CaseTimeline 
         caseId={caseItem.id}
-        activities={caseItem.activities ? JSON.parse(JSON.stringify(caseItem.activities)) : []} 
+        activities={caseItem.activities ? toClient(caseItem.activities) : []} 
       />
 
     </div>

@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { aiObservabilityService } from "@/services/ai/ai-observability.service";
-import { aiRequestLogRepository } from "@/repositories/ai-request-log.repository";
-import type { CreateAIRequestLogInput } from "@/repositories/ai-request-log.repository";
+import { aiRequestLogRepository } from "@/features/case/repositories/ai-request-log.repository";
+import type { CreateAIRequestLogInput } from "@/features/case/repositories/ai-request-log.repository";
 
-vi.mock("@/repositories/ai-request-log.repository", () => ({
+vi.mock("@/features/case/repositories/ai-request-log.repository", () => ({
   aiRequestLogRepository: {
     create: vi.fn(),
   },

@@ -7,8 +7,8 @@ import { Loader2, AlertCircle } from "lucide-react";
 import {
   CreateCaseSchema,
   CreateCaseInput,
-} from "@/schema/case.schema";
-import { createCaseAction } from "@/actions/case.action";
+} from "@/features/case/schemas/case.schema";
+import { createCaseAction } from "@/features/case/actions/case.action";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

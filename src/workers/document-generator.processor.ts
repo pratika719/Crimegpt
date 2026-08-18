@@ -1,8 +1,8 @@
 import type { Job } from "bullmq";
 import type { DocumentGenerationJobPayload } from "@/lib/queue/job-types";
 import { setAITempState } from "@/lib/redis/ai-temp-state";
-import { documentGeneratorService } from "@/services/document-engine/document-generator.service";
-import type { ProgressCallback } from "@/services/document-engine/document-generator.service";
+import { documentGeneratorService } from "@/features/case/services/document-engine/document-generator.service";
+import type { ProgressCallback } from "@/features/case/services/document-engine/document-generator.service";
 import { NonRetryableError } from "@/lib/error/retryable-error";
 import {
   DocumentGenerationError,

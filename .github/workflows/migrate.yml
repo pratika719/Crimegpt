@@ -1,0 +1,52 @@
+name: Migrate Databases
+
+# Runs `prisma migrate deploy` against the database of the environment that
+# was just deployed to. Safe and idempotent — the same workflow can run many
+# times; Prisma tracks applied migrations in _prisma_migrations.
+#
+# Setup (GitHub repo → Settings → Secrets and variables → Actions):
+#   DATABASE_URL_STAGING     → Neon staging branch/database URL
+#   DATABASE_URL_PRODUCTION  → Neon production database URL
+#
+# The job is skipped entirely while a secret is unset, so the workflow is
+# harmless before secrets are configured.
+
+on:
+  push:
+    branches:
+      - develop   # staging environment
+      - main      # production environment
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    name: Migrate (${{ github.ref_name }})
+    runs-on: ubuntu-latest
+    if: ${{ secrets.DATABASE_URL_STAGING != '' || secrets.DATABASE_URL_PRODUCTION != '' }}
+
+    env:
+      DATABASE_URL: ${{ github.ref_name == 'main' && secrets.DATABASE_URL_PRODUCTION || secrets.DATABASE_URL_STAGING }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+
+      - name: Summary
+        run: |
+          echo "Environment: ${{ github.ref_name }}"
+          echo "Migrations applied to: ${{ github.ref_name == 'main' && 'PRODUCTION' || 'STAGING' }}"

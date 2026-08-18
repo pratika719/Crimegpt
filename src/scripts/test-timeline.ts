@@ -1,9 +1,9 @@
 import "dotenv/config";
 import { prisma } from "../lib/prisma";
-import { CaseService } from "../services/case/case.service";
-import { caseMetadataService } from "../services/case-metadata/case-metadata.service";
-import { investigationSummaryService } from "../services/investigation-summary/investigation-summary.service";
-import { caseActivityRepository } from "../repositories/case-activity.repository";
+import { CaseService } from "@/features/case/services/case.service";
+import { caseMetadataService } from "@/features/case/services/case-metadata.service";
+import { investigationSummaryService } from "@/features/case/services/investigation-summary.service";
+import { caseActivityRepository } from "@/features/case/repositories/case-activity.repository";
 
 // Instantiated CaseService class
 const service = new CaseService();

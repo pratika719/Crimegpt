@@ -45,6 +45,7 @@ export class JobStatusService {
           state: "unknown",
           failedReason: "Job not found or access denied.",
         };
+      }
       // Check for stale abandoned jobs (pending/active for > 10 minutes)
       const STALE_JOB_THRESHOLD_MS = 10 * 60 * 1000;
       const isStale = (record.status === "pending" || record.status === "active") &&

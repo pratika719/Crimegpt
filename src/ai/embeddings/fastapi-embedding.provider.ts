@@ -94,6 +94,7 @@ private async requestEmbeddings(texts: string[]): Promise<EmbeddingOutput> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ texts }),
+    signal: AbortSignal.timeout(3000),
   });
 
   if (!response.ok) {

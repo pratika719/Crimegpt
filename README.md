@@ -19,9 +19,9 @@ CrimeGPT follows a strict **Controller-Service-Repository** pattern. It decouple
 
 ```mermaid
 graph TD
-    A[Frontend: Next.js Views / React 19] -->|Invokes Server Actions| B[Controller Layer: src/actions]
-    B -->|Authenticates & Scopes| C[Service Layer: src/services]
-    C -->|Orchestrates DB Mutations| D[Repository Layer: src/repositories]
+    A[Frontend: Next.js Views / React 19] -->|Invokes Server Actions| B[Controller: actions in features/<domain>]
+    B -->|Authenticates & Scopes| C[Service: services in features/<domain>]
+    C -->|Orchestrates DB Mutations| D[Repository: repositories in features/<domain>]
     C -->|Pushes Heavy Tasks| E[BullMQ Queue Manager]
     E -->|Redis Queue Store| F[BullMQ Worker Service]
     C -->|Queries Context| G[AI Engine: src/ai]
@@ -34,10 +34,12 @@ graph TD
 
 ### Decoupled Service Architecture
 
+Each domain lives as a **vertical slice** under `src/features/<domain>/` (e.g. `src/features/case/`), containing its own `actions/`, `services/`, `repositories/`, `schemas/`, `components/`, and `hooks/`:
+
 - **Client / View Layer (`src/app`)**: Powered by React 19 and Next.js App Router, using Server Actions to handle client requests securely without exposing raw API endpoints.
-- **Controller / Action Layer (`src/actions`)**: Validates input schemas using **Zod**, parses active user sessions, extracts the authenticated `userId`, and routes parameters to the business layer.
-- **Service Layer (`src/services`)**: Implements application-specific logic, manages transaction limits, coordinates multiple repository updates, and triggers background processing.
-- **Repository Layer (`src/repositories`)**: Encapsulates all SQL statements and Prisma operations. Strictly enforces tenant-level database scoping.
+- **Controller / Action Layer (`src/features/<domain>/actions`)**: Validates input schemas using **Zod**, resolves the authenticated `userId` via `requireUser()`, and routes parameters to the business layer.
+- **Service Layer (`src/features/<domain>/services`)**: Implements application-specific logic, manages transaction limits, coordinates multiple repository updates, and triggers background processing.
+- **Repository Layer (`src/features/<domain>/repositories`)**: Encapsulates all SQL statements and Prisma operations. Strictly enforces tenant-level database scoping.
 - **Asynchronous Worker Layer (`src/workers`)**: Independent service consuming jobs via **BullMQ** to process intensive vector computations and document compilation out-of-band.
 
 ---
@@ -92,17 +94,15 @@ crimegpt/
 ├── public/                  # Static assets & icons
 ├── src/
 │   ├── app/                 # Next.js pages, routing layouts & client views
-│   ├── actions/             # Server Actions (Controller endpoints)
-│   ├── services/            # Core business logic layer
-│   ├── repositories/        # Database access layer (scoped queries)
-│   ├── ai/                  # RAG, chains, prompt templates & indexing
+│   ├── features/            # Vertical slices: one folder per domain
+│   │   └── case/            # actions/ services/ repositories/ schemas/ components/ hooks/
+│   ├── ai/                  # RAG, chains, prompt templates & indexing (cross-cutting)
 │   │   ├── chains/          # LangChain orchestrations
 │   │   ├── embeddings/      # Embedding service integrations
 │   │   ├── ingestion/       # Vector database seeder scripts
 │   │   └── vector/          # Vector store initializers
-│   ├── lib/                 # Singletons (db connection pools, redis, pino logger)
+│   ├── lib/                 # Shared infra (prisma, redis, queue, cache, security, logger, helpers)
 │   ├── scripts/             # Diagnostic, seed, and status checking tools
-│   ├── types/               # TypeScript type definitions and DTOs
 │   └── workers/             # BullMQ consumer processes
 ├── Dockerfile               # Production Dockerfile for Web App
 ├── Dockerfile.worker        # Production Dockerfile for BullMQ Worker

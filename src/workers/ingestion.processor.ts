@@ -1,6 +1,6 @@
 import type { Job } from "bullmq";
 import type { IngestionJobPayload } from "@/lib/queue/job-types";
-import { evidenceIngestionService } from "@/services/ingestion/evidence-ingestion.service";
+import { evidenceIngestionService } from "@/features/case/services/evidence-ingestion.service";
 import { NonRetryableError } from "@/lib/error/retryable-error";
 import { logger } from "@/lib/logger";
 

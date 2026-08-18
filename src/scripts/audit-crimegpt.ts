@@ -122,11 +122,12 @@ function auditFile(filePath: string): Finding[] {
     /createClient\s*\(/,
   ]);
 
-  const hasSilentCatch = /catch\s*\([^)]*\)\s*{\s*}/s.test(content);
+  const hasSilentCatch = new RegExp("catch\\s*\\([^)]*\\)\\s*{\\s*}", "s").test(content);
 
-  const catchesWithoutThrowOrReturn = /catch\s*\([^)]*\)\s*{(?![^}]*throw)(?![^}]*return)[^}]*}/s.test(
-    content,
-  );
+  const catchesWithoutThrowOrReturn = new RegExp(
+    "catch\\s*\\([^)]*\\)\\s*{(?![^}]*throw)(?![^}]*return)[^}]*}",
+    "s",
+  ).test(content);
 
   const hasConsoleLog = /\bconsole\.(log|error|warn|debug)\s*\(/.test(content);
 

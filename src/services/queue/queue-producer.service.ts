@@ -20,7 +20,7 @@ import type {
   IngestionJobPayload,
 } from "@/lib/queue/job-types";
 import { jobStatusService } from "@/services/queue/job-status.service";
-import { jobStatusRepository } from "@/repositories/job-status.repository";
+import { jobStatusRepository } from "@/features/case/repositories/job-status.repository";
 import { logger } from "@/lib/logger";
 
 function createRequestId(prefix: string): string {

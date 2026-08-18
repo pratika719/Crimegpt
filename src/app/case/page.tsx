@@ -1,4 +1,4 @@
-import { CaseService } from "@/services/case/case.service";
+import { CaseService } from "@/features/case/services/case.service";
 import { CasesDashboardClient } from "@/features/case/components/cases-dashboard-client";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";

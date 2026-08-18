@@ -1,6 +1,6 @@
 import { CleanedLawReference } from "../retrievers/law.retriever";
 import { promptExecutionHelper } from "@/services/shared/ai-shared.service";
-import { UnifiedCaseContext } from "@/services/case/unified-context.service";
+import { UnifiedCaseContext } from "@/features/case/services/unified-context.service";
 import { sanitizeUserNarrative } from "./prompt-context-builder";
 
 /**

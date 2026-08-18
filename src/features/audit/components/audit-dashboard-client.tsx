@@ -24,8 +24,8 @@ import {
   Cpu
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { getAuditLogsAction, getCasesForFilterAction } from "@/actions/audit.action";
-import { EnrichedActivity, AuditSeverity, AuditModule, AuditDashboardStats } from "@/services/activity/audit.service";
+import { getAuditLogsAction, getCasesForFilterAction } from "@/features/audit/actions/audit.action";
+import { EnrichedActivity, AuditSeverity, AuditModule, AuditDashboardStats } from "@/features/audit/services/audit.service";
 import { cn } from "@/lib/utils";
 
 interface AuditDashboardClientProps {

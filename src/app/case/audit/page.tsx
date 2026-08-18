@@ -1,6 +1,6 @@
-import { auditService } from "@/services/activity/audit.service";
+import { auditService } from "@/features/audit/services/audit.service";
 import { AuditDashboardClient } from "@/features/audit/components/audit-dashboard-client";
-import { auth } from "@/auth";
+import { requireUser } from "@/lib/validation/action-guard";
 import { redirect } from "next/navigation";
 
 export const metadata = {
@@ -12,13 +12,15 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AuditLogsPage() {
-  const session = await auth();
-  if (!session?.user?.id) {
+  let userId: string;
+  try {
+    userId = await requireUser();
+  } catch {
     redirect("/login");
   }
 
   // Fetch initial audit logs (page 1, limit 20, newest first)
-  const initialData = await auditService.getAuditLogs(session.user.id, {
+  const initialData = await auditService.getAuditLogs(userId, {
     page: 1,
     limit: 20,
     sortOrder: "desc",

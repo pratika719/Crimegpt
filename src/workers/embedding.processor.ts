@@ -1,6 +1,6 @@
 import type { Job } from "bullmq";
 import type { EmbeddingJobPayload } from "@/lib/queue/job-types";
-import { evidenceEmbeddingService } from "@/services/embeddings/evidence-embedding.service";
+import { evidenceEmbeddingService } from "@/features/case/services/evidence-embedding.service";
 import { NonRetryableError } from "@/lib/error/retryable-error";
 import { logger } from "@/lib/logger";
 

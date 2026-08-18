@@ -45,6 +45,33 @@ export class JobStatusService {
           state: "unknown",
           failedReason: "Job not found or access denied.",
         };
+      // Check for stale abandoned jobs (pending/active for > 10 minutes)
+      const STALE_JOB_THRESHOLD_MS = 10 * 60 * 1000;
+      const isStale = (record.status === "pending" || record.status === "active") &&
+                      (Date.now() - new Date(record.updatedAt).getTime() > STALE_JOB_THRESHOLD_MS);
+
+      if (isStale) {
+        const timeoutMsg = "Document generation timed out — background worker was offline or abandoned the job.";
+        await jobStatusRepository.upsert({
+          id: record.id,
+          queueName: record.queueName,
+          status: "failed",
+          userId: record.userId ?? undefined,
+          caseId: record.caseId ?? undefined,
+          documentType: record.documentType ?? undefined,
+          errorMessage: timeoutMsg,
+          errorCode: "JOB_TIMEOUT",
+          failureType: "transient",
+        }).catch((err) => logger.warn({ err, jobId: record.id }, "Failed to update stale job status in DB"));
+
+        return {
+          jobId: input.jobId,
+          queueName: input.queueName,
+          state: "failed",
+          failedReason: timeoutMsg,
+          errorCode: "JOB_TIMEOUT",
+          failureType: "transient",
+        };
       }
 
       let documentId: string | null = null;

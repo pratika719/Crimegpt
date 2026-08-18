@@ -966,6 +966,22 @@ export default function CaseAnalysisPanel({
                         Loading generated document...
                       </p>
                     )}
+                    <button
+                      onClick={() => {
+                        setGeneratingJobs((prev) => {
+                          const next = { ...prev };
+                          delete next[activeType];
+                          return next;
+                        });
+                        setRefreshingDocId(null);
+                        setActionType(null);
+                        setGenerationError(null);
+                      }}
+                      className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                    >
+                      <RefreshCw className="h-3 w-3" />
+                      Reset / Cancel
+                    </button>
                   </div>
                 </div>
               ) : (

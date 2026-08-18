@@ -54,11 +54,12 @@ export default async function CaseDetailPage({
     victims: caseItem.victims || [],
   };
 
-  // Fetch active/pending document generation jobs for state recovery
+  // Fetch active/pending document generation jobs for state recovery (within last 10 minutes)
   const activeJobs = await prisma.jobStatus.findMany({
     where: {
       caseId: id,
       status: { in: ["pending", "active"] },
+      updatedAt: { gte: new Date(Date.now() - 10 * 60 * 1000) },
     },
     select: {
       id: true,

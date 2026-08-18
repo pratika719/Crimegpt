@@ -333,8 +333,14 @@ export default function CaseAnalysisPanel({
   useEffect(() => {
     if (error) {
       setGenerationError(error);
+      setGeneratingJobs((prev) => {
+        const next = { ...prev };
+        delete next[activeType];
+        return next;
+      });
+      setActionType(null);
     }
-  }, [error]);
+  }, [error, activeType]);
 
   // Clear the persistent error when starting a new generation
   useEffect(() => {

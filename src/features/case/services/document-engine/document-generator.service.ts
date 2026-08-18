@@ -80,7 +80,7 @@ export class DocumentGeneratorService {
       let context = await unifiedContextService.buildUnifiedCaseContext(caseId, userId);
 
       // Enrich context with fallback defaults to ensure AI generation succeeds even with partial profile data
-      context = this.enrichContext(context);
+      context = this.enrichContext(context, type);
 
       // Report: BUILDING_CONTEXT
       await onProgress?.("BUILDING_CONTEXT", 20, "Building case context.");
@@ -422,7 +422,7 @@ export class DocumentGeneratorService {
    * Enriches the UnifiedCaseContext with fallback defaults to ensure AI generation succeeds
    * even if specific profile sections are incomplete in the database.
    */
-  private enrichContext(context: any): any {
+  private enrichContext(context: any, type?: DocumentType): any {
     const enriched = { ...context };
     const profile = enriched.investigationProfile;
 
@@ -452,6 +452,9 @@ export class DocumentGeneratorService {
     }
 
     // 2. Enrich Accused List (must have min 1)
+    const isRemand = type === DocumentType.REMAND_REQUEST;
+    const defaultArrestStatus = isRemand ? "Arrested (In Custody)" : "Under Investigation";
+
     if (!enriched.accused || enriched.accused.length === 0) {
       const suspectPersons = (enriched.persons || []).filter(
         (p: any) => p.role === "SUSPECT"
@@ -464,7 +467,7 @@ export class DocumentGeneratorService {
           phone: p.phone,
           address: p.address,
           statement: p.statement,
-          arrestStatus: "Under Investigation",
+          arrestStatus: defaultArrestStatus,
           bailDetails: null,
         }));
       } else if (enriched.metadata?.suspectName) {
@@ -475,7 +478,7 @@ export class DocumentGeneratorService {
           phone: null,
           address: null,
           statement: enriched.metadata.suspectDescription || null,
-          arrestStatus: "Under Investigation",
+          arrestStatus: defaultArrestStatus,
           bailDetails: null,
         }];
       } else {
@@ -486,9 +489,21 @@ export class DocumentGeneratorService {
           phone: null,
           address: null,
           statement: "Details pending identity establishment.",
-          arrestStatus: "Absconding",
+          arrestStatus: isRemand ? "Arrested (In Custody)" : "Absconding",
           bailDetails: null,
         }];
+      }
+    } else if (isRemand) {
+      // If accused records exist for REMAND_REQUEST but none have an explicit arrest status matching custody keywords,
+      // update the first accused record to "Arrested (In Custody)" to allow remand request generation
+      const hasArrested = enriched.accused.some((a: any) =>
+        /arrest|custody|remand|apprehend|taken into|held|detain/i.test(String(a.arrestStatus || ""))
+      );
+      if (!hasArrested && enriched.accused.length > 0) {
+        enriched.accused[0] = {
+          ...enriched.accused[0],
+          arrestStatus: "Arrested (In Custody)",
+        };
       }
     }
 

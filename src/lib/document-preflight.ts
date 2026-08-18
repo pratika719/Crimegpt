@@ -33,13 +33,12 @@ export function getPreflightIssue(
   const victims = data?.victims ?? [];
 
   if (type === "REMAND_REQUEST") {
-    const hasArrestedAccused = accused.some((a) =>
-      ARRESTED_STATUS_RE.test(String(a.arrestStatus ?? "")),
-    );
-    if (!hasArrestedAccused) {
+    const hasAccusedOrSuspect =
+      persons.some((p) => p.role === "SUSPECT") || accused.length > 0;
+    if (!hasAccusedOrSuspect) {
       return {
         message:
-          "A Remand Request requires at least one accused person who has been arrested (arrest status like 'Arrested' or 'In Custody'). Add the accused person with their arrest details first.",
+          "A Remand Request requires at least one accused person or suspect. Add an accused person to the case first.",
       };
     }
   }

@@ -1,4 +1,4 @@
-import { UnifiedCaseContext } from "@/services/case/unified-context.service";
+import { UnifiedCaseContext } from "@/features/case/services/unified-context.service";
 import { formatUnifiedContextForPrompt, sanitizeUserNarrative } from "./prompt-context-builder";
 
 export function buildCaseDiaryPrompt(context: UnifiedCaseContext): string {

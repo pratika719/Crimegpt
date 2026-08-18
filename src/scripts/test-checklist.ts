@@ -1,8 +1,8 @@
 import "dotenv/config";
 import { prisma } from "../lib/prisma";
-import { CaseService } from "../services/case/case.service";
-import { checklistService } from "../services/checklist/checklist.service";
-import { caseActivityRepository } from "../repositories/case-activity.repository";
+import { CaseService } from "@/features/case/services/case.service";
+import { checklistService } from "@/features/case/services/checklist.service";
+import { caseActivityRepository } from "@/features/case/repositories/case-activity.repository";
 
 const caseService = new CaseService();
 

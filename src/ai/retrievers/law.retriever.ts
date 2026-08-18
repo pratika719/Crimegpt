@@ -2,6 +2,7 @@ import { similaritySearchDeduplicated } from "../vector/pgvector";
 import { cacheService } from "@/lib/cache/cache";
 import { cacheKeys } from "@/lib/cache/cache-keys";
 import { createCacheHash } from "@/lib/cache/cache-hash";
+import { logger } from "@/lib/logger";
 
 export interface CleanedLawReference {
   section: string;
@@ -55,37 +56,45 @@ export class LawRetriever {
       return [];
     }
 
-    return retrieveLawsCached({
-      query: narrative,
-      topK: k,
-      retrieve: async () => {
-        // Call the deduplicated search from pgvector store
-        const results = await similaritySearchDeduplicated(narrative, k);
+    try {
+      return await retrieveLawsCached({
+        query: narrative,
+        topK: k,
+        retrieve: async () => {
+          // Call the deduplicated search from pgvector store
+          const results = await similaritySearchDeduplicated(narrative, k);
 
-        return results.map(([doc]) => {
-          const pageContent = doc.pageContent;
-          
-          // Extract Description block from pageContent if formatted standardly
-          let description = "";
-          const descMatch = pageContent.match(/Description:\r?\n([\s\S]*)$/i);
-          if (descMatch && descMatch[1]) {
-            description = descMatch[1].trim();
-          } else {
-            description = pageContent;
-          }
+          return results.map(([doc]) => {
+            const pageContent = doc.pageContent;
+            
+            // Extract Description block from pageContent if formatted standardly
+            let description = "";
+            const descMatch = pageContent.match(/Description:\r?\n([\s\S]*)$/i);
+            if (descMatch && descMatch[1]) {
+              description = descMatch[1].trim();
+            } else {
+              description = pageContent;
+            }
 
-          return {
-            section: doc.metadata.section || "N/A",
-            title: doc.metadata.offense || doc.metadata.section || "N/A",
-            content: pageContent,
-            source: doc.metadata.source || "IPC",
-            offense: doc.metadata.offense || "N/A",
-            punishment: doc.metadata.punishment || "N/A",
-            description: description,
-          };
-        });
-      }
-    });
+            return {
+              section: doc.metadata.section || "N/A",
+              title: doc.metadata.offense || doc.metadata.section || "N/A",
+              content: pageContent,
+              source: doc.metadata.source || "IPC",
+              offense: doc.metadata.offense || "N/A",
+              punishment: doc.metadata.punishment || "N/A",
+              description: description,
+            };
+          });
+        }
+      });
+    } catch (error) {
+      logger.warn(
+        { err: error },
+        "[LawRetriever] Failed to retrieve law references from vector store, defaulting to empty context"
+      );
+      return [];
+    }
   }
 }
 

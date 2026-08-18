@@ -1,5 +1,5 @@
 import { logger } from "@/lib/logger";
-import { jobStatusRepository } from "@/repositories/job-status.repository";
+import { jobStatusRepository } from "@/features/case/repositories/job-status.repository";
 import { prisma } from "@/lib/prisma";
 
 export type MinimalJobState =

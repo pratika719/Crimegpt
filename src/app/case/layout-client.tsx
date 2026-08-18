@@ -17,7 +17,7 @@ import {
   Moon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import SearchDialog from "@/components/search/search-dialog";
+import SearchDialog from "@/features/search/components/search-dialog";
 
 const navigation = [
   { name: "Cases", href: "/case", icon: FolderOpen, active: true },

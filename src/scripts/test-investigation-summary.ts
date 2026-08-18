@@ -1,16 +1,25 @@
 import "dotenv/config";
 import { prisma } from "../lib/prisma";
-import { caseMetadataService } from "../services/case-metadata/case-metadata.service";
-import { investigationSummaryService } from "../services/investigation-summary/investigation-summary.service";
+import { caseMetadataService } from "@/features/case/services/case-metadata.service";
+import { investigationSummaryService } from "@/features/case/services/investigation-summary.service";
 
 async function main() {
   console.log("🚀 Starting Investigation Summary RAG Test Pipeline...");
 
   try {
+    // 0. Create test user
+    const testUser = await prisma.user.create({
+      data: {
+        email: `test-summary-${Date.now()}@example.com`,
+        name: "Test Summary User",
+      },
+    });
+
     // 1. Create a dummy case to run the summary test against
     console.log("📂 Step 1: Creating a test case dossier...");
     const testCase = await prisma.case.create({
       data: {
+        userId: testUser.id,
         title: "Test Case: Unauthorized Bank Account Access & Fund Drain",
         narrative: 
           "Yesterday morning at 10:00 AM, the complainant received an SMS alert indicating that INR 5,00,000 " +
@@ -24,7 +33,7 @@ async function main() {
 
     // 2. Add structured case metadata using the service
     console.log("📂 Step 2: Populating case investigation metadata...");
-    const metadata = await caseMetadataService.upsertMetadata(testCase.id, {
+    const metadata = await caseMetadataService.upsertMetadata(testCase.id, testUser.id, {
       incidentDate: new Date("2026-06-16"),
       incidentTime: "10:00 AM",
       incidentLocation: "Online Banking Portal / Victim's Residence in Dwarka, Delhi",
@@ -42,7 +51,7 @@ async function main() {
 
     // 3. Run Investigation Summary RAG Generation
     console.log("📂 Step 3: Triggering Investigation Summary AI Generation...");
-    const document = await investigationSummaryService.generateSummary(testCase.id);
+    const document = await investigationSummaryService.generateSummary(testCase.id, testUser.id);
 
     console.log("\n==================================================");
     console.log(`🎉 SUCCESS: Investigation Summary v${document.version} Generated!`);
@@ -68,9 +77,9 @@ async function main() {
 
     // 4. Clean up test records to keep database pristine
     console.log("\n🧹 Step 4: Cleaning up database test records...");
-    await prisma.case.delete({
+    await prisma.user.delete({
       where: {
-        id: testCase.id,
+        id: testUser.id,
       },
     });
     console.log("   Pruned case dossier and cascaded metadata/documents.");

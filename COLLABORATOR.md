@@ -12,9 +12,9 @@ CrimeGPT is built as a highly structured, layered Next.js 15 application. It doe
 
 ```mermaid
 graph TD
-    A[Frontend: Next.js Views / React Components] -->|Invokes Server Actions| B[Controller Layer: src/actions]
-    B -->|Calls| C[Service Layer: src/services]
-    C -->|Orchestrates| D[Repository Layer: src/repositories]
+    A[Frontend: Next.js Views / React Components] -->|Invokes Server Actions| B[Controller: actions in features/<domain>]
+    B -->|Calls| C[Service: services in features/<domain>]
+    C -->|Orchestrates| D[Repository: repositories in features/<domain>]
     C -->|Triggers AI Analysis| E[AI Engine: src/ai]
     D -->|Executes SQL via Prisma| F[(Neon PostgreSQL)]
     E -->|Similarity Search| G[(pgvector Extension)]
@@ -24,17 +24,16 @@ graph TD
 ### Layer Breakdown
 
 1. **Client / View Layer (`src/app`)**: Built with React 19 and Next.js App Router. Interacts with the backend exclusively via Next.js Server Actions.
-2. **Controller Layer / Server Actions (`src/actions`)**:
+2. **Controller Layer / Server Actions (`src/features/<domain>/actions`)**:
    * Act as endpoint handlers.
-   * Authenticate the request via NextAuth (`auth()`).
-   * Extract the authenticated user ID (`userId`).
-   * Validate input parameters.
-   * Call the corresponding Service methods and return standardized response objects (e.g., `{ success: boolean, data?: T, message?: string }`).
-3. **Service Layer (`src/services`)**:
+   * Authenticate via `requireUser()` from `@/lib/validation/action-guard`.
+   * Validate input using `validateActionInput()` with Zod schemas.
+   * Call the corresponding Service methods and return standardized responses via `actionSuccess()` / `actionFailure()`.
+3. **Service Layer (`src/features/<domain>/services`)**:
    * Encapsulates core business logic.
    * Orchestrates multi-step processes (e.g., creating a case and generating a compliance audit log, or building a PDF draft).
    * Interfaces with the AI subsystem.
-4. **Repository Layer (`src/repositories`)**:
+4. **Repository Layer (`src/features/<domain>/repositories`)**:
    * Interfaces directly with the database using Prisma ORM.
    * **Mandatory User Scoping**: Isolates cases and resources by `userId`.
 5. **AI Subsystem (`src/ai`)**:
@@ -51,22 +50,26 @@ Here is the directory structure you need to know:
 crimegpt/
 ├── prisma/                  # Prisma schema definition
 ├── src/
-│   ├── app/                 # Next.js pages, routing & layouts
-│   ├── actions/             # Server Actions (Controller layer)
-│   ├── services/            # Business logic layer
-│   ├── repositories/        # Database access layer (Prisma wrappers)
-│   ├── ai/                  # AI, RAG & Vector search systems
-│   │   ├── chains/          # LangChain orchestration logic
-│   │   ├── embeddings/      # HuggingFace MiniLM embedding models (384 dimensions)
-│   │   ├── ingestion/       # Seeds & ingest scripts for vector db
-│   │   ├── prompts/         # Prompt templates
-│   │   ├── providers/       # LLM provider configuration (Gemini)
-│   │   ├── retrievers/      # Custom semantic retrievers (deduplicated)
-│   │   └── vector/          # PostgreSQL Vector store configuration
-│   ├── lib/                 # Core singletons (e.g., prisma, pool)
-│   ├── types/               # TypeScript interfaces & DTOs
-│   └── scripts/             # Standalone test & diagnostics scripts
+│   ├── app/                 # Next.js pages, routing & layouts (no business logic)
+│   ├── features/            # Vertical slices: one folder per domain
+│   │   ├── case/            # ✅ migrated (golden template)
+│   │   │   ├── actions/     #   Server Actions (Controller layer)
+│   │   │   ├── services/    #   Business logic layer
+│   │   │   ├── repositories/#   Database access layer (Prisma wrappers)
+│   │   │   ├── schemas/     #   Zod DTOs / validation
+│   │   │   ├── components/  #   Feature UI components
+│   │   │   └── hooks/       #   Feature-specific React hooks
+│   │   ├── audit/           # ✅ migrated
+│   │   └── search/          # ✅ migrated
+│   ├── services/            # Cross-cutting shared infra only (queue, cache, ai, shared)
+│   ├── ai/                  # AI, RAG & Vector search systems (cross-cutting, unchanged)
+│   ├── lib/                 # Shared infra: prisma, redis, queue, cache, security, logger, env, helpers
+│   └── workers/             # BullMQ processors (cross-cutting, unchanged)
 ```
+
+**Migration status:** all domains (`case`, `audit`, `search`) have been moved into
+`src/features/<domain>/` as vertical slices. When adding code, follow this layout; do **not**
+create new files in `src/actions/`, `src/services/`, `src/repositories/`, or `src/schema/`.
 
 ---
 
@@ -80,7 +83,7 @@ Because this application stores sensitive investigation files and personal testi
 * **Rule**: Repository queries must explicitly filter by the authenticated `userId`.
 * **Example**:
   ```typescript
-  // src/repositories/case.repository.ts
+  // src/features/case/repositories/case.repository.ts
   export class CaseRepository {
     async findById(userId: string, id: string) {
       return prisma.case.findFirst({
@@ -94,7 +97,26 @@ Because this application stores sensitive investigation files and personal testi
   ```
 * Never write generic queries like `prisma.case.findUnique({ where: { id } })` without validating that the authenticated user actually owns that resource.
 
-### B. Hot-Reload Safety & Connection Pooling
+### B. Action & Serialization Helpers
+
+1. **Auth in server actions:** use `requireUser()` from `@/lib/validation/action-guard`.
+   It throws an `UnauthorizedError` that `validateActionInput` maps to an `UNAUTHORIZED`
+   response — never hand-roll `auth()` + `actionFailure("UNAUTHORIZED", ...)` boilerplate:
+   ```typescript
+   export async function updateCaseAction(id: string, input: unknown) {
+     return validateActionInput(UpdateCaseSchema, input, async (validated) => {
+       const userId = await requireUser();
+       // ...
+     });
+   }
+   ```
+2. **Serializing DB rows to the client:** use `toClient(value)` from `@/lib/utils` instead
+   of `JSON.parse(JSON.stringify(value))`.
+3. **Logging:** always use `logger` from `@/lib/logger` (pino), never `console.*`.
+4. **Imports:** use deep paths (`@/features/case/services/case.service`). There are no barrel
+   `index.ts` re-exports in this codebase.
+
+### C. Hot-Reload Safety & Connection Pooling
 In Next.js development, modules are hot-reloaded as code is saved. If you instantiate database connection clients directly in module scopes, a new instance is created on every save. This will quickly exhaust your database connection limits (especially on Neon, which has a 20-connection limit on free instances), resulting in `Connection terminated due to connection timeout` crashes.
 
 We address this by saving the **Prisma Client** and the **PG Connection Pool** on `globalThis` to preserve them across hot-reloads:

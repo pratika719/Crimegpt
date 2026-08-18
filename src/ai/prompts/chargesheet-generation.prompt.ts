@@ -1,4 +1,4 @@
-import { UnifiedCaseContext } from "@/services/case/unified-context.service";
+import { UnifiedCaseContext } from "@/features/case/services/unified-context.service";
 import { formatUnifiedContextForPrompt, sanitizeUserNarrative } from "./prompt-context-builder";
 import { CleanedLawReference } from "../retrievers/law.retriever";
 import { promptExecutionHelper } from "@/services/shared/ai-shared.service";

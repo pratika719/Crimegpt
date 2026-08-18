@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import { DocumentRegistry } from "../services/document-engine/document-registry";
+import { DocumentRegistry } from "@/features/case/services/document-engine/document-registry";
 import { lawRetriever } from "../ai/retrievers/law.retriever";
 import { geminiProvider } from "../ai/providers/gemini-provider";
 import { DocumentType } from "@/generated/prisma/client";

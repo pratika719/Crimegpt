@@ -22,7 +22,7 @@ export class AIProviderError extends Error {
 export class GeminiProvider {
   private static instance: GeminiProvider | null = null;
   private genAI: GoogleGenerativeAI;
-  private modelName = "gemini-2.5-flash";
+  private modelName: string;
 
   private constructor() {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -30,6 +30,7 @@ export class GeminiProvider {
       throw new Error("GEMINI_API_KEY is not defined in the environment variables.");
     }
     this.genAI = new GoogleGenerativeAI(apiKey);
+    this.modelName = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
   }
 
   /**

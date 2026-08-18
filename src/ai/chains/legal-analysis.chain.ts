@@ -2,7 +2,7 @@ import { lawRetriever, CleanedLawReference } from "../retrievers/law.retriever";
 import { buildLegalAnalysisPrompt } from "../prompts/legal-analysis.prompt";
 import { geminiProvider } from "../providers/gemini-provider";
 import { parseLegalAnalysisResult, LegalAnalysisResult } from "../types/legal-analysis.types";
-import { UnifiedCaseContext } from "@/services/case/unified-context.service";
+import { UnifiedCaseContext } from "@/features/case/services/unified-context.service";
 
 export interface ChainOutput {
   result: LegalAnalysisResult;

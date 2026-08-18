@@ -1,4 +1,4 @@
-import { aiRequestLogRepository } from "@/repositories/ai-request-log.repository";
+import { aiRequestLogRepository } from "@/features/case/repositories/ai-request-log.repository";
 import { logger } from "@/lib/logger";
 
 type LogAISuccessInput = {

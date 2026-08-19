@@ -17,7 +17,20 @@ interface CaseDiaryViewerProps {
 }
 
 export default function CaseDiaryViewer({ diary, version, createdAt }: CaseDiaryViewerProps) {
-  const { diaryDate, investigatingOfficer, caseDetails, narrativeDiary, nextSteps } = diary;
+  let parsed = diary;
+  if (typeof diary === "string") {
+    try {
+      parsed = JSON.parse(diary);
+    } catch {
+      parsed = {} as any;
+    }
+  }
+  const safeDiary = parsed || {};
+  const diaryDate = safeDiary.diaryDate || "Not Recorded";
+  const investigatingOfficer = safeDiary.investigatingOfficer || "Assigned Officer";
+  const caseDetails = safeDiary.caseDetails || {};
+  const narrativeDiary = safeDiary.narrativeDiary || "No narrative diary recorded.";
+  const nextSteps: string[] = Array.isArray(safeDiary.nextSteps) ? safeDiary.nextSteps : [];
 
   return (
     <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden font-sans">
@@ -68,7 +81,7 @@ export default function CaseDiaryViewer({ diary, version, createdAt }: CaseDiary
                 FIR Reference
               </span>
               <p className="font-semibold text-zinc-800 dark:text-zinc-200 font-mono">
-                {caseDetails.firNumber}
+                {caseDetails.firNumber || "N/A"}
               </p>
             </div>
           </div>
@@ -113,15 +126,19 @@ export default function CaseDiaryViewer({ diary, version, createdAt }: CaseDiary
             </h3>
           </div>
           <div className="grid gap-2.5">
-            {nextSteps.map((step, idx) => (
-              <div 
-                key={idx}
-                className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/10 dark:bg-zinc-950/10 p-4 text-xs text-zinc-700 dark:text-zinc-300 font-semibold flex items-center gap-3 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
-              >
-                <div className="h-2 w-2 rounded-full bg-indigo-500" />
-                <span>{step}</span>
-              </div>
-            ))}
+            {nextSteps.length === 0 ? (
+              <p className="text-xs italic text-zinc-400">No next steps recorded.</p>
+            ) : (
+              nextSteps.map((step, idx) => (
+                <div 
+                  key={idx}
+                  className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/10 dark:bg-zinc-950/10 p-4 text-xs text-zinc-700 dark:text-zinc-300 font-semibold flex items-center gap-3 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
+                >
+                  <div className="h-2 w-2 rounded-full bg-indigo-500" />
+                  <span>{step}</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 

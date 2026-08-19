@@ -18,7 +18,25 @@ interface ChargeSheetViewerProps {
 }
 
 export default function ChargeSheetViewer({ chargesheet, version, createdAt }: ChargeSheetViewerProps) {
-  const { caseDetails, accusedList, briefFacts, evidenceCollected, witnessStatements, finalConclusion, officerRemarks } = chargesheet;
+  let parsed = chargesheet;
+  if (typeof chargesheet === "string") {
+    try {
+      parsed = JSON.parse(chargesheet);
+    } catch {
+      parsed = {} as any;
+    }
+  }
+  const safeSheet = parsed || {};
+  const caseDetails = safeSheet.caseDetails || {};
+  const accusedList = Array.isArray(safeSheet.accusedList) ? safeSheet.accusedList : [];
+  const briefFacts = safeSheet.briefFacts || "No brief facts recorded.";
+  const evidenceCollected = safeSheet.evidenceCollected || {};
+  const physicalEvidence = Array.isArray(evidenceCollected.physicalEvidence) ? evidenceCollected.physicalEvidence : [];
+  const documentaryEvidence = Array.isArray(evidenceCollected.documentaryEvidence) ? evidenceCollected.documentaryEvidence : [];
+  const scientificOrMedicalEvidence = Array.isArray(evidenceCollected.scientificOrMedicalEvidence) ? evidenceCollected.scientificOrMedicalEvidence : [];
+  const witnessStatements = Array.isArray(safeSheet.witnessStatements) ? safeSheet.witnessStatements : [];
+  const finalConclusion = safeSheet.finalConclusion || "No final recommendation recorded.";
+  const officerRemarks = safeSheet.officerRemarks || "No officer remarks recorded.";
 
   return (
     <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden font-sans">
@@ -55,19 +73,19 @@ export default function ChargeSheetViewer({ chargesheet, version, createdAt }: C
           <div className="grid gap-4 sm:grid-cols-4 text-xs font-mono">
             <div>
               <span className="block text-zinc-400 dark:text-zinc-500 mb-0.5">FIR NUMBER</span>
-              <span className="font-bold text-zinc-800 dark:text-zinc-200">{caseDetails.firNumber}</span>
+              <span className="font-bold text-zinc-800 dark:text-zinc-200">{caseDetails.firNumber || "N/A"}</span>
             </div>
             <div>
               <span className="block text-zinc-400 dark:text-zinc-500 mb-0.5">POLICE STATION</span>
-              <span className="font-bold text-zinc-800 dark:text-zinc-200">{caseDetails.policeStation}</span>
+              <span className="font-bold text-zinc-800 dark:text-zinc-200">{caseDetails.policeStation || "N/A"}</span>
             </div>
             <div>
               <span className="block text-zinc-400 dark:text-zinc-500 mb-0.5">INVESTIGATING OFFICER</span>
-              <span className="font-bold text-zinc-800 dark:text-zinc-200">{caseDetails.investigatingOfficer}</span>
+              <span className="font-bold text-zinc-800 dark:text-zinc-200">{caseDetails.investigatingOfficer || "N/A"}</span>
             </div>
             <div>
               <span className="block text-zinc-400 dark:text-zinc-500 mb-0.5">REGISTRATION DATE</span>
-              <span className="font-bold text-zinc-800 dark:text-zinc-200">{caseDetails.dateOfRegistration}</span>
+              <span className="font-bold text-zinc-800 dark:text-zinc-200">{caseDetails.dateOfRegistration || "N/A"}</span>
             </div>
           </div>
         </div>
@@ -81,42 +99,51 @@ export default function ChargeSheetViewer({ chargesheet, version, createdAt }: C
             </h3>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            {accusedList.map((accused, idx) => (
-              <div 
-                key={idx}
-                className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 space-y-3 shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">{accused.name}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
-                    accused.arrestStatus.toLowerCase().includes("arrested") || accused.arrestStatus.toLowerCase().includes("custody")
-                      ? "bg-red-50 text-red-700 border-red-200/50 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/30"
-                      : "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/30"
-                  }`}>
-                    {accused.arrestStatus}
-                  </span>
-                </div>
-                {accused.bailDetails && (
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    <span className="font-semibold text-zinc-600 dark:text-zinc-350">Bail:</span> {accused.bailDetails}
-                  </p>
-                )}
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {accused.applicableSections.map((sec, i) => (
-                    <span 
-                      key={i}
-                      className="rounded bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2 py-0.5 text-[10px] font-mono font-bold text-zinc-700 dark:text-zinc-300"
-                    >
-                      {sec}
-                    </span>
-                  ))}
-                </div>
-                <div className="rounded bg-zinc-50 dark:bg-zinc-950/30 p-3 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 border border-zinc-100 dark:border-zinc-800">
-                  <span className="font-semibold text-zinc-800 dark:text-zinc-200 block mb-1">Evidence Summary:</span>
-                  {accused.evidenceLinks}
-                </div>
-              </div>
-            ))}
+            {accusedList.length === 0 ? (
+              <p className="text-xs italic text-zinc-400 md:col-span-2">No accused details recorded.</p>
+            ) : (
+              accusedList.map((accused, idx) => {
+                const sections = Array.isArray(accused?.applicableSections) ? accused.applicableSections : [];
+                return (
+                  <div 
+                    key={idx}
+                    className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 space-y-3 shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">{accused?.name || "Unidentified Accused"}</span>
+                      {accused?.arrestStatus && (
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
+                          String(accused.arrestStatus).toLowerCase().includes("arrested") || String(accused.arrestStatus).toLowerCase().includes("custody")
+                            ? "bg-red-50 text-red-700 border-red-200/50 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/30"
+                            : "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/30"
+                        }`}>
+                          {accused.arrestStatus}
+                        </span>
+                      )}
+                    </div>
+                    {accused?.bailDetails && (
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                        <span className="font-semibold text-zinc-600 dark:text-zinc-350">Bail:</span> {accused.bailDetails}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {sections.map((sec: string, i: number) => (
+                        <span 
+                          key={i}
+                          className="rounded bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2 py-0.5 text-[10px] font-mono font-bold text-zinc-700 dark:text-zinc-300"
+                        >
+                          {sec}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="rounded bg-zinc-50 dark:bg-zinc-950/30 p-3 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 border border-zinc-100 dark:border-zinc-800">
+                      <span className="font-semibold text-zinc-800 dark:text-zinc-200 block mb-1">Evidence Summary:</span>
+                      {accused?.evidenceLinks || "N/A"}
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -147,11 +174,11 @@ export default function ChargeSheetViewer({ chargesheet, version, createdAt }: C
               <span className="text-xs font-mono font-bold text-zinc-700 dark:text-zinc-350 block border-b border-zinc-200 dark:border-zinc-800 pb-1.5">
                 Physical Evidence
               </span>
-              {evidenceCollected.physicalEvidence.length === 0 ? (
+              {physicalEvidence.length === 0 ? (
                 <span className="text-xs italic text-zinc-400">None recorded.</span>
               ) : (
                 <ul className="text-xs space-y-1.5 text-zinc-600 dark:text-zinc-400 list-disc list-inside">
-                  {evidenceCollected.physicalEvidence.map((item, i) => (
+                  {physicalEvidence.map((item, i) => (
                     <li key={i}>{item}</li>
                   ))}
                 </ul>
@@ -163,11 +190,11 @@ export default function ChargeSheetViewer({ chargesheet, version, createdAt }: C
               <span className="text-xs font-mono font-bold text-zinc-700 dark:text-zinc-350 block border-b border-zinc-200 dark:border-zinc-800 pb-1.5">
                 Documentary Evidence
               </span>
-              {evidenceCollected.documentaryEvidence.length === 0 ? (
+              {documentaryEvidence.length === 0 ? (
                 <span className="text-xs italic text-zinc-400">None recorded.</span>
               ) : (
                 <ul className="text-xs space-y-1.5 text-zinc-600 dark:text-zinc-400 list-disc list-inside">
-                  {evidenceCollected.documentaryEvidence.map((item, i) => (
+                  {documentaryEvidence.map((item, i) => (
                     <li key={i}>{item}</li>
                   ))}
                 </ul>
@@ -179,11 +206,11 @@ export default function ChargeSheetViewer({ chargesheet, version, createdAt }: C
               <span className="text-xs font-mono font-bold text-zinc-700 dark:text-zinc-350 block border-b border-zinc-200 dark:border-zinc-800 pb-1.5">
                 Scientific / Medical Evidence
               </span>
-              {evidenceCollected.scientificOrMedicalEvidence.length === 0 ? (
+              {scientificOrMedicalEvidence.length === 0 ? (
                 <span className="text-xs italic text-zinc-400">None recorded.</span>
               ) : (
                 <ul className="text-xs space-y-1.5 text-zinc-600 dark:text-zinc-400 list-disc list-inside">
-                  {evidenceCollected.scientificOrMedicalEvidence.map((item, i) => (
+                  {scientificOrMedicalEvidence.map((item, i) => (
                     <li key={i}>{item}</li>
                   ))}
                 </ul>
@@ -201,24 +228,28 @@ export default function ChargeSheetViewer({ chargesheet, version, createdAt }: C
             </h3>
           </div>
           <div className="space-y-3">
-            {witnessStatements.map((witness, idx) => (
-              <div 
-                key={idx}
-                className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/20 dark:bg-zinc-950/10 p-4 text-xs space-y-1.5"
-              >
-                <div className="flex items-center justify-between border-b border-dashed border-zinc-200 dark:border-zinc-800 pb-1">
-                  <span className="font-bold text-zinc-800 dark:text-zinc-200">{witness.name}</span>
-                  {witness.credibilityScore && (
-                    <span className="rounded bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-[9px] font-semibold text-zinc-500">
-                      CREDIBILITY: {witness.credibilityScore.toUpperCase()}
-                    </span>
-                  )}
+            {witnessStatements.length === 0 ? (
+              <p className="text-xs italic text-zinc-400">No witness statements recorded.</p>
+            ) : (
+              witnessStatements.map((witness, idx) => (
+                <div 
+                  key={idx}
+                  className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/20 dark:bg-zinc-950/10 p-4 text-xs space-y-1.5"
+                >
+                  <div className="flex items-center justify-between border-b border-dashed border-zinc-200 dark:border-zinc-800 pb-1">
+                    <span className="font-bold text-zinc-800 dark:text-zinc-200">{witness?.name || "Witness"}</span>
+                    {witness?.credibilityScore && (
+                      <span className="rounded bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-[9px] font-semibold text-zinc-500">
+                        CREDIBILITY: {String(witness.credibilityScore).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-zinc-600 dark:text-zinc-350 leading-relaxed italic">
+                    &quot;{witness?.summaryOfStatement || ""}&quot;
+                  </p>
                 </div>
-                <p className="text-zinc-600 dark:text-zinc-350 leading-relaxed italic">
-                  &quot;{witness.summaryOfStatement}&quot;
-                </p>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 

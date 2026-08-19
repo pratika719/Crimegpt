@@ -216,7 +216,7 @@ export default function CaseAIInsightsDash({ caseId }: CaseAIInsightsDashProps) 
                   {/* Assessment/Gaps columns */}
                   <div className="space-y-2 md:col-span-2">
                     <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-400 uppercase">Gaps Detected</span>
-                    {diagnostics.evidenceCompleteness.gaps && diagnostics.evidenceCompleteness.gaps.length > 0 ? (
+                    {Array.isArray(diagnostics.evidenceCompleteness?.gaps) && diagnostics.evidenceCompleteness.gaps.length > 0 ? (
                       <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[10px] text-zinc-500">
                         {diagnostics.evidenceCompleteness.gaps.map((gap, idx) => (
                           <li key={idx} className="flex items-start gap-1">
@@ -233,12 +233,12 @@ export default function CaseAIInsightsDash({ caseId }: CaseAIInsightsDashProps) 
 
                 <div className="text-xs text-zinc-500 dark:text-zinc-400 bg-white/50 dark:bg-zinc-900/50 p-2.5 rounded-lg border border-zinc-100 dark:border-zinc-800/40">
                   <strong className="text-zinc-700 dark:text-zinc-350 text-[10px] uppercase font-bold block mb-1">Assessment Analysis:</strong>
-                  <p className="leading-relaxed">{diagnostics.evidenceCompleteness.reasoning}</p>
+                  <p className="leading-relaxed">{diagnostics.evidenceCompleteness?.reasoning || "N/A"}</p>
                 </div>
               </div>
 
               <div className="text-[9px] text-zinc-400 uppercase tracking-tighter">
-                Verification status: {diagnostics.evidenceCompleteness.assessment}
+                Verification status: {diagnostics.evidenceCompleteness?.assessment || "N/A"}
               </div>
             </div>
 
@@ -251,20 +251,24 @@ export default function CaseAIInsightsDash({ caseId }: CaseAIInsightsDashProps) 
                 </div>
 
                 <div className="space-y-2.5 max-h-[200px] overflow-y-auto pr-1">
-                  {diagnostics.suggestedNextSteps.steps.map((step, idx) => (
-                    <div key={idx} className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/50 space-y-1 shadow-sm">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-bold text-zinc-800 dark:text-zinc-200 truncate">{step.task}</span>
-                        {getPriorityBadge(step.priority)}
+                  {Array.isArray(diagnostics.suggestedNextSteps?.steps) && diagnostics.suggestedNextSteps.steps.length > 0 ? (
+                    diagnostics.suggestedNextSteps.steps.map((step, idx) => (
+                      <div key={idx} className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/50 space-y-1 shadow-sm">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-bold text-zinc-800 dark:text-zinc-200 truncate">{step.task}</span>
+                          {getPriorityBadge(step.priority)}
+                        </div>
+                        <p className="text-[10px] text-zinc-500 leading-snug">{step.reason}</p>
                       </div>
-                      <p className="text-[10px] text-zinc-500 leading-snug">{step.reason}</p>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <span className="text-[10px] text-zinc-400 italic">No next steps recorded.</span>
+                  )}
                 </div>
 
                 <div className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed pt-2 border-t border-zinc-100 dark:border-zinc-800/40">
                   <strong className="text-zinc-700 dark:text-zinc-350 text-[10px] uppercase font-bold block mb-0.5">Strategy Reasoning:</strong>
-                  {diagnostics.suggestedNextSteps.reasoning}
+                  {diagnostics.suggestedNextSteps?.reasoning || "N/A"}
                 </div>
               </div>
 
@@ -282,7 +286,7 @@ export default function CaseAIInsightsDash({ caseId }: CaseAIInsightsDashProps) 
                 </div>
 
                 <div className="space-y-2.5 max-h-[200px] overflow-y-auto pr-1">
-                  {diagnostics.applicableLegalSections.sections && diagnostics.applicableLegalSections.sections.length > 0 ? (
+                  {Array.isArray(diagnostics.applicableLegalSections?.sections) && diagnostics.applicableLegalSections.sections.length > 0 ? (
                     diagnostics.applicableLegalSections.sections.map((sect, idx) => (
                       <div key={idx} className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/50 space-y-1 shadow-sm">
                         <div className="flex items-center justify-between gap-2">
@@ -301,7 +305,7 @@ export default function CaseAIInsightsDash({ caseId }: CaseAIInsightsDashProps) 
 
                 <div className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed pt-2 border-t border-zinc-100 dark:border-zinc-800/40">
                   <strong className="text-zinc-700 dark:text-zinc-350 text-[10px] uppercase font-bold block mb-0.5">Statutory Reasoning:</strong>
-                  {diagnostics.applicableLegalSections.reasoning}
+                  {diagnostics.applicableLegalSections?.reasoning || "N/A"}
                 </div>
               </div>
 
@@ -322,7 +326,7 @@ export default function CaseAIInsightsDash({ caseId }: CaseAIInsightsDashProps) 
                   {/* Items list */}
                   <div className="md:col-span-2 space-y-2 border-r border-zinc-200/50 dark:border-zinc-800/50 pr-4">
                     <span className="text-[10px] font-bold text-zinc-400 uppercase block">Critical Data Gaps</span>
-                    {diagnostics.missingInformation.items && diagnostics.missingInformation.items.length > 0 ? (
+                    {Array.isArray(diagnostics.missingInformation?.items) && diagnostics.missingInformation.items.length > 0 ? (
                       <ul className="space-y-2">
                         {diagnostics.missingInformation.items.map((item, idx) => (
                           <li key={idx} className="flex items-start gap-2 text-[10.5px] text-zinc-700 dark:text-zinc-300 font-medium">
@@ -343,7 +347,7 @@ export default function CaseAIInsightsDash({ caseId }: CaseAIInsightsDashProps) 
                   <div className="md:col-span-3 space-y-2">
                     <span className="text-[10px] font-bold text-zinc-400 uppercase block">Prosecution Impairment Risk</span>
                     <div className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed bg-white/50 dark:bg-zinc-950/20 p-3.5 rounded-lg border border-zinc-200 dark:border-zinc-800/40">
-                      {diagnostics.missingInformation.reasoning}
+                      {diagnostics.missingInformation?.reasoning || "N/A"}
                     </div>
                   </div>
                 </div>

@@ -18,7 +18,21 @@ interface RemandRequestViewerProps {
 }
 
 export default function RemandRequestViewer({ remandRequest, version, createdAt }: RemandRequestViewerProps) {
-  const { caseDetails, accusedDetails, groundsForRemand, custodyRequested, investigationProgress, officerRemarks } = remandRequest;
+  let parsed = remandRequest;
+  if (typeof remandRequest === "string") {
+    try {
+      parsed = JSON.parse(remandRequest);
+    } catch {
+      parsed = {} as any;
+    }
+  }
+  const safeRemand = parsed || {};
+  const caseDetails = safeRemand.caseDetails || {};
+  const custodyRequested = safeRemand.custodyRequested || {};
+  const accusedDetails = Array.isArray(safeRemand.accusedDetails) ? safeRemand.accusedDetails : [];
+  const groundsForRemand = Array.isArray(safeRemand.groundsForRemand) ? safeRemand.groundsForRemand : [];
+  const investigationProgress = safeRemand.investigationProgress || "No progress details recorded.";
+  const officerRemarks = safeRemand.officerRemarks || "No officer remarks recorded.";
 
   return (
     <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden font-sans">
@@ -55,15 +69,15 @@ export default function RemandRequestViewer({ remandRequest, version, createdAt 
           <div className="grid gap-4 sm:grid-cols-3 text-xs font-mono">
             <div>
               <span className="block text-zinc-400 dark:text-zinc-500 mb-0.5">FIR NUMBER</span>
-              <span className="font-bold text-zinc-800 dark:text-zinc-200">{caseDetails.firNumber}</span>
+              <span className="font-bold text-zinc-800 dark:text-zinc-200">{caseDetails.firNumber || "N/A"}</span>
             </div>
             <div>
               <span className="block text-zinc-400 dark:text-zinc-500 mb-0.5">POLICE STATION</span>
-              <span className="font-bold text-zinc-800 dark:text-zinc-200">{caseDetails.policeStation}</span>
+              <span className="font-bold text-zinc-800 dark:text-zinc-200">{caseDetails.policeStation || "N/A"}</span>
             </div>
             <div>
               <span className="block text-zinc-400 dark:text-zinc-500 mb-0.5">INVESTIGATING OFFICER</span>
-              <span className="font-bold text-zinc-800 dark:text-zinc-200">{caseDetails.investigatingOfficer}</span>
+              <span className="font-bold text-zinc-800 dark:text-zinc-200">{caseDetails.investigatingOfficer || "N/A"}</span>
             </div>
           </div>
         </div>
@@ -79,7 +93,7 @@ export default function RemandRequestViewer({ remandRequest, version, createdAt 
             </div>
           </div>
           <div className="rounded-md bg-amber-500 text-white dark:bg-amber-600 px-4 py-2 font-mono text-center font-bold text-sm">
-            {custodyRequested.durationDays} DAYS REQUESTED
+            {custodyRequested.durationDays || 0} DAYS REQUESTED
           </div>
         </div>
 
@@ -101,15 +115,23 @@ export default function RemandRequestViewer({ remandRequest, version, createdAt 
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 text-zinc-800 dark:text-zinc-200">
-                {accusedDetails.map((accused, idx) => (
-                  <tr key={idx} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800">
-                    <td className="py-3 px-5 font-semibold">{accused.name}</td>
-                    <td className="py-3 px-5 font-mono">{accused.arrestDateTime}</td>
-                    <td className="py-3 px-5 text-right font-mono font-semibold text-amber-500">
-                      {accused.currentCustodyStatus}
+                {accusedDetails.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="py-4 px-5 text-center italic text-zinc-400">
+                      No accused details recorded.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  accusedDetails.map((accused, idx) => (
+                    <tr key={idx} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800">
+                      <td className="py-3 px-5 font-semibold">{accused?.name || "Unidentified Accused"}</td>
+                      <td className="py-3 px-5 font-mono">{accused?.arrestDateTime || "N/A"}</td>
+                      <td className="py-3 px-5 text-right font-mono font-semibold text-amber-500">
+                        {accused?.currentCustodyStatus || "N/A"}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -124,17 +146,21 @@ export default function RemandRequestViewer({ remandRequest, version, createdAt 
             </h3>
           </div>
           <div className="grid gap-3">
-            {groundsForRemand.map((ground, i) => (
-              <div 
-                key={i}
-                className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/20 dark:bg-zinc-950/10 p-4 text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed font-medium flex items-start gap-3"
-              >
-                <span className="rounded-full bg-amber-500/10 text-amber-500 px-2 py-0.5 text-[10px] font-bold font-mono">
-                  {i+1}
-                </span>
-                <span>{ground}</span>
-              </div>
-            ))}
+            {groundsForRemand.length === 0 ? (
+              <p className="text-xs italic text-zinc-400">No specific grounds recorded.</p>
+            ) : (
+              groundsForRemand.map((ground, i) => (
+                <div 
+                  key={i}
+                  className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/20 dark:bg-zinc-950/10 p-4 text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed font-medium flex items-start gap-3"
+                >
+                  <span className="rounded-full bg-amber-500/10 text-amber-500 px-2 py-0.5 text-[10px] font-bold font-mono">
+                    {i+1}
+                  </span>
+                  <span>{ground}</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 

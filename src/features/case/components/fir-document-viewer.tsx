@@ -35,6 +35,30 @@ interface FIRDocumentViewerProps {
 }
 
 export default function FIRDocumentViewer({ fir, version, createdAt }: FIRDocumentViewerProps) {
+  let parsedFir = fir;
+  if (typeof fir === "string") {
+    try {
+      parsedFir = JSON.parse(fir);
+    } catch {
+      parsedFir = {} as any;
+    }
+  }
+
+  const safeFir = parsedFir || {};
+  const suspectedOffenses: string[] = Array.isArray(safeFir.suspectedOffenses)
+    ? safeFir.suspectedOffenses
+    : [];
+  const applicableSections: ApplicableSection[] = Array.isArray(safeFir.applicableSections)
+    ? safeFir.applicableSections
+    : [];
+
+  const incidentDate = safeFir.incidentDate || "Not Specified";
+  const incidentLocation = safeFir.incidentLocation || "Not Specified";
+  const complaintSummary = safeFir.complaintSummary || "No complaint summary recorded.";
+  const factsOfCase = safeFir.factsOfCase || "No facts recorded.";
+  const investigationDirections = safeFir.investigationDirections || "No preliminary directions recorded.";
+  const officerRemarks = safeFir.officerRemarks || "No officer remarks recorded.";
+
   return (
     <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden font-sans">
       {/* Header Badge */}
@@ -72,7 +96,7 @@ export default function FIRDocumentViewer({ fir, version, createdAt }: FIRDocume
                 Date & Time of Occurrence
               </span>
               <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                {fir.incidentDate}
+                {incidentDate}
               </p>
             </div>
           </div>
@@ -85,7 +109,7 @@ export default function FIRDocumentViewer({ fir, version, createdAt }: FIRDocume
                 Place of Occurrence
               </span>
               <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                {fir.incidentLocation}
+                {incidentLocation}
               </p>
             </div>
           </div>
@@ -100,27 +124,31 @@ export default function FIRDocumentViewer({ fir, version, createdAt }: FIRDocume
             </h3>
           </div>
           <p className="text-sm leading-relaxed text-zinc-800 dark:text-zinc-200 border-l-2 border-zinc-200 dark:border-zinc-700 pl-4 py-1">
-            {fir.complaintSummary}
+            {complaintSummary}
           </p>
         </div>
  
         {/* Suspected Offenses */}
         <div className="space-y-3 pt-2">
           <div className="flex items-center gap-2">
-            <AlertOctagon className="h-4.5 w-4.5 text-zinc-500 dark:text-zinc-405" />
+            <AlertOctagon className="h-4.5 w-4.5 text-zinc-500 dark:text-zinc-400" />
             <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest font-mono">
               2. Suspected Offenses / Crimes
             </h3>
           </div>
           <div className="flex flex-wrap gap-2">
-            {fir.suspectedOffenses.map((offense, index) => (
-              <span 
-                key={index} 
-                className="inline-flex items-center rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/50 dark:border-zinc-700/50 px-3 py-1 text-xs font-medium text-zinc-800 dark:text-zinc-200"
-              >
-                {offense}
-              </span>
-            ))}
+            {suspectedOffenses.length === 0 ? (
+              <span className="text-xs italic text-zinc-400">None specified.</span>
+            ) : (
+              suspectedOffenses.map((offense, index) => (
+                <span 
+                  key={index} 
+                  className="inline-flex items-center rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/50 dark:border-zinc-700/50 px-3 py-1 text-xs font-medium text-zinc-800 dark:text-zinc-200"
+                >
+                  {String(offense)}
+                </span>
+              ))
+            )}
           </div>
         </div>
 
@@ -133,20 +161,24 @@ export default function FIRDocumentViewer({ fir, version, createdAt }: FIRDocume
             </h3>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            {fir.applicableSections.map((sec, idx) => (
-              <div 
-                key={idx}
-                className="rounded-lg border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/20 dark:bg-zinc-950/10 p-4 space-y-2.5 transition-all hover:border-zinc-300 dark:hover:border-zinc-700"
-              >
-                <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100">
-                  <Gavel className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
-                  <span className="text-xs font-mono font-bold">{sec.section}</span>
+            {applicableSections.length === 0 ? (
+              <p className="text-xs italic text-zinc-400 sm:col-span-2">No specific sections recorded.</p>
+            ) : (
+              applicableSections.map((sec, idx) => (
+                <div 
+                  key={idx}
+                  className="rounded-lg border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/20 dark:bg-zinc-950/10 p-4 space-y-2.5 transition-all hover:border-zinc-300 dark:hover:border-zinc-700"
+                >
+                  <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100">
+                    <Gavel className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+                    <span className="text-xs font-mono font-bold">{sec?.section || "SECTION N/A"}</span>
+                  </div>
+                  <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+                    {sec?.reason || ""}
+                  </p>
                 </div>
-                <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
-                  {sec.reason}
-                </p>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -161,7 +193,7 @@ export default function FIRDocumentViewer({ fir, version, createdAt }: FIRDocume
           <div className="rounded-lg border border-zinc-100 dark:border-zinc-800 bg-zinc-50/10 p-5 font-mono text-xs leading-relaxed text-zinc-750 dark:text-zinc-300 whitespace-pre-wrap shadow-inner relative overflow-hidden min-h-[200px]">
             {/* Lined Paper Lines effect */}
             <div className="absolute inset-0 bg-grid-zinc-100/30 dark:bg-grid-zinc-900/10 pointer-events-none" />
-            <span className="relative z-10">{fir.factsOfCase}</span>
+            <span className="relative z-10">{factsOfCase}</span>
           </div>
         </div>
  
@@ -169,12 +201,12 @@ export default function FIRDocumentViewer({ fir, version, createdAt }: FIRDocume
         <div className="space-y-3 pt-2">
           <div className="flex items-center gap-2">
             <Compass className="h-4.5 w-4.5 text-zinc-500 dark:text-zinc-400" />
-            <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest font-mono">
+            <h3 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-mono">
               5. Preliminary Investigation Directions
             </h3>
           </div>
           <div className="rounded-lg border border-zinc-200/60 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 text-xs leading-relaxed text-zinc-750 dark:text-zinc-350 whitespace-pre-wrap shadow-sm">
-            {fir.investigationDirections}
+            {investigationDirections}
           </div>
         </div>
 
@@ -188,7 +220,7 @@ export default function FIRDocumentViewer({ fir, version, createdAt }: FIRDocume
           </div>
           <div className="grid gap-6 md:grid-cols-3">
             <div className="md:col-span-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/30 dark:bg-zinc-950/20 p-4 text-xs italic text-zinc-600 dark:text-zinc-400">
-              &quot;{fir.officerRemarks}&quot;
+              &quot;{officerRemarks}&quot;
             </div>
             <div className="flex flex-col items-center justify-center border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 bg-zinc-50/10 dark:bg-zinc-900/30">
               <div className="w-full border-b border-dashed border-zinc-300 dark:border-zinc-700 min-h-[40px] flex items-end justify-center pb-2">

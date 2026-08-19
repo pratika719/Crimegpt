@@ -43,6 +43,28 @@ export default function InvestigationSummaryViewer({
   version, 
   createdAt 
 }: InvestigationSummaryViewerProps) {
+  let parsed = summary;
+  if (typeof summary === "string") {
+    try {
+      parsed = JSON.parse(summary);
+    } catch {
+      parsed = {} as any;
+    }
+  }
+  const safeSummary = parsed || {};
+  const executiveSummary = safeSummary.executiveSummary || "No executive summary recorded.";
+  const incidentOverview = safeSummary.incidentOverview || "No incident overview recorded.";
+  const factsEstablished = safeSummary.factsEstablished || "No facts recorded.";
+  const applicableSections: SummaryApplicableSection[] = Array.isArray(safeSummary.applicableSections)
+    ? safeSummary.applicableSections
+    : [];
+  const evidenceAssessment = safeSummary.evidenceAssessment || "No evidence assessment recorded.";
+  const personsInvolved = safeSummary.personsInvolved || "No profiles recorded.";
+  const investigationFindings = safeSummary.investigationFindings || "No detailed findings recorded.";
+  const potentialGaps = safeSummary.potentialGaps || "No gaps recorded.";
+  const recommendedNextSteps = safeSummary.recommendedNextSteps || "No action items recorded.";
+  const conclusion = safeSummary.conclusion || "No recommendation recorded.";
+
   return (
     <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden font-sans">
       {/* Dossier Header Strip */}
@@ -79,7 +101,7 @@ export default function InvestigationSummaryViewer({
             </h3>
           </div>
           <p className="text-sm leading-relaxed text-zinc-800 dark:text-zinc-200 border-l-2 border-zinc-900 dark:border-zinc-300 pl-4 py-1 font-sans font-medium">
-            {summary.executiveSummary}
+            {executiveSummary}
           </p>
         </div>
 
@@ -92,7 +114,7 @@ export default function InvestigationSummaryViewer({
             </h3>
           </div>
           <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap pl-1 font-sans">
-            {summary.incidentOverview}
+            {incidentOverview}
           </p>
         </div>
 
@@ -105,7 +127,7 @@ export default function InvestigationSummaryViewer({
             </h3>
           </div>
           <div className="rounded-lg border border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/20 dark:bg-zinc-950/20 p-5 font-mono text-xs leading-relaxed text-zinc-750 dark:text-zinc-300 whitespace-pre-wrap relative shadow-inner">
-            <span className="relative z-10">{summary.factsEstablished}</span>
+            <span className="relative z-10">{factsEstablished}</span>
           </div>
         </div>
 
@@ -118,20 +140,24 @@ export default function InvestigationSummaryViewer({
             </h3>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            {summary.applicableSections.map((sec, idx) => (
-              <div 
-                key={idx}
-                className="rounded-lg border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/30 dark:bg-zinc-950/20 p-4 space-y-2 transition-all hover:border-zinc-300 dark:hover:border-zinc-700"
-              >
-                <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100 font-mono font-bold text-xs">
-                  <Gavel className="h-4 w-4 text-zinc-400 dark:text-zinc-500" />
-                  <span>{sec.section}</span>
+            {applicableSections.length === 0 ? (
+              <p className="text-xs italic text-zinc-400 sm:col-span-2">No specific sections recorded.</p>
+            ) : (
+              applicableSections.map((sec, idx) => (
+                <div 
+                  key={idx}
+                  className="rounded-lg border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/30 dark:bg-zinc-950/20 p-4 space-y-2 transition-all hover:border-zinc-300 dark:hover:border-zinc-700"
+                >
+                  <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100 font-mono font-bold text-xs">
+                    <Gavel className="h-4 w-4 text-zinc-400 dark:text-zinc-500" />
+                    <span>{sec?.section || "SECTION N/A"}</span>
+                  </div>
+                  <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 font-sans">
+                    {sec?.reason || ""}
+                  </p>
                 </div>
-                <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 font-sans">
-                  {sec.reason}
-                </p>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -144,7 +170,7 @@ export default function InvestigationSummaryViewer({
             </h3>
           </div>
           <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap pl-1 font-sans">
-            {summary.evidenceAssessment}
+            {evidenceAssessment}
           </p>
         </div>
 
@@ -157,7 +183,7 @@ export default function InvestigationSummaryViewer({
             </h3>
           </div>
           <div className="rounded-lg border border-zinc-100 dark:border-zinc-800 bg-zinc-50/10 p-5 font-mono text-xs leading-relaxed text-zinc-750 dark:text-zinc-350 whitespace-pre-wrap">
-            {summary.personsInvolved}
+            {personsInvolved}
           </div>
         </div>
 
@@ -170,7 +196,7 @@ export default function InvestigationSummaryViewer({
             </h3>
           </div>
           <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap pl-1 font-sans">
-            {summary.investigationFindings}
+            {investigationFindings}
           </p>
         </div>
 
@@ -184,7 +210,7 @@ export default function InvestigationSummaryViewer({
           </div>
           <div className="rounded-lg border border-amber-250 dark:border-amber-900/30 bg-amber-500/5 p-4 text-xs text-zinc-750 dark:text-zinc-350 flex items-start gap-2.5">
             <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
-            <div className="whitespace-pre-wrap font-sans">{summary.potentialGaps}</div>
+            <div className="whitespace-pre-wrap font-sans">{potentialGaps}</div>
           </div>
         </div>
 
@@ -197,7 +223,7 @@ export default function InvestigationSummaryViewer({
             </h3>
           </div>
           <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap pl-1 font-sans">
-            {summary.recommendedNextSteps}
+            {recommendedNextSteps}
           </p>
         </div>
 
@@ -210,7 +236,7 @@ export default function InvestigationSummaryViewer({
             </h3>
           </div>
           <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/35 dark:bg-zinc-950/20 p-5 text-xs text-zinc-700 dark:text-zinc-300 font-sans italic leading-relaxed">
-            &quot;{summary.conclusion}&quot;
+            &quot;{conclusion}&quot;
           </div>
         </div>
       </div>

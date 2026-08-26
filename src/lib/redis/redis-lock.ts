@@ -27,7 +27,7 @@ export async function acquireRedisLock(
   const result = await redis.set(key, token, "PX", ttlMs, "NX");
 
   if (result !== "OK") {
-    return null;
+    return null;   
   }
 
   return {

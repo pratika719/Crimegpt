@@ -16,6 +16,7 @@
     "worker:start": "tsx src/workers/index.ts",
     "test:ingestion": "tsx src/scripts/test-evidence-ingestion.ts",
     "queue:check": "tsx src/scripts/check-queues.ts",
+    "cache:clear:laws": "tsx src/scripts/clear-law-cache.ts",
     "vectors:check:evidence": "tsx src/scripts/check-evidence-vectors.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

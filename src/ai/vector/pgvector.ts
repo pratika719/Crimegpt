@@ -170,10 +170,10 @@ export async function similaritySearchDeduplicated(
   });
   const queryVector = embeddingResult.embeddings[0];
   
-  // Retrieve k * 2 candidates to account for potential duplicates
-  const results = await store.similaritySearchVectorWithScore(queryVector, k * 2);
+  // Retrieve k * 3 candidates to ensure candidate pool covers distinct legal sections
+  const results = await store.similaritySearchVectorWithScore(queryVector, k * 3);
   
-  const seen = new Set<string>();
+  const seenSections = new Set<string>();
   const uniqueResults: [Document, number][] = [];
 
   for (const [doc, score] of results) {
@@ -183,9 +183,9 @@ export async function similaritySearchDeduplicated(
       continue;
     }
 
-    const normalizedContent = doc.pageContent.replace(/\s+/g, " ").trim();
-    if (!seen.has(normalizedContent)) {
-      seen.add(normalizedContent);
+    const sectionKey = (doc.metadata.section || doc.pageContent.replace(/\s+/g, " ").trim()).toString().toUpperCase();
+    if (!seenSections.has(sectionKey)) {
+      seenSections.add(sectionKey);
       uniqueResults.push([doc, score]);
     }
     

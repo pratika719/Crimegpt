@@ -14,7 +14,7 @@ import { promptExecutionHelper } from "@/services/shared/ai-shared.service";
 export function buildFIRGenerationPrompt(context: UnifiedCaseContext, laws: CleanedLawReference[]): string {
   const lawsContext = promptExecutionHelper.formatLawsContext(
     laws,
-    "No direct law references found in the database. Do NOT cite any IPC sections. Mark confidence as LOW and explain that no legal references were found."
+    "Database vector retrieval yielded no exact chunk matches. Analyze the incident narrative and facts directly using your expert knowledge of Indian Criminal Law (IPC / BNS) to identify and cite all applicable statutory legal sections."
   );
 
   const profile = context.investigationProfile;
@@ -121,7 +121,7 @@ STRICT INSTRUCTIONS FOR FIR SECTIONS:
 2. "incidentDate": Use the structured incident date and time. If not specified, state "Not specified in narrative (alleged incident date)".
 3. "incidentLocation": Use the structured incident location. If not specified, state "Not specified in narrative".
 4. "suspectedOffenses": List the specific criminal acts or offenses suspected (e.g., "Theft", "Cheating by impersonation", "Voluntarily causing hurt").
-5. "applicableSections": Identify which sections apply. For each section, provide the section code (e.g. "IPC_419" or "IPC_170") and a clear explanation of why it is applicable to the narrative elements.
+5. "applicableSections": Identify strictly all legal sections whose statutory elements are satisfied by the narrative facts. The array length MUST be purely dynamic based on the evidence: if only 1 section applies (e.g. simple theft), output only 1 section; if 2, 3, or more apply (e.g. robbery with hurt), include all of them. Do not force extra sections if only 1 applies, and do not omit sections if multiple apply. For each section, provide the section code (e.g. "IPC_379" or "IPC_390") and a clear explanation of why it applies.
 6. "factsOfCase": Detail the chronological facts of the case in a formal manner. Describe the sequence of events, details of the victim, accused, and witnesses (if any), actions taken, and the nature of the crime. Rely strictly on the structured case data (names, alibis, statements, vehicles, seized property) instead of inferring them.
 7. "investigationDirections": Provide professional directions/steps for the investigating officer to gather evidence, trace suspects, verify documents, examine witnesses, etc.
 8. "officerRemarks": Station House Officer (SHO) remarks on the registration of the FIR, jurisdiction assessment, and official endorsement.
@@ -136,9 +136,10 @@ EXPECTED JSON SCHEMA:
   "suspectedOffenses": ["Offense name 1", "Offense name 2"],
   "applicableSections": [
     {
-      "section": "IPC Section Code (e.g. IPC_170)",
+      "section": "IPC_390",
       "reason": "Clear explanation of how the narrative satisfies the elements of this section."
     }
+    // Include all applicable sections (1, 2, 3, or more as justified by facts)
   ],
   "factsOfCase": "Detailed, chronological narration of the facts.",
   "investigationDirections": "Detailed initial steps/directions for the investigation team.",

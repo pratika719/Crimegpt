@@ -16,13 +16,15 @@ export const authConfig = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
+        // NextAuth JWT callback token doesn't expose id in its type;
+        // we extend it at runtime via the session callback below.
+        (token as Record<string, unknown>).id = user.id;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user && token) {
-        session.user.id = token.id as string;
+        session.user.id = (token as Record<string, unknown>).id as string;
       }
       return session;
     },

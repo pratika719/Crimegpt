@@ -58,7 +58,7 @@ EXPECTED JSON SCHEMA:
       "name": "Accused Name",
       "arrestStatus": "Status (e.g., Arrested, On Bail)",
       "bailDetails": "Details or N/A",
-      "applicableSections": ["IPC_302"],
+      "applicableSections": ["IPC_390", "IPC_394"],
       "evidenceLinks": "Detailed facts/evidence linking this accused."
     }
   ],

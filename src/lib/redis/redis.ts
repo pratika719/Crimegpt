@@ -2,10 +2,8 @@
 
 import IORedis from "ioredis";
 
-
-const globalForRedis = globalThis as unknown as {
-  redisConnection?: IORedis;
-};
+// globalThis.redisConnection is declared in src/types/globals.d.ts.
+const globalForRedis = globalThis;
 
 function getRedisUrl(): string {
   const redisUrl = process.env.REDIS_URL;

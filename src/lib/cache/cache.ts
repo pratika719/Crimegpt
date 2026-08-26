@@ -49,7 +49,12 @@ export class CacheService {
 
     const value = await factory();
 
-    await this.set(key, value, ttlSeconds);
+    // Do not cache empty arrays — they prevent retries when the
+    // underlying data source (e.g. pgvector) recovers from a transient failure.
+    const isEmptyArray = Array.isArray(value) && value.length === 0;
+    if (!isEmptyArray) {
+      await this.set(key, value, ttlSeconds);
+    }
 
     return value;
   }

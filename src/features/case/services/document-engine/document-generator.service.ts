@@ -144,9 +144,19 @@ export class DocumentGeneratorService {
           "Querying PGVector legal retrieval",
         );
         try {
-          retrievedChunks = await lawRetriever.retrieve(context.narrative, 5);
+          // Construct a focused RAG query string combining narrative, title, and metadata hints
+          const ragQueryParts = [context.title, context.narrative].filter(Boolean);
+          if (Array.isArray(context.metadata?.suspectedOffenses) && context.metadata.suspectedOffenses.length > 0) {
+            ragQueryParts.push(`Suspected Crimes: ${context.metadata.suspectedOffenses.join(", ")}`);
+          }
+          const ragQuery = ragQueryParts.join("\n\n").trim();
+
+          // Bypass Redis retrieval cache if generating via worker requestId (regeneration/retry)
+          const isRegeneration = Boolean(requestId);
+
+          retrievedChunks = await lawRetriever.retrieve(ragQuery, 6, { bypassCache: isRegeneration });
           logger.info(
-            { caseId, userId, documentType: type, chunksCount: retrievedChunks.length },
+            { caseId, userId, documentType: type, chunksCount: retrievedChunks.length, isRegeneration },
             "Retrieved law sections from PGVector",
           );
         } catch (ragErr) {

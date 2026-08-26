@@ -18,11 +18,9 @@ if (!connectionString) {
 
 // ---------------------------------------------------------------------------
 // Reusable Pg Pool singleton to avoid connection leaks during Next.js hot reloads.
+// globalThis.pgPoolGlobal and globalThis.prismaGlobal are declared in
+// src/types/globals.d.ts.
 // ---------------------------------------------------------------------------
-declare const globalThis: {
-  prismaGlobal: PrismaClient;
-  pgPoolGlobal: Pool;
-} & typeof global;
 
 export const pool = globalThis.pgPoolGlobal ?? new Pool({
   connectionString,

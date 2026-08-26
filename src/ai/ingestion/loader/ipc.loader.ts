@@ -26,24 +26,33 @@ export async function loadIPCDocuments(): Promise<Document[]> {
       .pipe(csv())
       .on("data", (row: IPCRow) => {
         try {
+          const rawSection = String(row.Section || "").trim();
+          const rawOffense = String(row.Offense || "").trim();
+          const rawPunishment = String(row.Punishment || "").trim();
+          const rawDescription = String(row.Description || "").trim();
+
+          const cleanOffense = !rawOffense || rawOffense.toLowerCase() === "nan" ? rawSection : rawOffense;
+          const cleanPunishment = !rawPunishment || rawPunishment.toLowerCase() === "nan" ? "As prescribed under statutory provisions." : rawPunishment;
+          const cleanDescription = !rawDescription || rawDescription.toLowerCase() === "nan" ? `IPC Section ${rawSection}: ${cleanOffense}` : rawDescription;
+
           const document = new Document({
             pageContent: `
-IPC Section: ${row.Section}
+IPC Section: ${rawSection}
 
 Offense:
-${row.Offense}
+${cleanOffense}
 
 Punishment:
-${row.Punishment}
+${cleanPunishment}
 
 Description:
-${row.Description}
+${cleanDescription}
             `.trim(),
 
             metadata: {
-              section: row.Section,
-              offense: row.Offense,
-              punishment: row.Punishment,
+              section: rawSection,
+              offense: cleanOffense,
+              punishment: cleanPunishment,
               source: "IPC",
             },
           });

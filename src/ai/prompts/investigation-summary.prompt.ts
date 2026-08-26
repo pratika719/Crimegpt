@@ -17,7 +17,7 @@ export function buildInvestigationSummaryPrompt(
 ): string {
   const lawsContext = promptExecutionHelper.formatLawsContext(
     laws, 
-    "No direct law references found in the database. Do NOT cite any IPC sections. Mark confidence as LOW and explain that no legal references were found."
+    "Database vector retrieval yielded no exact chunk matches. Analyze the incident narrative and facts directly using your expert knowledge of Indian Criminal Law (IPC / BNS) to identify and cite all applicable statutory legal sections."
   );
 
   const profile = context.investigationProfile;
@@ -162,7 +162,7 @@ STRICT INSTRUCTIONS FOR THE SECTIONS:
 1. "executiveSummary": A high-level overview of the case, investigation status, and primary allegations (3-4 sentences).
 2. "incidentOverview": Detail the incident timeline, date, time, and location based on the incident details.
 3. "factsEstablished": Clear bullet-pointed or structured narrative listing verified/established facts of the case.
-4. "applicableSections": Determine which legal sections are applicable. For each section, provide the section code (e.g. "IPC_420") and explain the exact reason why it applies based on the elements of the offense. Only include a section if there is clear evidence matching the offense description.
+4. "applicableSections": Determine ALL legal sections that apply to the established facts. Provide multiple applicable sections (aim for 2 to 4 sections when supported by the narrative, such as primary offense, aggravated offense, attempt, or weapons/injury provisions). For each section, provide the section code (e.g. "IPC_390", "IPC_394", "IPC_382") and explain the exact reason why it applies.
 5. "evidenceAssessment": List and analyze all physical, digital, oral, or circumstantial evidence present or referenced in the logged evidence.
 6. "personsInvolved": Summarize information about the victim(s), suspect/accused, and witness(es), including statements and descriptions.
 7. "investigationFindings": Detail the preliminary findings and what the investigation has uncovered so far.
@@ -179,8 +179,12 @@ EXPECTED JSON SCHEMA:
   "factsEstablished": "Verified facts...",
   "applicableSections": [
     {
-      "section": "Section code (e.g. IPC_140)",
-      "reason": "Reason why it applies..."
+      "section": "IPC_390",
+      "reason": "Clear explanation of why it applies..."
+    },
+    {
+      "section": "IPC_394",
+      "reason": "Clear explanation of how hurt was voluntarily caused during the offense."
     }
   ],
   "evidenceAssessment": "Analysis of evidence...",

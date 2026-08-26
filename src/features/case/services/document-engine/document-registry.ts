@@ -67,7 +67,7 @@ DocumentRegistry.register({
   titlePrefix: "Investigation Summary Report",
   schema: InvestigationSummarySchema,
   aiRequestType: AIRequestType.INVESTIGATION_SUMMARY,
-  requiresRAG: false, // The prompt uses the context itself
+  requiresRAG: true, // Enable RAG legal section retrieval for Investigation Summary
   buildPrompt: (context, chunks) => buildInvestigationSummaryPrompt(context, chunks),
   activityGenerated: ActivityType.INVESTIGATION_SUMMARY_GENERATED,
   activityRegenerated: ActivityType.DOCUMENT_REGENERATED,

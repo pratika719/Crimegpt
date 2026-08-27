@@ -239,12 +239,11 @@ export class DocumentGeneratorService {
               where: { id: existingDoc.id },
             });
           } else if (docs.length > 0) {
-            // New requestId with existing docs → regeneration → increment version
-            const maxVersion = Math.max(...docs.map((d) => d.version));
-            nextVer = maxVersion + 1;
+            // New requestId with existing docs → regeneration → clean replacement (version 1)
+            nextVer = 1;
             logger.info(
-              { caseId, userId, documentType: type, existingCount: docs.length, nextVersion: nextVer },
-              "Regeneration detected — deleting all existing documents and creating new version",
+              { caseId, userId, documentType: type, existingCount: docs.length },
+              "Regeneration detected — deleting all existing documents for clean replacement",
             );
             await tx.generatedDocument.deleteMany({
               where: { caseId, type },

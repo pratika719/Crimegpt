@@ -152,7 +152,15 @@ export async function processDocumentGenerationJob(
     );
 
     // 429 (quota/rate-limit) → discard immediately with a user-friendly message
-    if (error instanceof AIProviderError && error.statusCode === 429) {
+    const is429 =
+      (error instanceof AIProviderError && error.statusCode === 429) ||
+      (error instanceof Error && (
+        error.message.includes("429") ||
+        error.message.toLowerCase().includes("quota") ||
+        error.message.toLowerCase().includes("too many requests")
+      ));
+
+    if (is429) {
       logger.warn({ err: error, caseId, userId, documentType }, "Gemini quota exhausted (429) — discarding job");
 
       const overloadedError = new DocumentGenerationError(

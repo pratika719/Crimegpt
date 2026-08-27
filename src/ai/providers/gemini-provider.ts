@@ -8,10 +8,15 @@ export class AIProviderError extends Error {
   constructor(message: string, public readonly originalError?: any) {
     super(message);
     this.name = "AIProviderError";
-    // Extract status code from original error for downstream detection
-    if (originalError) {
-      this.statusCode = originalError.status ?? originalError.statusCode ?? originalError.response?.status ?? undefined;
+    // Extract status code from original error or message for downstream detection
+    let code = originalError?.status ?? originalError?.statusCode ?? originalError?.response?.status ?? undefined;
+    if (code === undefined && typeof message === "string") {
+      const lower = message.toLowerCase();
+      if (lower.includes("429") || lower.includes("quota") || lower.includes("too many requests")) {
+        code = 429;
+      }
     }
+    this.statusCode = code ? Number(code) : undefined;
   }
 }
 

@@ -278,10 +278,15 @@ export default function CaseAnalysisPanel({
     } else if (status?.state === "failed") {
       const failedMsg = status.failedReason || "Please try again.";
       // Map overloaded (429) errors to user-friendly message
-      const displayMsg =
-        status.errorCode === "AI_PROVIDER_OVERLOADED" || failedMsg.includes("overloaded")
-          ? "AI service is currently overloaded. Please wait a moment and try again."
-          : `Generation failed: ${failedMsg}`;
+      const isOverloaded =
+        status.errorCode === "AI_PROVIDER_OVERLOADED" ||
+        failedMsg.includes("overloaded") ||
+        failedMsg.includes("429") ||
+        failedMsg.toLowerCase().includes("quota") ||
+        failedMsg.toLowerCase().includes("too many requests");
+      const displayMsg = isOverloaded
+        ? "AI service is currently overloaded. Please wait a moment and try again."
+        : `Generation failed: ${failedMsg}`;
       toast.error(displayMsg);
       setGenerationError(displayMsg);
       // Keep the failure visible after dismissal / reload

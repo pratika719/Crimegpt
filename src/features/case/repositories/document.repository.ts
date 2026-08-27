@@ -47,6 +47,17 @@ export class DocumentRepository {
   }
 
   /**
+   * Fetches all generated documents for a case ordered by version/createdAt desc.
+   */
+  async findAllByCaseId(caseId: string, userId: string) {
+    await this.checkCaseOwnership(caseId, userId);
+    return prisma.generatedDocument.findMany({
+      where: { caseId },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  /**
    * Deletes all documents of a specific type for a case (useful for regeneration).
    */
   async deleteManyByType(caseId: string, userId: string, type: DocumentType) {

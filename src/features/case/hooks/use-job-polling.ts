@@ -40,11 +40,12 @@ export function useJobPolling({
   enabled,
   intervalMs = 5000,
   maxPollingMs = 90_000,
-  waitingStallMs = 60_000,
+  waitingStallMs = 30_000,
 }: UseJobPollingInput) {
   const [status, setStatus] = useState<MinimalJobStatusResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPolling, setIsPolling] = useState(false);
+  const [isStalled, setIsStalled] = useState(false);
 
   // Refs to avoid stale closures in setTimeout
   const stoppedRef = useRef(false);
@@ -134,6 +135,9 @@ export function useJobPolling({
             waitingSinceRef.current = Date.now();
           } else {
             const waitingElapsed = Date.now() - waitingSinceRef.current;
+            if (waitingElapsed > 15_000) {
+              setIsStalled(true);
+            }
             if (waitingElapsed > waitingStallRef.current) {
               setError(
                 "Document generation is stuck in queue — the background worker may be unavailable. " +
@@ -146,6 +150,7 @@ export function useJobPolling({
         } else {
           // Job has left "pending" (now "active") — reset the counter
           waitingSinceRef.current = 0;
+          setIsStalled(false);
         }
 
         // Non-terminal state — continue polling
@@ -162,6 +167,7 @@ export function useJobPolling({
     return () => {
       stoppedRef.current = true;
       setIsPolling(false);
+      setIsStalled(false);
     };
   }, [enabled, jobId, queueName]);
 
@@ -169,5 +175,6 @@ export function useJobPolling({
     status,
     error,
     isPolling,
+    isStalled,
   };
 }

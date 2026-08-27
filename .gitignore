@@ -9,6 +9,7 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+
 # testing
 /coverage
 
@@ -45,8 +46,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# prisma generated client
 /src/generated/prisma
-
 
 # Python virtual environments
 embedding-service/.venv/
@@ -63,5 +64,10 @@ __pycache__/
 embedding-service/.pytest_cache/
 embedding-service/.mypy_cache/
 embedding-service/.ruff_cache/
-/docs
+
+# --- NestJS backend (backend/ has its own .gitignore too) ---
+backend/node_modules/
+backend/dist/
+backend/src/generated/
+
 

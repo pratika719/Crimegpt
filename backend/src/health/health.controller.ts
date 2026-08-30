@@ -2,12 +2,11 @@ import { Controller, Get } from '@nestjs/common';
 import {
   HealthCheck,
   HealthCheckService,
-  HealthCheckResult,
   HealthIndicatorResult,
-  HealthIndicator,
 } from '@nestjs/terminus';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
+import { QueueService } from '../queue/queue.service';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('health')
@@ -17,6 +16,7 @@ export class HealthController {
     private health: HealthCheckService,
     private prisma: PrismaService,
     private redis: RedisService,
+    private queueService: QueueService,
   ) {}
 
   @Get()
@@ -33,6 +33,7 @@ export class HealthController {
     return this.health.check([
       () => this.prismaCheck(),
       () => this.redisCheck(),
+      () => this.envCheck(),
     ]);
   }
 
@@ -43,6 +44,9 @@ export class HealthController {
     return this.health.check([
       () => this.prismaCheck(),
       () => this.redisCheck(),
+      () => this.envCheck(),
+      () => this.embeddingProviderCheck(),
+      () => this.geminiCheck(),
     ]);
   }
 
@@ -67,5 +71,50 @@ export class HealthController {
         status: status === 'ok' ? 'up' : 'down',
       },
     };
+  }
+
+  private envCheck(): HealthIndicatorResult {
+    const required = [
+      'DATABASE_URL',
+      'REDIS_URL',
+      'GEMINI_API_KEY',
+      'EMBEDDING_SERVICE_URL',
+    ];
+    const missing = required.filter((key) => !process.env[key]);
+
+    if (missing.length > 0) {
+      return {
+        env: {
+          status: 'down',
+          message: `Missing: ${missing.join(', ')}`,
+        },
+      };
+    }
+    return { env: { status: 'up' } };
+  }
+
+  private embeddingProviderCheck(): HealthIndicatorResult {
+    const provider = process.env.EMBEDDING_PROVIDER;
+    if (provider !== 'fastapi') {
+      return {
+        embeddingProvider: {
+          status: 'down',
+          message: `Expected fastapi, got ${provider ?? 'undefined'}`,
+        },
+      };
+    }
+    return { embeddingProvider: { status: 'up' } };
+  }
+
+  private geminiCheck(): HealthIndicatorResult {
+    if (!process.env.GEMINI_API_KEY) {
+      return {
+        gemini: {
+          status: 'down',
+          message: 'GEMINI_API_KEY not configured',
+        },
+      };
+    }
+    return { gemini: { status: 'up' } };
   }
 }

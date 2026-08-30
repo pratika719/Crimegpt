@@ -41,7 +41,7 @@ async function bootstrap() {
     .addTag('documents', 'AI document generation')
     .addTag('evidence', 'Evidence management')
     .addTag('search', 'Case search')
-    .addTag('audit', 'Audit trail')
+    .addTag('audit', 'Audit trail')     
     .addTag('health', 'Health checks')
     .build();
 
@@ -54,5 +54,6 @@ async function bootstrap() {
   logger.log(`CrimeGPT API running on http://localhost:${port}`);
   logger.log(`Swagger docs at http://localhost:${port}/docs`);
 }
+
 
 bootstrap();

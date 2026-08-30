@@ -1,11 +1,13 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 // Infrastructure
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { CacheModule } from './cache/cache.module';
+import { QueueModule } from './queue/queue.module';
 
 // Health
 import { HealthModule } from './health/health.module';
@@ -14,6 +16,8 @@ import { HealthModule } from './health/health.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { RateLimitGuard } from './common/guards/throttler.guard';
+import { LoggerModule } from './common/logger/logger.module';
 
 // Domain (skeleton — populated in Phase 3-7)
 import { CaseModule } from './case/case.module';
@@ -22,7 +26,6 @@ import { EvidenceModule } from './evidence/evidence.module';
 import { SearchModule } from './search/search.module';
 import { AuditModule } from './audit/audit.module';
 import { AIModule } from './ai/ai.module';
-import { QueueModule } from './queue/queue.module';
 import { AuthModule } from './auth/auth.module';
 import { EmbeddingModule } from './embedding/embedding.module';
 
@@ -34,10 +37,24 @@ import { EmbeddingModule } from './embedding/embedding.module';
       envFilePath: ['.env.local', '.env'],
     }),
 
+    // Logger
+    LoggerModule,
+
+    // Rate limiting
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60_000, // 1 minute
+          limit: 60,   // 60 requests per minute
+        },
+      ],
+    }),
+
     // Infrastructure
     PrismaModule,
     RedisModule,
     CacheModule,
+    QueueModule,
 
     // Health
     HealthModule,
@@ -49,7 +66,6 @@ import { EmbeddingModule } from './embedding/embedding.module';
     SearchModule,
     AuditModule,
     AIModule,
-    QueueModule,
     AuthModule,
     EmbeddingModule,
   ],
@@ -62,10 +78,13 @@ import { EmbeddingModule } from './embedding/embedding.module';
 
     // Global request logging
     { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
+
+    // Global rate limiting
+    { provide: APP_GUARD, useClass: RateLimitGuard },
   ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    // Add middleware here as needed (e.g., CORS, rate limiting)
+    // Add middleware here as needed (e.g., CORS)
   }
 }

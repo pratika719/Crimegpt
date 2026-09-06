@@ -20,6 +20,12 @@
 /.next/
 /out/
 
+# architecture plans (working docs, not shipped)
+/architecture
+
+# docs
+/docs
+
 # production
 /build
 

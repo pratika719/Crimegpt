@@ -8,6 +8,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -35,6 +36,7 @@ export class DocumentsController {
   ) {}
 
   @Post()
+  @Throttle({ default: { ttl: 600_000, limit: 5 } }) // 5 document generations per 10 minutes per user
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Generate a document for a case' })
   @ApiParam({ name: 'caseId', description: 'Case ID' })

@@ -1,35 +1,16 @@
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  UnauthorizedException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { AuthGuard as PassportAuthGuard } from '@nestjs/passport';
 
 /**
- * AuthGuard — Placeholder for JWT authentication (Phase 7).
+ * AuthGuard — Passport JWT authentication.
  *
- * Currently extracts user ID from x-user-id header for development.
- * Will be replaced with Passport.js + JWT strategy in Phase 7.
+ * Extends Passport's AuthGuard for the 'jwt' strategy. On success the JWT is
+ * validated, the user is queried from the DB, and { id, email, name } is
+ * attached to request.user. On failure Passport throws UnauthorizedException (401).
+ *
+ * Controllers already use @UseGuards(AuthGuard) and @CurrentUser('id') userId —
+ * this change makes that guard real without touching the controllers.
  */
 @Injectable()
-export class AuthGuard implements CanActivate {
-  private readonly logger = new Logger(AuthGuard.name);
+export class AuthGuard extends PassportAuthGuard('jwt') {}
 
-  canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest();
-
-    // TODO: Replace with JWT validation in Phase 7
-    // For now, accept user ID from header for development/testing
-    const userId = request.headers['x-user-id'];
-
-    if (!userId) {
-      this.logger.warn('No user ID provided in request');
-      throw new UnauthorizedException('User not authenticated');
-    }
-
-    // Attach userId to request for @CurrentUser decorator
-    request.user = { id: userId };
-    return true;
-  }
-}

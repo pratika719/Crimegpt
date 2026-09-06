@@ -1,54 +1,50 @@
-export type BaseJobPayload = {
-  requestId: string;
-  userId: string;
-  createdAt: string;
-};
+/**
+ * Job type definitions for the queue system.
+ *
+ * These types are strict — no `any` allowed.
+ * Re-exported from processor.types.ts for backward compatibility.
+ */
 
-export type DocumentGenerationJobPayload = BaseJobPayload & {
-  caseId: string;
-  documentType: string;
-  forceRegenerate?: boolean;
-  inputHash?: string;
-};
+export type {
+  BaseJobPayload,
+  DocumentGenerationJobData,
+  AIGenerationJobData,
+  EmailJobData,
+  CleanupJobData,
+  EmbeddingSourceType,
+  EmbeddingJobData,
+  IngestionJobData,
+} from './types/processor.types';
 
-export type AIGenerationJobPayload = BaseJobPayload & {
-  caseId: string;
-  requestType: string;
-  inputHash?: string;
-};
+// ---------------------------------------------------------------------------
+// Legacy type aliases (deprecated — use the new types above)
+// ---------------------------------------------------------------------------
 
-export type EmailJobPayload = BaseJobPayload & {
-  to: string;
-  subject: string;
-  template: 'AI_JOB_COMPLETED' | 'AI_JOB_FAILED' | 'CASE_REPORT_READY';
-  data: Record<string, unknown>;
-};
+import type {
+  BaseJobPayload as _BaseJobPayload,
+  DocumentGenerationJobData,
+  AIGenerationJobData,
+  EmailJobData,
+  CleanupJobData,
+  EmbeddingSourceType as _EmbeddingSourceType,
+  EmbeddingJobData,
+  IngestionJobData,
+} from './types/processor.types';
 
-export type CleanupJobPayload = BaseJobPayload & {
-  cleanupType:
-    | 'EXPIRED_AI_TEMP_STATE'
-    | 'OLD_FAILED_JOBS'
-    | 'STALE_LOCKS'
-    | 'OLD_AUDIT_LOGS';
-  olderThanDays?: number;
-};
+/** @deprecated Use DocumentGenerationJobData instead */
+export type DocumentGenerationJobPayload = DocumentGenerationJobData;
 
-export type EmbeddingSourceType = 'LAW_CHUNK' | 'EVIDENCE' | 'CASE_DOCUMENT';
+/** @deprecated Use AIGenerationJobData instead */
+export type AIGenerationJobPayload = AIGenerationJobData;
 
-export type EmbeddingJobPayload = BaseJobPayload & {
-  sourceType: EmbeddingSourceType;
-  sourceId: string;
-  caseId?: string;
-  text: string;
-  chunkIndex?: number;
-  metadata?: Record<string, unknown>;
-};
+/** @deprecated Use EmailJobData instead */
+export type EmailJobPayload = EmailJobData;
 
-export type IngestionJobPayload = BaseJobPayload & {
-  sourceType: 'EVIDENCE_TEXT' | 'EVIDENCE_FILE' | 'LAW_CSV';
-  sourceId: string;
-  caseId?: string;
-  text?: string;
-  storageKey?: string;
-  metadata?: Record<string, unknown>;
-};
+/** @deprecated Use CleanupJobData instead */
+export type CleanupJobPayload = CleanupJobData;
+
+/** @deprecated Use EmbeddingJobData instead */
+export type EmbeddingJobPayload = EmbeddingJobData;
+
+/** @deprecated Use IngestionJobData instead */
+export type IngestionJobPayload = IngestionJobData;

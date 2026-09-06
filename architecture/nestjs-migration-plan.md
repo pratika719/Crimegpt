@@ -255,7 +255,35 @@ export class DocumentGenerationProcessor extends WorkerHost {
 
 ---
 
-## Phase 8: Observability & Latency (Showcase Tier)
+## Phase 8: Frontend Cutover (Next.js → API Client)
+
+**Goal:** Turn the Next.js app into a **pure frontend**. Replace every server action and direct service call with a typed API client that hits the NestJS REST API, move auth onto NestJS JWT, and delete all backend code from the Next.js repository. Detailed plan: `architecture/phase8-frontend-cutover-implementation-plan.md`.
+
+| Current (Next.js) | Target |
+|---|---|
+| 15 server actions (`src/features/*/actions/`) | Typed API client calls → NestJS endpoints |
+| Server Components calling `new CaseService()` | API client fetches (or migrated to client components) |
+| NextAuth v5 (`src/auth.ts`, `proxy.ts`, `[...nextauth]`) | NestJS JWT (from Phase 7); NextAuth removed |
+| `src/lib/prisma.ts`, `redis/`, `queue/`, `cache/`, `security/` | Deleted — infra now lives in NestJS only |
+| BullMQ producers in `src/services/queue` | Deleted — jobs enqueued via NestJS REST endpoints |
+| `src/app/api/health`, `src/app/api/warmup` | Deleted — NestJS `/api/health` |
+| `src/workers/` (old standalone worker process) | Deleted — NestJS worker (Phase 6) |
+| `revalidatePath()` / Next.js cache invalidation | Removed — NestJS invalidates its own cache; frontend refetches on mutation |
+
+### Key Actions
+
+1. Add `NESTJS_API_URL` env and a typed API client (`src/lib/api/`), optionally generated from the Swagger spec at `GET /docs-json`.
+2. Domain-by-domain cutover (cases → documents → evidence → persons → jobs → search → AI): swap action calls and server-component data fetches to the API client; verify against the live NestJS app before moving on.
+3. Move auth to NestJS JWT once Phase 7 lands: stop calling `auth()`/`requireUser()` in pages and actions; the NestJS login flow issues the JWT that gates every page.
+4. Delete server actions, NextAuth, `src/lib/prisma`, `queue`, `cache`, `redis`, `security`, `src/workers`, and the Next.js copy of `generated/prisma` + `prisma/schema.prisma`.
+5. Prune `src/env.ts` down to frontend-only variables (`NESTJS_API_URL`, `NEXT_PUBLIC_*`).
+6. Before each domain cutover, audit that its former actions are all covered by live endpoints — search, audit, and AI-diagnostics (legal-analysis, investigation-summary, ai-diagnostics) controller coverage is not yet complete.
+
+**Exit criteria:** `next build` succeeds with zero server-only backend imports; no Prisma/Redis/BullMQ/NextAuth packages remain in `package.json`; every UI flow works against NestJS only.
+
+---
+
+## Phase 9: Observability & Latency (Showcase Tier)
 
 **Goal:** Make this a backend engineering showcase with production-grade observability.
 
@@ -281,7 +309,7 @@ export class DocumentGenerationProcessor extends WorkerHost {
 
 ---
 
-## Phase 9: Docker & Deployment
+## Phase 10: Docker & Deployment
 
 **Goal:** Production-ready containerization.
 
@@ -305,7 +333,7 @@ services:
 
 ---
 
-## Phase 10: Testing & Validation
+## Phase 11: Testing & Validation
 
 **Goal:** Verify migration completeness and performance.
 
@@ -318,7 +346,7 @@ services:
 
 ### Validation Checklist
 
-- [ ] All 13 server actions → REST endpoints working
+- [ ] All 15 server actions → REST endpoints working
 - [ ] All 6 BullMQ queues processing correctly
 - [ ] Auth flow (Google OAuth + JWT) working
 - [ ] Document generation end-to-end (FIR, Charge Sheet, etc.)
@@ -332,7 +360,7 @@ services:
 ## Migration Order
 
 ```
-Phase 0 → Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 7 → Phase 8 → Phase 9 → Phase 10
+Phase 0 → Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 7 → Phase 8 → Phase 9 → Phase 10 → Phase 11
 ```
 
-Each phase is independently deployable — you can run NestJS for migrated modules while Next.js still handles the rest via proxy.
+Phases 1–7 are independently deployable — you can run NestJS for migrated modules while Next.js still handles the rest via its own backend. Phase 8 is the cutover that removes that old backend, making Next.js frontend-only.

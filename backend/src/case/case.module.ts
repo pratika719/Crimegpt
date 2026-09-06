@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CacheModule } from '../cache/cache.module';
 import { QueueModule } from '../queue/queue.module';
+import { PrismaModule } from '../prisma/prisma.module';
 
 // Repositories
 import { CaseRepository } from './repositories/case.repository';
@@ -17,6 +18,7 @@ import { PersonService } from './services/person.service';
 import { EvidenceService } from './services/evidence.service';
 import { ChecklistService } from './services/checklist.service';
 import { CaseMetadataService } from './services/case-metadata.service';
+import { UnifiedContextService } from './services/unified-context.service';
 
 // Controllers
 import { CasesController } from './controllers/cases.controller';
@@ -26,7 +28,7 @@ import { DocumentsController } from './controllers/documents.controller';
 import { JobsController } from './controllers/jobs.controller';
 
 @Module({
-  imports: [CacheModule, QueueModule],
+  imports: [PrismaModule, CacheModule, QueueModule],
   controllers: [
     CasesController,
     PersonsController,
@@ -50,6 +52,7 @@ import { JobsController } from './controllers/jobs.controller';
     EvidenceService,
     ChecklistService,
     CaseMetadataService,
+    UnifiedContextService,
   ],
   exports: [
     // Export services for use in other modules
@@ -59,6 +62,8 @@ import { JobsController } from './controllers/jobs.controller';
     EvidenceService,
     ChecklistService,
     CaseMetadataService,
+    UnifiedContextService,
+    CaseRepository,
   ],
 })
 export class CaseModule {}

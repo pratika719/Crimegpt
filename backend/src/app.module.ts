@@ -8,6 +8,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { CacheModule } from './cache/cache.module';
 import { QueueModule } from './queue/queue.module';
+import { WorkerModule } from './queue/worker.module';
 
 // Health
 import { HealthModule } from './health/health.module';
@@ -55,6 +56,7 @@ import { EmbeddingModule } from './embedding/embedding.module';
     RedisModule,
     CacheModule,
     QueueModule,
+    WorkerModule,
 
     // Health
     HealthModule,

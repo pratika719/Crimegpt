@@ -10,7 +10,7 @@ export class EvidenceRepository {
 
   async create(
     caseId: string,
-    userId: string,
+    _userId: string,
     data: {
       title: string;
       type: EvidenceType;
@@ -20,11 +20,13 @@ export class EvidenceRepository {
       fileSize?: number;
     },
   ) {
+    const { storageKey, fileSize, ...rest } = data;
     return this.prisma.evidence.create({
       data: {
-        ...data,
+        ...rest,
         caseId,
-        userId,
+        ...(storageKey ? { fileUrl: storageKey } : {}),
+        ...(fileSize !== undefined ? { fileSizeBytes: fileSize } : {}),
       },
     });
   }
@@ -33,7 +35,7 @@ export class EvidenceRepository {
     return this.prisma.evidence.findFirst({
       where: {
         id,
-        userId,
+        case: { userId },
         ...(caseId ? { caseId } : {}),
       },
     });
@@ -41,7 +43,7 @@ export class EvidenceRepository {
 
   async findByCaseId(caseId: string, userId: string) {
     return this.prisma.evidence.findMany({
-      where: { caseId, userId },
+      where: { caseId, case: { userId } },
       orderBy: {
         createdAt: 'desc',
       },
@@ -66,9 +68,14 @@ export class EvidenceRepository {
       throw new NotFoundException('Evidence not found or access denied');
     }
 
+    const { storageKey, fileSize, ...rest } = data;
     return this.prisma.evidence.update({
       where: { id },
-      data,
+      data: {
+        ...rest,
+        ...(storageKey ? { fileUrl: storageKey } : {}),
+        ...(fileSize !== undefined ? { fileSizeBytes: fileSize } : {}),
+      },
     });
   }
 

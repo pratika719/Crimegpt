@@ -6,13 +6,15 @@ const nextConfig: NextConfig = {
     reactCompiler: true,
    },
    devIndicators: false,
-  serverExternalPackages: ["@huggingface/transformers", "onnxruntime-node"],
-  outputFileTracingExcludes: {
-    "*": [
-      "./node_modules/onnxruntime-node/bin/napi-v6/darwin/**/*",
-      "./node_modules/onnxruntime-node/bin/napi-v6/win32/**/*",
-      "./node_modules/onnxruntime-node/bin/napi-v6/linux/arm64/**/*",
-    ],
+  async rewrites() {
+    const rawNestUrl = (process.env.NESTJS_API_URL || 'http://127.0.0.1:3001/api').replace(/\/+$/, '');
+    const nestUrl = rawNestUrl.endsWith('/api') ? rawNestUrl : `${rawNestUrl}/api`;
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${nestUrl}/:path*`,
+      },
+    ];
   },
    async headers() {
      return [
@@ -21,7 +23,7 @@ const nextConfig: NextConfig = {
          headers: [
            {
              key: 'Content-Security-Policy',
-             value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://lh3.googleusercontent.com https://avatars.githubusercontent.com; font-src 'self' data:; connect-src 'self' https://api.mybackend.com;"
+             value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://lh3.googleusercontent.com https://avatars.githubusercontent.com; font-src 'self' data:; connect-src 'self' http://localhost:3001 https://api.mybackend.com;"
            },
            {
              key: "X-Frame-Options",

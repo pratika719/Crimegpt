@@ -1,16 +1,11 @@
-import { CaseService } from "@/features/case/services/case.service";
+import { caseClient } from "@/lib/api";
 import { CasesDashboardClient } from "@/features/case/components/cases-dashboard-client";
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth/session";
 
 export default async function CasesPage() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
+  await requireUser();
 
-  const service = new CaseService();
-  const cases = await service.getCases(session.user.id);
+  const cases = await caseClient.list().catch(() => []);
 
-  return <CasesDashboardClient initialCases={cases} />;
+  return <CasesDashboardClient initialCases={cases as any} />;
 }

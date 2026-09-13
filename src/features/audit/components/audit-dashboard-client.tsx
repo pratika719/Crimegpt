@@ -24,8 +24,8 @@ import {
   Cpu
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { getAuditLogsAction, getCasesForFilterAction } from "@/features/audit/actions/audit.action";
-import { EnrichedActivity, AuditSeverity, AuditModule, AuditDashboardStats } from "@/features/audit/services/audit.service";
+import { auditClient } from "@/features/audit/api";
+import type { EnrichedActivity, AuditSeverity, AuditModule, AuditDashboardStats } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 interface AuditDashboardClientProps {
@@ -89,9 +89,13 @@ export function AuditDashboardClient({ initialData }: AuditDashboardClientProps)
   // Load cases for filter dropdown on mount
   useEffect(() => {
     async function loadCases() {
-      const response = await getCasesForFilterAction();
-      if (response.success && response.cases) {
-        setCases(response.cases);
+      try {
+        const response = await auditClient.getCasesForFilter();
+        if (response && response.cases) {
+          setCases(response.cases);
+        }
+      } catch {
+        // Ignore failure to fetch cases for filter
       }
     }
     loadCases();
@@ -102,7 +106,7 @@ export function AuditDashboardClient({ initialData }: AuditDashboardClientProps)
     startTransition(async () => {
       const filters: any = {
         search,
-        caseId,
+        caseId: caseId !== "ALL" ? caseId : undefined,
         sortOrder,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
@@ -124,12 +128,16 @@ export function AuditDashboardClient({ initialData }: AuditDashboardClientProps)
         filters.isAi = false;
       }
 
-      const response = await getAuditLogsAction(filters);
-      if (response.success && response.data) {
-        setActivities(response.data.activities);
-        setStats(response.data.stats);
-        setTotalPages(response.data.pagination.totalPages);
-        setTotalCount(response.data.pagination.total);
+      try {
+        const data = await auditClient.getLogs(filters);
+        if (data) {
+          setActivities(data.activities || []);
+          setStats(data.stats || stats);
+          setTotalPages(data.pagination?.totalPages || 1);
+          setTotalCount(data.pagination?.total || 0);
+        }
+      } catch {
+        // Ignore fetch error
       }
     });
   };

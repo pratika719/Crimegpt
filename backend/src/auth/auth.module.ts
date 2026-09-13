@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
+import { AUTH_SECRET_ENV_KEY, AUTH_TOKEN_TTL } from './auth.constants';
 
 /**
  * AuthModule — Passport.js + JWT + Google OAuth.
@@ -18,8 +19,8 @@ import { GoogleStrategy } from './strategies/google.strategy';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('AUTH_SECRET'),
-        signOptions: { expiresIn: '24h' as const },
+        secret: config.get<string>(AUTH_SECRET_ENV_KEY),
+        signOptions: { expiresIn: AUTH_TOKEN_TTL },
       }),
       inject: [ConfigService],
     }),

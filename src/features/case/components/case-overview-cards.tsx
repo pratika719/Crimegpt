@@ -10,7 +10,7 @@ import {
   Paperclip 
 } from "lucide-react";
 
-import type { CaseStatus } from "@/generated/prisma/client";
+import type { CaseStatus } from "@/lib/api/types";
 
 interface CaseOverviewCardsProps {
   status: CaseStatus;

@@ -28,7 +28,8 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
-import { deletePersonAction } from "@/features/case/actions/person.action";
+import { useRouter } from "next/navigation";
+import { personClient } from "@/features/case/api";
 import { toast } from "sonner";
 
 interface Person {
@@ -51,6 +52,7 @@ export default function CasePersonsSection({
   caseId,
   initialPersons,
 }: CasePersonsSectionProps) {
+  const router = useRouter();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -73,14 +75,16 @@ export default function CasePersonsSection({
     const target = deleteTarget;
     setDeletingId(target.id);
     startTransition(async () => {
-      const response = await deletePersonAction(target.id, caseId);
-      if (!response.success) {
-        toast.error(response.message || "Failed to delete person.");
-      } else {
+      try {
+        await personClient.remove(caseId, target.id);
         toast.success(`${target.name} has been removed from the case dossier.`);
+        router.refresh();
         setDeleteTarget(null);
+      } catch (error: any) {
+        toast.error(error.message || "Failed to delete person.");
+      } finally {
+        setDeletingId(null);
       }
-      setDeletingId(null);
     });
   };
 

@@ -16,7 +16,7 @@ export function KeepWarm() {
 
     const ping = () => {
       if (document.hidden) return; // skip if tab is in background
-      fetch("/api/warmup", { signal: AbortSignal.timeout(10_000) }).catch(() => {
+      fetch("/api/health", { signal: AbortSignal.timeout(10_000) }).catch(() => {
         // Ignore — best-effort
       });
     };

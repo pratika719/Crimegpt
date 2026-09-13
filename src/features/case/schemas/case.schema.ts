@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { CaseStatus } from "@/generated/prisma/client";
+import type { CaseStatus } from "@/lib/api/types";
 export const CreateCaseSchema = z.object({
   title: z
     .string()

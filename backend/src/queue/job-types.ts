@@ -21,12 +21,10 @@ export type {
 // ---------------------------------------------------------------------------
 
 import type {
-  BaseJobPayload as _BaseJobPayload,
   DocumentGenerationJobData,
   AIGenerationJobData,
   EmailJobData,
   CleanupJobData,
-  EmbeddingSourceType as _EmbeddingSourceType,
   EmbeddingJobData,
   IngestionJobData,
 } from './types/processor.types';

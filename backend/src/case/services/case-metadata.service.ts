@@ -14,8 +14,8 @@ export class CaseMetadataService {
   /**
    * Gets or creates case metadata. Initializes with default values if new.
    */
-  async getOrCreateMetadata(caseId: string, userId: string) {
-    return this.repository.findOrCreate(caseId, userId);
+  async getOrCreateMetadata(caseId: string) {
+    return this.repository.findOrCreate(caseId);
   }
 
   /**
@@ -25,19 +25,23 @@ export class CaseMetadataService {
     caseId: string,
     userId: string,
     data: {
-      firNumber?: string;
-      policeStation?: string;
-      district?: string;
-      state?: string;
-      ipcSections?: string[];
+      incidentDate?: Date;
+      incidentTime?: string;
+      incidentLocation?: string;
+      victimName?: string;
+      victimStatement?: string;
+      suspectName?: string;
+      suspectDescription?: string;
+      witnessInformation?: string;
+      evidenceSummary?: string;
+      officerNotes?: string;
       dateOfIncident?: Date;
-      dateOfFiling?: Date;
     },
   ) {
     this.logger.log({ caseId, userId }, 'Updating case metadata');
 
     // Ensure metadata exists
-    await this.repository.findOrCreate(caseId, userId);
+    await this.repository.findOrCreate(caseId);
 
     const result = await this.repository.update(caseId, data);
 

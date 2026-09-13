@@ -4,8 +4,9 @@ import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, AlertCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { CreateCaseMetadataSchema, CreateCaseMetadataInput } from "@/features/case/schemas/case-metadata.schema";
-import { saveCaseMetadataAction } from "@/features/case/actions/case-metadata.action";
+import { caseMetadataClient } from "@/features/case/api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,17 +64,19 @@ export function CaseMetadataForm({ caseId, initialData, onSuccess }: CaseMetadat
     },
   });
 
+  const router = useRouter();
+
   async function onSubmit(values: CreateCaseMetadataInput) {
     startTransition(async () => {
       // Exclude caseId since action takes (caseId, data)
       const { caseId: _, ...data } = values;
-      const result = await saveCaseMetadataAction(caseId, data);
-
-      if (!result.success) {
-        toast.error(result.message || "Failed to update case metadata.");
-      } else {
+      try {
+        await caseMetadataClient.save(caseId, data);
         toast.success("Case investigation metadata updated successfully.");
+        router.refresh();
         onSuccess?.();
+      } catch (error: any) {
+        toast.error(error.message || "Failed to update case metadata.");
       }
     });
   }

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { ChainOutput, CleanedLawReference } from '../types/ai.types';
+import type { ChainOutput } from '../types/ai.types';
 import type { UnifiedCaseContext } from '../../case/services/unified-context.service';
 import { LawRetrieverService } from '../retrievers/law-retriever.service';
 import { GeminiService } from '../providers/gemini.provider';

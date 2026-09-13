@@ -1,50 +1,23 @@
-import pino from "pino";
-
 const isDevelopment = process.env.NODE_ENV !== "production";
 
-export const logger = pino({
-  level: process.env.LOG_LEVEL ?? (isDevelopment ? "debug" : "info"),
-  base: {
-    service: process.env.SERVICE_NAME ?? "crimegpt-app",
-    environment: process.env.NODE_ENV ?? "development",
+export const logger = {
+  info: (dataOrMsg: any, msg?: string) => {
+    if (msg) console.log(`[INFO] ${msg}`, dataOrMsg);
+    else console.log(`[INFO]`, dataOrMsg);
   },
-  timestamp: pino.stdTimeFunctions.isoTime,
-  transport:
-    isDevelopment && process.env.PINO_PRETTY !== "false"
-      ? {
-          target: "pino-pretty",
-          options: {
-            colorize: true,
-            translateTime: "SYS:standard",
-            ignore: "pid,hostname",
-          },
-        }
-      : undefined,
-  redact: {
-    paths: [
-      "password",
-      "token",
-      "accessToken",
-      "refreshToken",
-      "authorization",
-      "cookie",
-      "headers.authorization",
-      "headers.cookie",
-      "DATABASE_URL",
-      "REDIS_URL",
-      "GEMINI_API_KEY",
-      "AUTH_SECRET",
-      "OPENAI_API_KEY",
-      "GOOGLE_CLIENT_SECRET",
-      "NEXTAUTH_SECRET",
-      "*.password",
-      "*.token",
-      "*.accessToken",
-      "*.refreshToken",
-      "*.authorization",
-      "*.cookie",
-    ],
-    censor: "[REDACTED]",
+  warn: (dataOrMsg: any, msg?: string) => {
+    if (msg) console.warn(`[WARN] ${msg}`, dataOrMsg);
+    else console.warn(`[WARN]`, dataOrMsg);
   },
-});
+  error: (dataOrMsg: any, msg?: string) => {
+    if (msg) console.error(`[ERROR] ${msg}`, dataOrMsg);
+    else console.error(`[ERROR]`, dataOrMsg);
+  },
+  debug: (dataOrMsg: any, msg?: string) => {
+    if (isDevelopment) {
+      if (msg) console.debug(`[DEBUG] ${msg}`, dataOrMsg);
+      else console.debug(`[DEBUG]`, dataOrMsg);
+    }
+  },
+};
 

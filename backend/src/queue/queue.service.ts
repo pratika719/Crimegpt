@@ -48,6 +48,39 @@ export class QueueService {
     return job;
   }
 
+  async getJobStatus(queueName: string, jobId: string) {
+    try {
+      const queue = this.getQueue(queueName);
+      const job = await queue.getJob(jobId);
+      if (!job) {
+        return {
+          jobId,
+          queueName,
+          state: 'unknown',
+          failedReason: 'Job not found',
+        };
+      }
+      const rawState = await job.getState();
+      const state = rawState === 'waiting' || rawState === 'delayed' ? 'pending' : rawState;
+      return {
+        jobId,
+        queueName,
+        state,
+        failedReason: job.failedReason ?? null,
+        documentId: (job.returnvalue as any)?.documentId ?? null,
+        result: job.returnvalue ?? null,
+      };
+    } catch (err: any) {
+      this.logger.warn(`Failed to get job status for ${jobId} in ${queueName}: ${err.message}`);
+      return {
+        jobId,
+        queueName,
+        state: 'unknown',
+        failedReason: err.message,
+      };
+    }
+  }
+
   private getQueue(name: string): Queue {
     const queues: Record<string, Queue> = {
       [QUEUE_NAMES.DOCUMENT_GENERATION]: this.documentQueue,

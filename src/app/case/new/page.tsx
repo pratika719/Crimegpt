@@ -1,14 +1,10 @@
 import { CreateCaseForm } from "@/features/case/components/create-case-form";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth/session";
 
 export default async function NewCasePage() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
+  await requireUser();
 
   return (
     <div className="max-w-xl mx-auto p-6 space-y-6">

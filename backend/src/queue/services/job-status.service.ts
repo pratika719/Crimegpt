@@ -21,9 +21,9 @@ export class JobStatusService {
   async setJobStatus(params: JobStatusParams): Promise<void> {
     try {
       await this.prisma.jobStatus.upsert({
-        where: { jobId: params.jobId },
+        where: { id: params.jobId },
         create: {
-          jobId: params.jobId,
+          id: params.jobId,
           queueName: params.queueName,
           status: params.status,
           userId: params.userId,
@@ -53,6 +53,6 @@ export class JobStatusService {
    * Retrieve job status by ID.
    */
   async getJobStatus(jobId: string) {
-    return this.prisma.jobStatus.findUnique({ where: { jobId } });
+    return this.prisma.jobStatus.findUnique({ where: { id: jobId } });
   }
 }

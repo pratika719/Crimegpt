@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
+import { PersonRole } from '@/generated/prisma/client';
+
 @Injectable()
 export class PersonRepository {
   private readonly logger = new Logger(PersonRepository.name);
@@ -9,7 +11,7 @@ export class PersonRepository {
 
   async create(
     caseId: string,
-    userId: string,
+    _userId: string,
     data: {
       name: string;
       role: string;
@@ -22,11 +24,15 @@ export class PersonRepository {
       relationshipToVictim?: string;
     },
   ) {
+    const { name, role, address, phone, description } = data;
     return this.prisma.person.create({
       data: {
-        ...data,
+        name,
+        role: (role as PersonRole) || PersonRole.WITNESS,
+        address: address ?? null,
+        phone: phone ?? null,
+        statement: description ?? null,
         caseId,
-        userId,
       },
     });
   }
@@ -35,7 +41,7 @@ export class PersonRepository {
     return this.prisma.person.findFirst({
       where: {
         id,
-        userId,
+        case: { userId },
         ...(caseId ? { caseId } : {}),
       },
     });
@@ -43,7 +49,7 @@ export class PersonRepository {
 
   async findByCaseId(caseId: string, userId: string) {
     return this.prisma.person.findMany({
-      where: { caseId, userId },
+      where: { caseId, case: { userId } },
       orderBy: {
         createdAt: 'desc',
       },
@@ -71,9 +77,16 @@ export class PersonRepository {
       throw new NotFoundException('Person not found or access denied');
     }
 
+    const { name, role, address, phone, description } = data;
     return this.prisma.person.update({
       where: { id },
-      data,
+      data: {
+        ...(name !== undefined ? { name } : {}),
+        ...(role !== undefined ? { role: role as PersonRole } : {}),
+        ...(address !== undefined ? { address } : {}),
+        ...(phone !== undefined ? { phone } : {}),
+        ...(description !== undefined ? { statement: description } : {}),
+      },
     });
   }
 

@@ -51,13 +51,18 @@ export class CaseService {
     this.logger.log({ caseId: id, userId }, 'Updating case');
     const result = await this.repository.update(id, userId, input);
 
+    // Invalidate cached reads so subsequent fetches see the update
+    await this.cacheService.del(this.cacheKeys.caseDetail(userId, id));
+    await this.cacheService.del(this.cacheKeys.caseDashboard(userId));
+
     // Build change description for activity log
     const changes: string[] = [];
     if (input.title && input.title !== existing.title) changes.push('title');
     if (input.narrative && input.narrative !== existing.narrative) changes.push('narrative');
     if (input.status && input.status !== existing.status) changes.push(`status → ${input.status}`);
 
-    if (changes.length > 0) {3
+    if (changes.length > 0) {
+      await this.activityService.logCaseUpdated(id, userId, changes.join(', '));
     }
 
     return result;

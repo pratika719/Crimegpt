@@ -1,6 +1,8 @@
+import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -12,6 +14,9 @@ async function bootstrap() {
 
   // Global API prefix: all routes start with /api
   app.setGlobalPrefix('api');
+
+  // Parse cookies — required by the JWT strategy's cookie extraction (auth_token)
+  app.use(cookieParser());
 
   // Enable CORS for the Next.js frontend
   app.enableCors({
@@ -49,7 +54,7 @@ async function bootstrap() {
   SwaggerModule.setup('docs', app, document);
 
   const port = process.env.PORT || 3001;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
   logger.log(`CrimeGPT API running on http://localhost:${port}`);
   logger.log(`Swagger docs at http://localhost:${port}/docs`);

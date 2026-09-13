@@ -7,13 +7,13 @@
  */
 
 import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bullmq';
 import { PrismaModule } from '../prisma/prisma.module';
 import { CacheModule } from '../cache/cache.module';
 import { RedisModule } from '../redis/redis.module';
 import { AIModule } from '../ai/ai.module';
 import { CaseModule } from '../case/case.module';
 import { DocumentModule } from '../document/document.module';
+import { EmbeddingModule } from '../embedding/embedding.module';
 import { QueueModule } from './queue.module';
 
 // Processors
@@ -43,6 +43,7 @@ import { EvidenceIngestionService } from '../case/services/evidence-ingestion.se
     AIModule,
     CaseModule,
     DocumentModule,
+    EmbeddingModule,
     QueueModule, // Provides BullModule with registered queues
   ],
   providers: [

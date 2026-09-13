@@ -1,4 +1,4 @@
-import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -17,6 +17,7 @@ import { HealthModule } from './health/health.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { PromptSecurityInterceptor } from './common/interceptors/prompt-security.interceptor';
 import { RateLimitGuard } from './common/guards/throttler.guard';
 import { LoggerModule } from './common/logger/logger.module';
 
@@ -81,12 +82,14 @@ import { EmbeddingModule } from './embedding/embedding.module';
     // Global request logging
     { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
 
+    // Prompt-injection screening for request bodies (defense-in-depth;
+    // systemInstruction-side mitigation lives in PROMPT_SECURITY_INSTRUCTIONS)
+    { provide: APP_INTERCEPTOR, useClass: PromptSecurityInterceptor },
+
     // Global rate limiting
     { provide: APP_GUARD, useClass: RateLimitGuard },
   ],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    // Add middleware here as needed (e.g., CORS)
-  }
+export class AppModule {
+  // No middleware consumer — cookieParser is applied in main.ts.
 }

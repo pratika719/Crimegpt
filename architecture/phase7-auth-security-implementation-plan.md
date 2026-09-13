@@ -726,21 +726,52 @@ Add `GOOGLE_CALLBACK_URL`, `FRONTEND_URL`
 
 ## 17. Migration Checklist
 
-- [ ] `@nestjs/passport`, `passport`, `@nestjs/jwt`, `passport-jwt`, `passport-google-oauth20`, `jsonwebtoken` installed in `backend/package.json`
-- [ ] Type dev dependencies (`@types/passport-jwt`, etc.) installed
-- [ ] `JwtStrategy` validates JWT from `Authorization: Bearer` header, queries DB for user
-- [ ] `GoogleStrategy` handles OAuth callback, creates/finds User, upserts Account
-- [ ] `AuthGuard` extends `PassportAuthGuard('jwt')` — no more `x-user-id` header
-- [ ] `AuthController` has `/auth/google`, `/auth/google/callback`, `/auth/me`, `/auth/logout`
-- [ ] `/auth/google/callback` issues a JWT and sets `auth_token` cookie
-- [ ] `AuthModule` exports `JwtModule` and `PassportModule`
-- [ ] `ThrottlerGuard.getTracker()` prefers `request.user.id`
-- [ ] `DocumentsController.generate()` has `@Throttle({ ttl: 600_000, limit: 5 })`
-- [ ] `AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` are in `.env.example`
-- [ ] `GOOGLE_CALLBACK_URL` and `FRONTEND_URL` added to `.env.example`
-- [ ] `npx tsc --noEmit` passes with zero errors
-- [ ] No circular dependency warnings
-- [ ] All existing controllers still work with `@UseGuards(AuthGuard)` (now using real JWT)
+- [x] `@nestjs/passport`, `passport`, `@nestjs/jwt`, `passport-jwt`, `passport-google-oauth20`, `jsonwebtoken` installed in `backend/package.json`
+- [x] Type dev dependencies (`@types/passport-jwt`, etc.) installed
+- [x] `JwtStrategy` validates JWT from `Authorization: Bearer` header, queries DB for user
+- [x] `GoogleStrategy` handles OAuth callback, creates/finds User, upserts Account
+- [x] `AuthGuard` extends `PassportAuthGuard('jwt')` — no more `x-user-id` header
+- [x] `AuthController` has `/auth/google`, `/auth/google/callback`, `/auth/me`, `/auth/logout`
+- [x] `/auth/google/callback` issues a JWT and sets `auth_token` cookie
+- [x] `AuthModule` exports `JwtModule` and `PassportModule`
+- [x] `ThrottlerGuard.getTracker()` prefers `request.user.id`
+- [x] `DocumentsController.generate()` has `@Throttle({ ttl: 600_000, limit: 5 })`
+- [x] `AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` are in `.env.example`
+- [x] `GOOGLE_CALLBACK_URL` and `FRONTEND_URL` added to `.env.example`
+- [x] `npx tsc --noEmit` passes with zero errors
+- [x] No circular dependency warnings
+- [x] All existing controllers still work with `@UseGuards(AuthGuard)` (now using real JWT)
+
+### Implementation notes (deltas from this plan)
+
+Applied during implementation, on top of the steps above:
+
+1. **Cookie + Bearer JWT extraction** — `JwtStrategy` extracts the token from the
+   `auth_token` httpOnly cookie *or* the `Authorization: Bearer` header (cookie-first),
+   matching the Phase 8 "Option A" same-origin cookie model. Required adding
+   `cookie-parser` (+ `@types/cookie-parser`) and `app.use(cookieParser())` in `main.ts`
+   — without it, browser session flows (`/auth/me`) would 401 despite holding a valid cookie.
+2. **Fail-fast on missing `AUTH_SECRET`** — `JwtStrategy` throws at construction time if
+   the secret is absent, instead of silently registering with an empty key and failing
+   with cryptic 401s at request time.
+3. **Fixed the OAuth redirect chain** — `googleCallback` now uses `@Redirect()` with a
+   passthrough `res.cookie(...)`, so the user is 302'd to `FRONTEND_URL/case` after
+   consent instead of receiving a raw JSON body.
+4. **`auth.constants.ts`** — single source of truth for cookie name/TTL, env keys, and
+   default URLs; both strategies, the controller, and the module import from it.
+5. **Unit tests** — 15 tests across `jwt.strategy.spec.ts` (extraction rules + DB-check
+   behavior), `throttler.guard.spec.ts` (user-IP tracker selection), and
+   `prompt-security.interceptor.spec.ts` (passthrough). `@nestjs/passport` is ESM-only,
+   so the jwt spec stubs `PassportStrategy` — the tests exercise `validate()` via the
+   prototype, never Passport registration.
+6. **Clean-code sweep** — removed dead code in `PromptSecurityInterceptor` (unused var,
+   no-op `map`), fixed a corrupted block in `case.service.ts` (`updateCase` now logs the
+   `CASE_UPDATED` activity and invalidates caches, matching `deleteCase`), replaced a
+   `require('node:crypto')` with a static import, and unified `EMBEDDING_DIMENSIONS` (384)
+   in `ai.constants.ts` as the single definition.
+
+Verified: `npx tsc --noEmit` → 0 errors · `npx jest` → 15/15 passed ·
+`npx eslint "{src,test}/**/*.ts"` → 0 problems.
 
 ---
 

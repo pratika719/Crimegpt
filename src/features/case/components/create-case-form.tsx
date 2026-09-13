@@ -8,7 +8,7 @@ import {
   CreateCaseSchema,
   CreateCaseInput,
 } from "@/features/case/schemas/case.schema";
-import { createCaseAction } from "@/features/case/actions/case.action";
+import { caseClient } from "@/lib/api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,16 +42,14 @@ export function CreateCaseForm({
 
   async function onSubmit(values: CreateCaseInput) {
     startTransition(async () => {
-      const result = await createCaseAction(values);
-
-      if (!result.success) {
-        toast.error(result.message || "Failed to log case profile");
-        return;
+      try {
+        await caseClient.create(values);
+        toast.success("Case profile successfully registered");
+        reset();
+        onSuccess?.();
+      } catch (err: any) {
+        toast.error(err.message || "Failed to log case profile");
       }
-
-      toast.success("Case profile successfully registered");
-      reset();
-      onSuccess?.();
     });
   }
 

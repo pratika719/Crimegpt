@@ -7,12 +7,11 @@ export class ChecklistRepository {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(caseId: string, userId: string, title: string) {
+  async create(caseId: string, _userId: string, title: string) {
     return this.prisma.checklistItem.create({
       data: {
         title,
         caseId,
-        userId,
       },
     });
   }
@@ -21,7 +20,7 @@ export class ChecklistRepository {
     return this.prisma.checklistItem.findFirst({
       where: {
         id,
-        userId,
+        case: { userId },
         ...(caseId ? { caseId } : {}),
       },
     });
@@ -29,7 +28,7 @@ export class ChecklistRepository {
 
   async findByCaseId(caseId: string, userId: string) {
     return this.prisma.checklistItem.findMany({
-      where: { caseId, userId },
+      where: { caseId, case: { userId } },
       orderBy: [
         { completed: 'asc' },
         { createdAt: 'desc' },

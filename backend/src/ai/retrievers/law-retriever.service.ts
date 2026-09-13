@@ -98,9 +98,13 @@ export class LawRetrieverService {
       }
 
       return references;
-    } catch (error) {
+    } catch (err) {
       this.logger.error(
-        { narrativeSnippet: narrative.substring(0, 200), topK: k },
+        {
+          err,
+          narrativeSnippet: narrative.substring(0, 200),
+          topK: k,
+        },
         'LawRetriever FAILED — RAG will proceed without legal context',
       );
       return [];

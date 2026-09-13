@@ -1,4 +1,4 @@
-import { signIn, auth } from "@/auth";
+import { auth } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
 
@@ -37,39 +37,31 @@ export default async function LoginPage() {
         </div>
 
         {/* Auth Button */}
-        <form
-          action={async () => {
-            "use server";
-            await signIn("google");
-          }}
-          className="w-full"
+        <a
+          href="/api/auth/google"
+          className="w-full flex items-center justify-center gap-3 rounded-xl border border-zinc-700 bg-white hover:bg-zinc-100 text-zinc-900 px-5 py-3 text-sm font-semibold shadow-sm transition-all cursor-pointer hover:border-zinc-500"
         >
-          <button
-            type="submit"
-            className="w-full flex items-center justify-center gap-3 rounded-xl border border-zinc-700 bg-white hover:bg-zinc-100 text-zinc-900 px-5 py-3 text-sm font-semibold shadow-sm transition-all cursor-pointer hover:border-zinc-500"
-          >
-            {/* Google Icon */}
-            <svg className="h-4.5 w-4.5 shrink-0" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.93h6.58c-.28 1.45-1.11 2.68-2.34 3.51v2.91h3.79c2.22-2.05 3.71-5.07 3.71-8.38z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.79-2.91c-1.05.7-2.4 1.12-4.14 1.12-3.18 0-5.88-2.15-6.84-5.07H1.36v3.01C3.33 21.28 7.37 24 12 24z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.16 14.23a7.25 7.25 0 0 1 0-4.46V6.76H1.36a11.96 11.96 0 0 0 0 10.48l3.8-3.01z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.43-3.43C17.95 1.19 15.24 0 12 0 7.37 0 3.33 2.72 1.36 6.76l3.8 3.01c.96-2.92 3.66-5.07 6.84-5.07z"
-              />
-            </svg>
-            <span>Continue with Google</span>
-          </button>
-        </form>
+          {/* Google Icon */}
+          <svg className="h-4.5 w-4.5 shrink-0" viewBox="0 0 24 24">
+            <path
+              fill="#4285F4"
+              d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.93h6.58c-.28 1.45-1.11 2.68-2.34 3.51v2.91h3.79c2.22-2.05 3.71-5.07 3.71-8.38z"
+            />
+            <path
+              fill="#34A853"
+              d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.79-2.91c-1.05.7-2.4 1.12-4.14 1.12-3.18 0-5.88-2.15-6.84-5.07H1.36v3.01C3.33 21.28 7.37 24 12 24z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M5.16 14.23a7.25 7.25 0 0 1 0-4.46V6.76H1.36a11.96 11.96 0 0 0 0 10.48l3.8-3.01z"
+            />
+            <path
+              fill="#EA4335"
+              d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.43-3.43C17.95 1.19 15.24 0 12 0 7.37 0 3.33 2.72 1.36 6.76l3.8 3.01c.96-2.92 3.66-5.07 6.84-5.07z"
+            />
+          </svg>
+          <span>Continue with Google</span>
+        </a>
 
         {/* Footer */}
         <div className="text-[10px] text-zinc-500 font-mono">

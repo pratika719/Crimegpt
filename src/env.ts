@@ -4,23 +4,7 @@ const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
-
-  DATABASE_URL: z.string().min(1),
-  REDIS_URL: z.string().min(1),
-
-  AUTH_SECRET: z.string().min(1),
-
-  GEMINI_API_KEY: z.string().min(1),
-
-  EMBEDDING_PROVIDER: z.literal("fastapi"),
-  EMBEDDING_SERVICE_URL: z.string().url(),
-
-  WORKER_HEALTH_URL: z.string().url().optional(),
-
-  HEALTHCHECK_SECRET: z.string().optional(),
-
-  LOG_LEVEL: z.string().optional(),
-  SERVICE_NAME: z.string().optional(),
+  NESTJS_API_URL: z.string().url().default("http://127.0.0.1:3001/api"),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -31,13 +15,8 @@ if (!parsed.success) {
     message: issue.message,
   }));
 
-  console.error("Invalid environment configuration:", missingOrInvalid);
-
-  throw new Error("Invalid environment configuration.");
-}
-
-if (parsed.data.NODE_ENV === "production" && !parsed.data.HEALTHCHECK_SECRET) {
-  throw new Error("HEALTHCHECK_SECRET is required in production.");
+  console.error("Invalid frontend environment configuration:", missingOrInvalid);
+  throw new Error("Invalid frontend environment configuration.");
 }
 
 export const env = parsed.data;

@@ -19,14 +19,20 @@ export class CaseActivityRepository {
     tx?: any,
   ) {
     const client = tx || this.prisma;
+    const { activityType, description, metadata } = data;
     return client.caseActivity.create({
-      data,
+      data: {
+        activityType,
+        description,
+        caseId: data.caseId,
+        ...(metadata ? { metadata: metadata as any } : {}),
+      },
     });
   }
 
   async findByCaseId(caseId: string, userId: string) {
     return this.prisma.caseActivity.findMany({
-      where: { caseId, userId },
+      where: { caseId, case: { userId } },
       orderBy: {
         createdAt: 'desc',
       },
@@ -38,7 +44,7 @@ export class CaseActivityRepository {
       where: {
         id,
         caseId,
-        userId,
+        case: { userId },
       },
     });
   }

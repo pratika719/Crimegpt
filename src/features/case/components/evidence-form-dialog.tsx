@@ -4,8 +4,9 @@ import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, AlertCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { createEvidenceSchema, CreateEvidenceInput } from "@/features/case/schemas/evidence.schema";
-import { createEvidenceAction, updateEvidenceAction } from "@/features/case/actions/evidence.action";
+import { evidenceClient } from "@/features/case/api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,7 @@ export function EvidenceFormDialog({
   onSuccess,
 }: EvidenceFormDialogProps) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const isEdit = !!evidence;
 
   const {
@@ -66,21 +68,19 @@ export function EvidenceFormDialog({
   async function onSubmit(values: CreateEvidenceInput) {
     startTransition(async () => {
       const { caseId: _, ...data } = values;
-      let response;
-
-      if (isEdit && evidence) {
-        response = await updateEvidenceAction(evidence.id, caseId, data);
-      } else {
-        response = await createEvidenceAction(caseId, data);
-      }
-
-      if (!response.success) {
-        toast.error(response.message || `Failed to ${isEdit ? "update" : "register"} evidence.`);
-      } else {
+      try {
+        if (isEdit && evidence) {
+          await evidenceClient.update(caseId, evidence.id, data);
+        } else {
+          await evidenceClient.create(caseId, data);
+        }
         toast.success(`Evidence ${isEdit ? "updated" : "registered"} successfully.`);
+        router.refresh();
         onSuccess?.();
         onOpenChange(false);
         if (!isEdit) reset();
+      } catch (error: any) {
+        toast.error(error.message || `Failed to ${isEdit ? "update" : "register"} evidence.`);
       }
     });
   }

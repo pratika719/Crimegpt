@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth/session";
 import { 
   ShieldAlert, 
   Terminal, 

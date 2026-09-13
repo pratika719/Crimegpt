@@ -3,7 +3,6 @@ import {
   Get,
   Param,
   UseGuards,
-  NotFoundException,
   Logger,
 } from '@nestjs/common';
 import {
@@ -38,29 +37,10 @@ export class JobsController {
     @Param('jobId') jobId: string,
     @CurrentUser('id') userId: string,
   ) {
-    try {
-      // TODO: Implement actual job status lookup from PostgreSQL JobStatus table
-      // For now, return a placeholder response
-      this.logger.log({
-        queueName,
-        jobId,
-        userId,
-      }, 'Job status lookup');
-
-      return {
-        queueName,
-        jobId,
-        status: 'unknown',
-        message: 'Job status lookup not yet implemented',
-      };
-    } catch (error) {
-      this.logger.error({
-        err: error,
-        queueName,
-        jobId,
-        userId,
-      }, 'Job status lookup failed');
-      throw new NotFoundException('Job not found');
-    }
+    this.logger.log(
+      { queueName, jobId, userId },
+      'Job status lookup',
+    );
+    return this.queueService.getJobStatus(queueName, jobId);
   }
 }

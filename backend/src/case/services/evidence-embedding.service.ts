@@ -8,8 +8,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { VectorStoreService } from '../../ai/vector/pgvector.service';
 import { FastapiEmbeddingService } from '../../embedding/fastapi-embedding.service';
+import { EMBEDDING_DIMENSIONS } from '../../ai/constants/ai.constants';
 
-const EXPECTED_EMBEDDING_DIMENSIONS = 384;
+const EXPECTED_EMBEDDING_DIMENSIONS = EMBEDDING_DIMENSIONS; // 384 — single source in ai.constants
 
 @Injectable()
 export class EvidenceEmbeddingService {

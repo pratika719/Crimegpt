@@ -20,7 +20,6 @@ export class RateLimitGuard extends ThrottlerGuard {
     }
     const reqLike = req as Record<string, any> & { ips?: string[]; ip?: string };
     return reqLike.ips?.length ? reqLike.ips[0] : (reqLike.ip ?? 'unknown');
-
   }
 }
 

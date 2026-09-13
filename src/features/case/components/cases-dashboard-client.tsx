@@ -5,7 +5,7 @@ import { Search, FolderOpen, SlidersHorizontal, Plus, Calendar, AlertCircle } fr
 import { CreateCaseDialog } from "./create-case-dialog";
 import { CaseCard } from "./case-card";
 import { Input } from "@/components/ui/input";
-import type { CaseModel as Case } from "@/generated/prisma/models";
+import type { CaseSummary as Case } from "@/lib/api/types";
 
 type CasesDashboardClientProps = {
   initialCases: Case[];

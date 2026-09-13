@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
+import { PrismaModule } from '../prisma/prisma.module';
+import { SearchRepository } from './search.repository';
+import { SearchService } from './search.service';
+import { SearchController } from './search.controller';
 
-/**
- * SearchModule — case search with filters and pagination.
- *
- * Phase 4 will populate this module with:
- * - SearchService
- * - SearchController
- */
-@Module({})
+@Module({
+  imports: [PrismaModule],
+  controllers: [SearchController],
+  providers: [SearchRepository, SearchService],
+  exports: [SearchService],
+})
 export class SearchModule {}

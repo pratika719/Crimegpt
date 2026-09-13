@@ -1,12 +1,11 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import pg from 'pg';
-import type { FastapiEmbeddingService } from '../../embedding/fastapi-embedding.service';
+import { FastapiEmbeddingService } from '../../embedding/fastapi-embedding.service';
 import {
   VECTOR_POOL_MAX_CONNECTIONS,
   VECTOR_POOL_IDLE_TIMEOUT_MS,
   VECTOR_POOL_CONNECTION_TIMEOUT_MS,
-  EMBEDDING_DIMENSIONS,
   HNSW_M,
   HNSW_EF_CONSTRUCTION,
 } from '../constants/ai.constants';
@@ -142,7 +141,7 @@ export class VectorStoreService implements OnModuleInit, OnModuleDestroy {
     await this.pool.query(`
       CREATE INDEX IF NOT EXISTS idx_ipc_chunks_embedding_hnsw
       ON ipc_chunks_embeddings
-      USING hnww (embedding vector_cosine_ops)
+      USING hnsw (embedding vector_cosine_ops)
       WITH (m = ${HNSW_M}, ef_construction = ${HNSW_EF_CONSTRUCTION})
     `);
     this.logger.log('HNSW index verified on ipc_chunks_embeddings');

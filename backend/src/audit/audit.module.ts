@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
+import { PrismaModule } from '../prisma/prisma.module';
+import { AuditService } from './audit.service';
+import { AuditController } from './audit.controller';
 
-/**
- * AuditModule — audit logging and activity trail.
- *
- * Phase 4 will populate this module with:
- * - AuditService
- * - AuditController
- */
-@Module({})
+@Module({
+  imports: [PrismaModule],
+  controllers: [AuditController],
+  providers: [AuditService],
+  exports: [AuditService],
+})
 export class AuditModule {}

@@ -1,11 +1,8 @@
-import NextAuth from "next-auth";
-import { authConfig } from "./auth.config";
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
-const { auth } = NextAuth(authConfig);
-
-export const proxy = auth((req) => {
-  const isLoggedIn = !!req.auth;
+export function proxy(req: NextRequest) {
+  const token = req.cookies.get("auth_token")?.value;
+  const isLoggedIn = !!token;
   const { nextUrl } = req;
 
   const isPublicRoute = nextUrl.pathname === "/" || nextUrl.pathname === "/login";
@@ -23,7 +20,7 @@ export const proxy = auth((req) => {
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: [

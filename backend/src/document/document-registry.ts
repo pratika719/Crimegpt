@@ -57,6 +57,7 @@ export class DocumentRegistry {
 
 // Lazy imports to avoid circular dependencies — schemas and prompts are pure
 // and only imported when the registry is accessed.
+/* eslint-disable @typescript-eslint/no-require-imports -- intentional require(): breaks the import cycle between the registry and its schema/prompt modules; a static import would circularly re-import this file at module load */
 function loadRegistrations() {
   const { FIRSchema } = require('./schemas/fir.schema');
   const { InvestigationSummarySchema } = require('./schemas/investigation-summary.schema');
@@ -68,6 +69,7 @@ function loadRegistrations() {
   const { buildChargeSheetPrompt } = require('../ai/prompts/chargesheet-generation.prompt');
   const { buildRemandRequestPrompt } = require('../ai/prompts/remand-request-generation.prompt');
   const { buildCaseDiaryPrompt } = require('../ai/prompts/case-diary-generation.prompt');
+  /* eslint-enable @typescript-eslint/no-require-imports -- see note above */
 
   DocumentRegistry.register({
     type: DocumentType.FIR,

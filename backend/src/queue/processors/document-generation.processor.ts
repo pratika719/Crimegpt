@@ -52,6 +52,7 @@ export class DocumentGenerationProcessor extends WorkerHost {
     caseId: string;
     documentType: string;
     status: 'COMPLETED';
+    documentId: string;
   }> {
     const { requestId, caseId, userId, documentType } = job.data;
     const startedAt = Date.now();
@@ -62,15 +63,21 @@ export class DocumentGenerationProcessor extends WorkerHost {
     const onProgress = this.createProgressCallback(job);
 
     try {
-    await this.documentGenerator.generateDocument(
-      caseId,
-      userId,
-      documentType as DocumentType,
-      { requestId, onProgress },
-    );
+      const result = await this.documentGenerator.generateDocument(
+        caseId,
+        userId,
+        documentType as DocumentType,
+        { requestId, onProgress },
+      );
 
       await this.handleSuccess(job);
-      return { requestId, caseId, documentType, status: 'COMPLETED' };
+      return {
+        requestId,
+        caseId,
+        documentType,
+        status: 'COMPLETED',
+        documentId: result.document.id,
+      };
     } catch (error) {
       await this.handleFailure(job, error, startedAt);
       throw error;

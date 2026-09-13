@@ -8,6 +8,7 @@ import { UnifiedContextService } from '../case/services/unified-context.service'
 import { DocumentRegistry, DocumentType } from './document-registry';
 import { RedisService } from '../redis/redis.service';
 import { z, ZodError } from 'zod';
+import { AIRequestType, ActivityType } from '@/generated/prisma/client';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -296,6 +297,44 @@ Please fix the validation issues and return a single valid JSON object matching 
   // DB persistence
   // -----------------------------------------------------------------------
 
+  private mapDocumentTypeToAIRequestType(type: DocumentType): AIRequestType {
+    switch (type) {
+      case DocumentType.FIR:
+        return AIRequestType.FIR_GENERATION;
+      case DocumentType.INVESTIGATION_SUMMARY:
+        return AIRequestType.INVESTIGATION_SUMMARY;
+      case DocumentType.CHARGE_SHEET:
+        return AIRequestType.CHARGE_SHEET;
+      case DocumentType.REMAND_REQUEST:
+        return AIRequestType.REMAND_REQUEST_GENERATION;
+      case DocumentType.CASE_DIARY:
+        return AIRequestType.CASE_DIARY_GENERATION;
+      case DocumentType.LEGAL_ANALYSIS:
+        return AIRequestType.LEGAL_ANALYSIS;
+      default:
+        return AIRequestType.LEGAL_ANALYSIS;
+    }
+  }
+
+  private mapDocumentTypeToActivityType(type: DocumentType): ActivityType {
+    switch (type) {
+      case DocumentType.FIR:
+        return ActivityType.FIR_GENERATED;
+      case DocumentType.INVESTIGATION_SUMMARY:
+        return ActivityType.INVESTIGATION_SUMMARY_GENERATED;
+      case DocumentType.CHARGE_SHEET:
+        return ActivityType.CHARGE_SHEET_GENERATED;
+      case DocumentType.REMAND_REQUEST:
+        return ActivityType.REMAND_REQUEST_GENERATED;
+      case DocumentType.CASE_DIARY:
+        return ActivityType.CASE_DIARY_GENERATED;
+      case DocumentType.LEGAL_ANALYSIS:
+        return ActivityType.LEGAL_ANALYSIS_GENERATED;
+      default:
+        return ActivityType.DOCUMENT_CREATED;
+    }
+  }
+
   private async saveDocument(
     caseId: string,
     userId: string,
@@ -327,9 +366,10 @@ Please fix the validation issues and return a single valid JSON object matching 
           if (existingDoc) {
             nextVer = existingDoc.version;
             await tx.generatedDocument.delete({ where: { id: existingDoc.id } });
-          } else if (existingDocs.length > 0) {
-            nextVer = 1;
-            await tx.generatedDocument.deleteMany({ where: { caseId, type } });
+          } else {
+            nextVer = existingDocs.length > 0
+              ? Math.max(...existingDocs.map((d: any) => d.version)) + 1
+              : 1;
           }
         } else {
           nextVer = existingDocs.length > 0
@@ -345,7 +385,6 @@ Please fix the validation issues and return a single valid JSON object matching 
         const doc = await tx.generatedDocument.create({
           data: {
             caseId,
-            userId,
             type,
             title,
             content: contentWithMeta,
@@ -358,7 +397,7 @@ Please fix the validation issues and return a single valid JSON object matching 
           data: {
             userId,
             caseId,
-            requestType: type as any,
+            requestType: this.mapDocumentTypeToAIRequestType(type),
             prompt: rawResponse, // Store raw response, not full prompt (too large)
             retrievedContext: retrievedChunks.length > 0 ? JSON.stringify(retrievedChunks) : undefined,
             response: rawResponse,
@@ -372,8 +411,7 @@ Please fix the validation issues and return a single valid JSON object matching 
         await tx.caseActivity.create({
           data: {
             caseId,
-            userId,
-            activityType: 'DOCUMENT_GENERATED',
+            activityType: this.mapDocumentTypeToActivityType(type),
             description: `${config.titlePrefix} v${nextVer} generated successfully.`,
           },
         });

@@ -9,4 +9,11 @@ import { AuthGuard as PassportAuthGuard } from '@nestjs/passport';
  * it exchanges the code and attaches the user to request.user on success.
  */
 @Injectable()
-export class GoogleAuthGuard extends PassportAuthGuard('google') {}
+export class GoogleAuthGuard extends PassportAuthGuard('google') {
+  handleRequest<TUser = any>(err: any, user: any): TUser {
+    if (err || !user) {
+      return null as unknown as TUser;
+    }
+    return user;
+  }
+}

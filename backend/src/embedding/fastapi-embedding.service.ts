@@ -69,7 +69,7 @@ export class FastapiEmbeddingService implements CrimeGPTEmbeddingProvider {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ texts }),
-      signal: AbortSignal.timeout(3_000),
+      signal: AbortSignal.timeout(3000),
     });
 
     if (!response.ok) {

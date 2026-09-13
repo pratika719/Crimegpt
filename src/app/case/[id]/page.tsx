@@ -1,6 +1,6 @@
 import { caseClient } from "@/lib/api";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { 
   ArrowLeft, 
   Calendar, 
@@ -33,8 +33,11 @@ export default async function CaseDetailPage({
   let caseItem: any;
   try {
     caseItem = await caseClient.get(id);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching CaseDetailPage:", error);
+    if (error?.status === 401) {
+      redirect('/login');
+    }
     notFound();
   }
 

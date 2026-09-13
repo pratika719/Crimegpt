@@ -4,7 +4,8 @@ const nextConfig: NextConfig = {
     output: "standalone",
   experimental: {
     reactCompiler: true,
-   },
+    proxyTimeout: 120_000,
+  },
    devIndicators: false,
   async rewrites() {
     const rawNestUrl = (process.env.NESTJS_API_URL || 'http://127.0.0.1:3001/api').replace(/\/+$/, '');

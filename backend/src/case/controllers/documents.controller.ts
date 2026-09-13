@@ -27,6 +27,9 @@ import { RenameDocumentDto } from '../dto/rename-document.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { CaseService } from '../services/case.service';
+import { QueueService } from '../../queue/queue.service';
+import { QUEUE_NAMES } from '../../queue/queue-names';
+import crypto from 'node:crypto';
 
 @ApiTags('documents')
 @ApiBearerAuth()
@@ -39,6 +42,7 @@ export class DocumentsController {
     private readonly caseService: CaseService,
     private readonly activityService: ActivityService,
     private readonly documentCrudService: DocumentCrudService,
+    private readonly queueService: QueueService,
   ) {}
 
   @Get()
@@ -71,18 +75,32 @@ export class DocumentsController {
     // Verify case exists and user has access
     await this.caseService.getCaseById(caseId, userId);
 
+    const requestId = crypto.randomUUID();
+
+    const job = await this.queueService.addJob(QUEUE_NAMES.DOCUMENT_GENERATION, {
+      requestId,
+      userId,
+      caseId,
+      documentType: dto.documentType,
+      forceRegenerate: dto.forceRegenerate,
+      createdAt: new Date().toISOString(),
+    });
+
     this.logger.log({
       caseId,
       userId,
+      jobId: job.id,
       documentType: dto.documentType,
       forceRegenerate: dto.forceRegenerate,
-    }, 'Document generation requested');
+    }, 'Document generation queued');
 
     return {
       message: 'Document generation queued.',
       caseId,
       documentType: dto.documentType,
       status: 'queued',
+      jobId: job.id,
+      queueName: QUEUE_NAMES.DOCUMENT_GENERATION,
     };
   }
 

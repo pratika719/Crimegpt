@@ -2,7 +2,6 @@ import {
   Controller,
   Get,
   Post,
-  Redirect,
   UseGuards,
   Res,
   HttpCode,
@@ -50,26 +49,27 @@ export class AuthController {
   // ---------------------------------------------------------------------------
   // Google OAuth callback
   // ---------------------------------------------------------------------------
-  // @Redirect() turns the returned { url } into a 302. The passthrough response
-  // lets us attach the httpOnly cookie to that same redirect response.
+  // Direct Express res.redirect() is used instead of @Redirect() so that the
+  // global TransformInterceptor does not wrap the redirect URL in { data: { url } },
+  // which causes Express to output a blank 'Found. Redirecting to ' pause.
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
-  @Redirect()
   @ApiOperation({ summary: 'Google OAuth callback — issues JWT cookie and redirects' })
   googleCallback(
     @CurrentUser() user: AuthUser,
-    @Res({ passthrough: true }) res: Response,
-  ): { url: string } {
+    @Res() res: Response,
+  ) {
+    const frontendUrl = this.config.get<string>(FRONTEND_URL_ENV_KEY, DEFAULT_FRONTEND_URL);
+
     if (!user) {
-      throw new UnauthorizedException('Google OAuth failed');
+      return res.redirect(`${frontendUrl}/login?error=oauth_failed`);
     }
 
     const token = this.jwt.sign({ sub: user.id, email: user.email, name: user.name });
 
     res.cookie(AUTH_COOKIE_NAME, token, this.buildCookieOptions());
 
-    const frontendUrl = this.config.get<string>(FRONTEND_URL_ENV_KEY, DEFAULT_FRONTEND_URL);
-    return { url: `${frontendUrl}${POST_LOGIN_REDIRECT_PATH}` };
+    return res.redirect(`${frontendUrl}${POST_LOGIN_REDIRECT_PATH}`);
   }
 
   // ---------------------------------------------------------------------------

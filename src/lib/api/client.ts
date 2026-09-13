@@ -32,36 +32,84 @@ export async function apiRequest<T>(
 
   // Server-side (RSC / SSR): resolve absolute URL and forward cookies
   if (typeof window === 'undefined') {
-    const rawBaseUrl = process.env.NESTJS_API_URL || 'http://127.0.0.1:3001/api';
-    const normalizedBase = rawBaseUrl.replace(/\/+$/, '');
-    const baseUrl = normalizedBase.endsWith('/api') ? normalizedBase : `${normalizedBase}/api`;
-    const cleanPath = path.startsWith('/api/')
-      ? path.slice(5)
-      : path.startsWith('/api')
-      ? path.slice(4)
-      : path.startsWith('/')
-      ? path.slice(1)
-      : path;
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      finalUrl = path;
+    } else {
+      const rawBaseUrl = process.env.NESTJS_API_URL || 'http://127.0.0.1:3001/api';
+      const normalizedBase = rawBaseUrl.replace(/\/+$/, '');
+      const baseUrl = normalizedBase.endsWith('/api') ? normalizedBase : `${normalizedBase}/api`;
+      const cleanPath = path.startsWith('/api/')
+        ? path.slice(5)
+        : path.startsWith('/api')
+        ? path.slice(4)
+        : path.startsWith('/')
+        ? path.slice(1)
+        : path;
 
-    finalUrl = `${baseUrl}/${cleanPath}`;
+      finalUrl = `${baseUrl}/${cleanPath}`;
+    }
 
     try {
       const { cookies } = await import('next/headers');
       const cookieStore = await cookies();
-      const cookieHeader = cookieStore.toString();
-      if (cookieHeader && !headers.has('cookie')) {
-        headers.set('cookie', cookieHeader);
+      const allCookies = cookieStore.getAll();
+      if (allCookies.length > 0 && !headers.has('cookie')) {
+        const cookieString = allCookies.map((c) => `${c.name}=${c.value}`).join('; ');
+        headers.set('cookie', cookieString);
+      }
+
+      const authToken = cookieStore.get('auth_token')?.value;
+      if (authToken && !headers.has('authorization')) {
+        headers.set('authorization', `Bearer ${authToken}`);
       }
     } catch {
       // Not within a Next.js request context (e.g. build time or script)
     }
   }
 
-  const res = await fetch(finalUrl, {
+  const fetchOptions: RequestInit = {
     ...init,
     headers,
-    credentials: init.credentials || 'same-origin',
-  });
+  };
+
+  if (typeof window === 'undefined') {
+    if (!fetchOptions.cache) {
+      fetchOptions.cache = 'no-store';
+    }
+  } else {
+    fetchOptions.credentials = init.credentials || 'same-origin';
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(finalUrl, fetchOptions);
+  } catch (err: unknown) {
+    // Retry IPv4 / IPv6 alternate hostname on server-side connection failure
+    if (typeof window === 'undefined' && (finalUrl.includes('127.0.0.1') || finalUrl.includes('localhost'))) {
+      const fallbackUrl = finalUrl.includes('127.0.0.1')
+        ? finalUrl.replace('127.0.0.1', 'localhost')
+        : finalUrl.replace('localhost', '127.0.0.1');
+
+      try {
+        res = await fetch(fallbackUrl, fetchOptions);
+      } catch {
+        // Ignore fallback error and fall through to throw primary ApiError
+      }
+    }
+
+    if (!res!) {
+      if (err instanceof ApiError) {
+        throw err;
+      }
+      const message = err instanceof Error ? err.message : 'Network request failed';
+      throw new ApiError(
+        503,
+        'SERVICE_UNAVAILABLE',
+        `Failed to connect to backend server (${finalUrl}): ${message}`,
+        { url: finalUrl, cause: err },
+      );
+    }
+  }
 
   const body = (await res.json().catch(() => null)) as NestApiResponse<T> | null;
 

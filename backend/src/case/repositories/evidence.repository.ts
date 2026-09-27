@@ -15,18 +15,25 @@ export class EvidenceRepository {
       title: string;
       type: EvidenceType;
       description?: string;
+      notes?: string;
+      fileUrl?: string;
       storageKey?: string;
       mimeType?: string;
       fileSize?: number;
+      fileSizeBytes?: number;
     },
   ) {
-    const { storageKey, fileSize, ...rest } = data;
+    const { storageKey, fileSize, fileSizeBytes, fileUrl, notes, ...rest } = data;
+    const resolvedFileUrl = fileUrl || storageKey;
+    const resolvedFileSize = fileSizeBytes ?? fileSize;
+
     return this.prisma.evidence.create({
       data: {
         ...rest,
         caseId,
-        ...(storageKey ? { fileUrl: storageKey } : {}),
-        ...(fileSize !== undefined ? { fileSizeBytes: fileSize } : {}),
+        ...(notes !== undefined ? { notes } : {}),
+        ...(resolvedFileUrl !== undefined ? { fileUrl: resolvedFileUrl } : {}),
+        ...(resolvedFileSize !== undefined ? { fileSizeBytes: resolvedFileSize } : {}),
       },
     });
   }
@@ -57,9 +64,12 @@ export class EvidenceRepository {
       title?: string;
       type?: EvidenceType;
       description?: string;
+      notes?: string;
+      fileUrl?: string;
       storageKey?: string;
       mimeType?: string;
       fileSize?: number;
+      fileSizeBytes?: number;
     },
     caseId?: string,
   ) {
@@ -68,13 +78,17 @@ export class EvidenceRepository {
       throw new NotFoundException('Evidence not found or access denied');
     }
 
-    const { storageKey, fileSize, ...rest } = data;
+    const { storageKey, fileSize, fileSizeBytes, fileUrl, notes, ...rest } = data;
+    const resolvedFileUrl = fileUrl !== undefined ? fileUrl : storageKey;
+    const resolvedFileSize = fileSizeBytes !== undefined ? fileSizeBytes : fileSize;
+
     return this.prisma.evidence.update({
       where: { id },
       data: {
         ...rest,
-        ...(storageKey ? { fileUrl: storageKey } : {}),
-        ...(fileSize !== undefined ? { fileSizeBytes: fileSize } : {}),
+        ...(notes !== undefined ? { notes } : {}),
+        ...(resolvedFileUrl !== undefined ? { fileUrl: resolvedFileUrl } : {}),
+        ...(resolvedFileSize !== undefined ? { fileSizeBytes: resolvedFileSize } : {}),
       },
     });
   }

@@ -19,6 +19,10 @@ export class CaseService {
   async createCase(userId: string, input: { title: string; narrative: string }) {
     const caseItem = await this.repository.create(userId, input);
     await this.activityService.logCaseCreated(caseItem.id, userId, caseItem.title);
+
+    // Invalidate cached dashboard so subsequent fetches see the new case immediately
+    await this.cacheService.del(this.cacheKeys.caseDashboard(userId));
+
     return caseItem;
   }
 

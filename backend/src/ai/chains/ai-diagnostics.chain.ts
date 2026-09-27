@@ -68,12 +68,16 @@ export class AIDiagnosticsChainService {
     private readonly promptService: PromptService,
   ) {}
 
-  async execute(context: UnifiedCaseContext, k = 5): Promise<DiagnosticsChainOutput> {
+  async execute(
+    context: UnifiedCaseContext,
+    k = 5,
+    opts?: { bypassCache?: boolean },
+  ): Promise<DiagnosticsChainOutput> {
     const startTime = Date.now();
     this.logger.log('Initiating AI diagnostics chain');
 
     // 1. Retrieve law sections
-    const retrievedChunks = await this.lawRetriever.retrieve(context.narrative, k);
+    const retrievedChunks = await this.lawRetriever.retrieve(context.narrative, k, opts);
     this.logger.log(`Retrieved ${retrievedChunks.length} legal context chunks`);
 
     // 2. Build the prompt

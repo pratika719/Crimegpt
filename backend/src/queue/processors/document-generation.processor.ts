@@ -54,7 +54,7 @@ export class DocumentGenerationProcessor extends WorkerHost {
     status: 'COMPLETED';
     documentId: string;
   }> {
-    const { requestId, caseId, userId, documentType } = job.data;
+    const { requestId, caseId, userId, documentType, forceRegenerate } = job.data;
     const startedAt = Date.now();
 
     this.validatePayload(job.data);
@@ -67,7 +67,7 @@ export class DocumentGenerationProcessor extends WorkerHost {
         caseId,
         userId,
         documentType as DocumentType,
-        { requestId, onProgress },
+        { requestId, onProgress, forceRegenerate },
       );
 
       await this.handleSuccess(job);

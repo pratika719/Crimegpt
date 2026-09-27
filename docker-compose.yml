@@ -4,11 +4,11 @@ services:
     container_name: crimegpt-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: crimegpt
-      POSTGRES_PASSWORD: crimegpt
-      POSTGRES_DB: crimegpt
+      POSTGRES_USER: ${POSTGRES_USER:-crimegpt}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-crimegpt}
+      POSTGRES_DB: ${POSTGRES_DB:-crimegpt}
     ports:
-      - "5434:5432"
+      - "5432:5432"
     volumes:
       - crimegpt-postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -23,7 +23,9 @@ services:
     container_name: crimegpt-redis
     restart: unless-stopped
     ports:
-      - "6381:6379"
+      - "6379:6379"
+    volumes:
+      - crimegpt-redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -31,61 +33,7 @@ services:
       retries: 10
       start_period: 5s
 
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: crimegpt-app
-    restart: unless-stopped
-    init: true
-    ports:
-      - "3000:3000"
-    environment:
-      NODE_ENV: production
-      SERVICE_NAME: crimegpt-app
-      DATABASE_URL: postgresql://crimegpt:crimegpt@postgres:5432/crimegpt?schema=public
-      REDIS_URL: redis://redis:6379
-      AUTH_SECRET: local-dev-auth-secret-change-me
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
-      EMBEDDING_PROVIDER: fastapi
-      EMBEDDING_SERVICE_URL: ${DOCKER_EMBEDDING_SERVICE_URL:-http://host.docker.internal:8000}
-      HEALTHCHECK_SECRET: local-health-secret
-      LOG_LEVEL: info
-    depends_on:
-      - postgres
-      - redis
-
-  worker:
-    build:
-      context: .
-      dockerfile: Dockerfile.worker
-    container_name: crimegpt-worker
-    restart: unless-stopped
-    init: true
-    stop_grace_period: 30s
-    environment:
-      NODE_ENV: production
-      SERVICE_NAME: crimegpt-worker
-      DATABASE_URL: postgresql://crimegpt:crimegpt@postgres:5432/crimegpt?schema=public
-      REDIS_URL: redis://redis:6379
-      AUTH_SECRET: local-dev-auth-secret-change-me
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
-      EMBEDDING_PROVIDER: fastapi
-      EMBEDDING_SERVICE_URL: ${DOCKER_EMBEDDING_SERVICE_URL:-http://host.docker.internal:8000}
-      HEALTHCHECK_SECRET: local-health-secret
-      LOG_LEVEL: info
-      DOCUMENT_GENERATION_CONCURRENCY: "1"
-      EMBEDDING_CONCURRENCY: "2"
-      INGESTION_CONCURRENCY: "1"
-      EMAIL_CONCURRENCY: "2"
-      CLEANUP_CONCURRENCY: "1"
-    depends_on:
-      - postgres
-      - redis
-
   embedding-api:
-    profiles:
-      - embedding
     build:
       context: ./embedding-service
       dockerfile: Dockerfile
@@ -94,5 +42,70 @@ services:
     ports:
       - "8000:8000"
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: crimegpt-backend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-crimegpt}:${POSTGRES_PASSWORD:-crimegpt}@postgres:5432/${POSTGRES_DB:-crimegpt}?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-crimegpt-super-secret-jwt-key}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-}
+      FASTAPI_EMBEDDING_URL: http://embedding-api:8000
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      embedding-api:
+        condition: service_started
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: crimegpt-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NESTJS_API_URL: http://backend:3001/api
+    depends_on:
+      - backend
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: crimegpt-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@example.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - frontend
+      - backend
+
 volumes:
   crimegpt-postgres-data:
+  crimegpt-redis-data:
+  caddy-data:
+  caddy-config:

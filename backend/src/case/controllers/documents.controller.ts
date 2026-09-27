@@ -29,6 +29,7 @@ import { AuthGuard } from '../../common/guards/auth.guard';
 import { CaseService } from '../services/case.service';
 import { QueueService } from '../../queue/queue.service';
 import { QUEUE_NAMES } from '../../queue/queue-names';
+import { PrismaService } from '../../prisma/prisma.service';
 import crypto from 'node:crypto';
 
 @ApiTags('documents')
@@ -43,6 +44,7 @@ export class DocumentsController {
     private readonly activityService: ActivityService,
     private readonly documentCrudService: DocumentCrudService,
     private readonly queueService: QueueService,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Get()
@@ -85,6 +87,30 @@ export class DocumentsController {
       forceRegenerate: dto.forceRegenerate,
       createdAt: new Date().toISOString(),
     });
+
+    // Write initial pending status immediately to PostgreSQL so refresh before worker start still recovers state
+    await this.prisma.jobStatus
+      .upsert({
+        where: { id: String(job.id) },
+        create: {
+          id: String(job.id),
+          queueName: QUEUE_NAMES.DOCUMENT_GENERATION,
+          status: 'pending',
+          userId,
+          caseId,
+          documentType: dto.documentType,
+        },
+        update: {
+          status: 'pending',
+          updatedAt: new Date(),
+        },
+      })
+      .catch((err) => {
+        this.logger.warn(
+          { err, jobId: job.id },
+          'Failed to write initial pending job status — non-fatal',
+        );
+      });
 
     this.logger.log({
       caseId,

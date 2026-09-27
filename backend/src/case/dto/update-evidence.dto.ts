@@ -20,6 +20,16 @@ export class UpdateEvidenceDto {
   @IsString()
   description?: string;
 
+  @ApiPropertyOptional({ example: 'Updated custody notes...' })
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @ApiPropertyOptional({ example: 'https://storage.s3/evidence-updated.jpg' })
+  @IsOptional()
+  @IsString()
+  fileUrl?: string;
+
   @ApiPropertyOptional({ example: 'uploads/evidence/updated.jpg' })
   @IsOptional()
   @IsString()
@@ -34,4 +44,9 @@ export class UpdateEvidenceDto {
   @IsOptional()
   @IsNumber()
   fileSize?: number;
+
+  @ApiPropertyOptional({ example: 2048000 })
+  @IsOptional()
+  @IsNumber()
+  fileSizeBytes?: number;
 }

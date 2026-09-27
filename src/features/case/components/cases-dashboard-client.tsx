@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Search, FolderOpen, SlidersHorizontal, Plus, Calendar, AlertCircle } from "lucide-react";
+import { useState, useMemo, useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Search, FolderOpen, SlidersHorizontal, Plus, Calendar, AlertCircle, RotateCw } from "lucide-react";
 import { CreateCaseDialog } from "./create-case-dialog";
 import { CaseCard } from "./case-card";
 import { Input } from "@/components/ui/input";
 import type { CaseSummary as Case } from "@/lib/api/types";
+import { caseClient } from "@/lib/api";
 
 type CasesDashboardClientProps = {
   initialCases: Case[];
@@ -15,58 +17,107 @@ type StatusFilter = "ALL" | "OPEN" | "UNDER_INVESTIGATION" | "CLOSED" | "ARCHIVE
 type SortOption = "newest" | "oldest" | "title";
 
 export function CasesDashboardClient({ initialCases }: CasesDashboardClientProps) {
+  const router = useRouter();
+  const [cases, setCases] = useState<Case[]>(initialCases);
+  const [highlightedCaseId, setHighlightedCaseId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [, startTransition] = useTransition();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
 
+  // Keep cases in sync when initialCases prop changes without wiping out newly created local cases
+  useEffect(() => {
+    setCases((prevCases) => {
+      const serverIds = new Set(initialCases.map((c) => c.id));
+      const pendingLocal = prevCases.filter((c) => !serverIds.has(c.id));
+      if (pendingLocal.length === 0) {
+        return initialCases;
+      }
+      return [...pendingLocal, ...initialCases];
+    });
+  }, [initialCases]);
+
+  const handleCaseCreated = (newCase: Case) => {
+    // 1. Instantly prepend the new case to local state
+    setCases((prev) => [newCase, ...prev.filter((c) => c.id !== newCase.id)]);
+    setHighlightedCaseId(newCase.id);
+
+    // 2. Clear search and reset filter to include the new case
+    setSearchQuery("");
+    if (statusFilter !== "ALL" && statusFilter !== newCase.status) {
+      setStatusFilter("ALL");
+    }
+
+    // 3. Clear highlight animation after 5 seconds
+    setTimeout(() => {
+      setHighlightedCaseId(null);
+    }, 5000);
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      const refreshedCases = await caseClient.list();
+      setCases(refreshedCases);
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (err) {
+      console.error("Failed to refresh cases list", err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const stats = useMemo(() => {
-  const total = initialCases.length;
-  const open = initialCases.filter((c) => c.status === "OPEN").length;
-  const active = initialCases.filter(
-    (c) => c.status === "UNDER_INVESTIGATION"
-  ).length;
-  const closed = initialCases.filter(
-    (c) => c.status === "CLOSED"
-  ).length;
+    const total = cases.length;
+    const open = cases.filter((c) => c.status === "OPEN").length;
+    const active = cases.filter(
+      (c) => c.status === "UNDER_INVESTIGATION"
+    ).length;
+    const closed = cases.filter(
+      (c) => c.status === "CLOSED"
+    ).length;
 
-  return { total, open, active, closed };
-}, [initialCases]);
+    return { total, open, active, closed };
+  }, [cases]);
 
-const filteredAndSortedCases = useMemo(() => {
-  return initialCases
-    .filter((c) => {
-      const matchesSearch =
-        c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.narrative.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredAndSortedCases = useMemo(() => {
+    return cases
+      .filter((c) => {
+        const matchesSearch =
+          c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          c.narrative.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesStatus =
-        statusFilter === "ALL" || c.status === statusFilter;
+        const matchesStatus =
+          statusFilter === "ALL" || c.status === statusFilter;
 
-      return matchesSearch && matchesStatus;
-    })
-    .sort((a, b) => {
-      if (sortBy === "title") {
-        return a.title.localeCompare(b.title);
-      }
+        return matchesSearch && matchesStatus;
+      })
+      .sort((a, b) => {
+        if (sortBy === "title") {
+          return a.title.localeCompare(b.title);
+        }
 
-      const dateA = a.createdAt
-        ? new Date(a.createdAt).getTime()
-        : 0;
+        const dateA = a.createdAt
+          ? new Date(a.createdAt).getTime()
+          : 0;
 
-      const dateB = b.createdAt
-        ? new Date(b.createdAt).getTime()
-        : 0;
+        const dateB = b.createdAt
+          ? new Date(b.createdAt).getTime()
+          : 0;
 
-      if (sortBy === "oldest") {
-        return dateA - dateB;
-      }
+        if (sortBy === "oldest") {
+          return dateA - dateB;
+        }
 
-      return dateB - dateA;
-    });
-}, [initialCases, searchQuery, statusFilter, sortBy]);
+        return dateB - dateA;
+      });
+  }, [cases, searchQuery, statusFilter, sortBy]);
 
-  if (initialCases.length === 0) {
+  if (cases.length === 0) {
     return (
       <div className="p-6 md:p-12 max-w-5xl mx-auto space-y-12 animate-fade-in">
         {/* Header Hero Section with Premium Gradients */}
@@ -92,6 +143,7 @@ const filteredAndSortedCases = useMemo(() => {
               <CreateCaseDialog 
                 triggerClass="flex items-center gap-2 px-6 py-3.5 text-xs font-semibold bg-blue-600 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400 text-white rounded-xl shadow-lg hover:shadow-blue-500/20 transition-all hover:-translate-y-0.5 cursor-pointer"
                 triggerText="Create Your First Case"
+                onCaseCreated={handleCaseCreated}
               />
             </div>
           </div>
@@ -154,7 +206,7 @@ const filteredAndSortedCases = useMemo(() => {
           </p>
         </div>
         <div className="shrink-0 sm:self-end">
-          <CreateCaseDialog />
+          <CreateCaseDialog onCaseCreated={handleCaseCreated} />
         </div>
       </div>
 
@@ -235,6 +287,17 @@ const filteredAndSortedCases = useMemo(() => {
               <option value="title">Case Title</option>
             </select>
           </div>
+
+          {/* Manual Refresh / Sync Button */}
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            title="Sync latest case dossiers"
+            className="flex items-center justify-center h-9 w-9 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors cursor-pointer disabled:opacity-50"
+          >
+            <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin text-blue-500" : ""}`} />
+          </button>
         </div>
       </div>
 
@@ -246,11 +309,16 @@ const filteredAndSortedCases = useMemo(() => {
             setSearchQuery("");
             setStatusFilter("ALL");
           }} 
+          onCaseCreated={handleCaseCreated}
         />
       ) : (
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {filteredAndSortedCases.map((caseItem) => (
-            <CaseCard key={caseItem.id} case={caseItem} />
+            <CaseCard
+              key={caseItem.id}
+              case={caseItem}
+              isHighlighted={highlightedCaseId === caseItem.id}
+            />
           ))}
         </div>
       )}
@@ -291,10 +359,12 @@ function StatCard({
 
 function EmptyState({ 
   isFilterActive, 
-  onClear 
+  onClear,
+  onCaseCreated,
 }: { 
   isFilterActive: boolean; 
   onClear: () => void;
+  onCaseCreated?: (newCase: Case) => void;
 }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-300 dark:border-zinc-800 py-16 px-4 bg-white dark:bg-zinc-900/10">
@@ -319,7 +389,7 @@ function EmptyState({
             Clear Filters
           </button>
         ) : (
-          <CreateCaseDialog />
+          <CreateCaseDialog onCaseCreated={onCaseCreated} />
         )}
       </div>
     </div>

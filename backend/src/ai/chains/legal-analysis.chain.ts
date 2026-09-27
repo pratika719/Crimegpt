@@ -43,12 +43,16 @@ export class LegalAnalysisChainService {
   /**
    * Execute the full RAG pipeline for legal analysis.
    */
-  async execute(context: UnifiedCaseContext, k = 5): Promise<ChainOutput> {
+  async execute(
+    context: UnifiedCaseContext,
+    k = 5,
+    opts?: { bypassCache?: boolean },
+  ): Promise<ChainOutput> {
     const startTime = Date.now();
     this.logger.log('Initiating legal analysis chain');
 
     // 1. Retrieve law sections from PGVector
-    const retrievedChunks = await this.lawRetriever.retrieve(context.narrative, k);
+    const retrievedChunks = await this.lawRetriever.retrieve(context.narrative, k, opts);
     this.logger.log(`Retrieved ${retrievedChunks.length} legal context chunks`);
 
     // 2. Build the prompt

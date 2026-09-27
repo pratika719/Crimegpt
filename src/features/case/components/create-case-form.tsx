@@ -4,24 +4,29 @@ import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, AlertCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
   CreateCaseSchema,
   CreateCaseInput,
 } from "@/features/case/schemas/case.schema";
 import { caseClient } from "@/lib/api";
+import type { CaseSummary } from "@/lib/api/types";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 type Props = {
-  onSuccess?: () => void;
+  onSuccess?: (newCase: CaseSummary) => void;
+  redirectToCaseOnSuccess?: boolean;
 };
 
 export function CreateCaseForm({
   onSuccess,
+  redirectToCaseOnSuccess,
 }: Props) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   const {
     register,
@@ -43,10 +48,21 @@ export function CreateCaseForm({
   async function onSubmit(values: CreateCaseInput) {
     startTransition(async () => {
       try {
-        await caseClient.create(values);
-        toast.success("Case profile successfully registered");
+        const createdCase = await caseClient.create(values);
+        toast.success("Case profile successfully registered", {
+          description: `Case #${createdCase.id.slice(-6).toUpperCase()} is ready for investigation.`,
+          action: {
+            label: "View Dossier",
+            onClick: () => router.push(`/case/${createdCase.id}`),
+          },
+        });
         reset();
-        onSuccess?.();
+        if (onSuccess) {
+          onSuccess(createdCase);
+        } else if (redirectToCaseOnSuccess !== false) {
+          router.push(`/case/${createdCase.id}`);
+        }
+        router.refresh();
       } catch (err: any) {
         toast.error(err.message || "Failed to log case profile");
       }

@@ -7,6 +7,7 @@
 
 export interface EmbeddingInput {
   texts: string[];
+  bypassCache?: boolean;
 }
 
 export interface EmbeddingOutput {

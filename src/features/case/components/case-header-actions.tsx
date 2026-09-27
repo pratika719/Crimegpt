@@ -99,6 +99,7 @@ export default function CaseHeaderActions({
         await caseClient.remove(caseId);
         toast.success("Investigation permanently deleted.");
         setIsDeleteOpen(false);
+        router.refresh();
         router.push("/case");
       } catch (err: any) {
         toast.error(err.message || "Failed to delete case.");

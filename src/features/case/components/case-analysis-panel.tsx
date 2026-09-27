@@ -186,7 +186,12 @@ export default function CaseAnalysisPanel({
 }: CaseAnalysisPanelProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [activeType, setActiveType] = useState<string>("LEGAL_ANALYSIS");
+  const [activeType, setActiveType] = useState<string>(() => {
+    if (initialActiveJobs && initialActiveJobs.length > 0 && initialActiveJobs[0].documentType) {
+      return initialActiveJobs[0].documentType;
+    }
+    return "LEGAL_ANALYSIS";
+  });
   const activeMeta = DOCUMENT_TYPES_METADATA.find((m) => m.type === activeType)!;
   const ActiveIcon = activeMeta.icon;
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -246,7 +251,21 @@ export default function CaseAnalysisPanel({
     status?.state === "pending" ||
     status?.state === "active" ||
     isPolling ||
-    Boolean(refreshingDocId);
+    Boolean(refreshingDocId) ||
+    Boolean(activeJobInfo) ||
+    _actionType !== null;
+
+  // Warn user if they attempt to refresh or close tab while a document is generating
+  useEffect(() => {
+    if (!isJobRunning) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "Document generation is in progress. Are you sure you want to leave?";
+      return e.returnValue;
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isJobRunning]);
 
   // Handle completion, failure, and error in polling
   useEffect(() => {

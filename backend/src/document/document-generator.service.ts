@@ -63,7 +63,7 @@ export class DocumentGeneratorService {
     caseId: string,
     userId: string,
     type: DocumentType,
-    opts?: { requestId?: string; onProgress?: ProgressCallback },
+    opts?: { requestId?: string; onProgress?: ProgressCallback; forceRegenerate?: boolean },
   ): Promise<GenerateResult> {
     const lockKey = `lock:doc-gen:${caseId}:${type}`;
     const lockClient = this.redis.getClient();
@@ -89,7 +89,7 @@ export class DocumentGeneratorService {
     caseId: string,
     userId: string,
     type: DocumentType,
-    opts?: { requestId?: string; onProgress?: ProgressCallback },
+    opts?: { requestId?: string; onProgress?: ProgressCallback; forceRegenerate?: boolean },
   ): Promise<GenerateResult> {
     const onProgress = opts?.onProgress;
     const requestId = opts?.requestId;
@@ -112,9 +112,13 @@ export class DocumentGeneratorService {
     if (config.requiresRAG) {
       await onProgress?.('RETRIEVING_CONTEXT', 30, 'Retrieving legal context...');
 
-      const ragQueryParts = [enrichedContext.title, enrichedContext.narrative].filter(Boolean);
+      const ragQueryParts = [
+        enrichedContext.title,
+        enrichedContext.narrative,
+        enrichedContext.investigationProfile?.incidentDescription,
+      ].filter(Boolean);
       const ragQuery = ragQueryParts.join('\n\n').trim();
-      const isRegeneration = Boolean(requestId);
+      const isRegeneration = Boolean(opts?.forceRegenerate);
 
       try {
         retrievedChunks = await this.lawRetriever.retrieve(ragQuery, 6, {

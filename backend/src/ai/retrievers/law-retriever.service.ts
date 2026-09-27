@@ -3,7 +3,7 @@ import * as crypto from 'node:crypto';
 import type { CleanedLawReference } from '../types/ai.types';
 import { CacheService } from '../../cache/cache.service';
 import { CacheKeysService } from '../../cache/cache-keys.service';
-import { VectorStoreService } from '../vector/pgvector.service';
+import { VectorStoreService, Document } from '../vector/pgvector.service';
 import { LAW_RETRIEVAL_CACHE_TTL, STRING_NA } from '../constants/ai.constants';
 
 // ---------------------------------------------------------------------------
@@ -32,16 +32,15 @@ export class LawRetrieverService {
   ) {}
 
   /**
-   * Retrieve relevant law sections with Redis caching.
-   *
-   * @param narrative  The case narrative to search against.
-   * @param k          Number of unique chunks to return (default 4).
-   * @param opts       Options including optional bypassCache flag.
+   * Retrieve relevant law sections with resilient 3-tier fallback.
+   * Tier 1: Vector search (FastAPI + pgvector)
+   * Tier 2: Stale cached vector (if FastAPI is down and query was seen before)
+   * Tier 3: PostgreSQL Full-Text & Lexical search (if vector search fails or yields 0)
    */
   async retrieve(
     narrative: string,
     k = 4,
-    opts?: { bypassCache?: boolean },
+    opts?: { bypassCache?: boolean; minSimilarity?: number },
   ): Promise<CleanedLawReference[]> {
     if (!narrative || narrative.trim().length === 0) return [];
 
@@ -53,61 +52,79 @@ export class LawRetrieverService {
     });
     const cacheKey = this.cacheKeys.lawRetrieval(hash);
 
-    // Check cache first (unless bypassed)
+    // 1. Check Level-1 cache unless bypassCache is requested
     if (!opts?.bypassCache) {
       const cached = await this.cacheService.get<CleanedLawReference[]>(cacheKey);
-      if (cached) return cached;
+      if (cached && cached.length > 0) return cached;
     }
 
+    let results: [Document, number][] = [];
+    let isLexicalFallback = false;
+
+    // 2. Tier 1 & Tier 2: Try vector similarity search
     try {
-      const results = await this.vectorStore.similaritySearchDeduplicated(narrative, k);
-
-      const references: CleanedLawReference[] = results.map(([doc]) => {
-        const pageContent = doc.pageContent;
-
-        // Extract Description block if formatted standardly
-        const descMatch = pageContent.match(/Description:\r?\n([\s\S]*)$/i);
-        const description = descMatch?.[1]?.trim() ?? pageContent;
-
-        const rawOffense = String(doc.metadata.offense || '').trim();
-        const offense =
-          !rawOffense || rawOffense.toLowerCase() === 'nan'
-            ? String(doc.metadata.section || STRING_NA)
-            : rawOffense;
-
-        const rawPunishment = String(doc.metadata.punishment || '').trim();
-        const punishment =
-          !rawPunishment || rawPunishment.toLowerCase() === 'nan'
-            ? 'As prescribed under statutory provisions.'
-            : rawPunishment;
-
-        return {
-          section: String(doc.metadata.section || STRING_NA),
-          title: offense,
-          content: pageContent,
-          source: String(doc.metadata.source || 'IPC'),
-          offense,
-          punishment,
-          description,
-        };
+      results = await this.vectorStore.similaritySearchDeduplicated(narrative, k, {
+        bypassCache: opts?.bypassCache,
+        minSimilarity: opts?.minSimilarity,
       });
-
-      // Only cache non-empty results
-      if (references.length > 0) {
-        await this.cacheService.set(cacheKey, references, LAW_RETRIEVAL_CACHE_TTL);
-      }
-
-      return references;
     } catch (err) {
-      this.logger.error(
-        {
-          err,
-          narrativeSnippet: narrative.substring(0, 200),
-          topK: k,
-        },
-        'LawRetriever FAILED — RAG will proceed without legal context',
+      this.logger.warn(
+        { err: (err as Error).message },
+        'Vector similarity search failed — engaging Tier 3 PostgreSQL lexical fallback',
       );
-      return [];
     }
+
+    // 3. Tier 3: If vector search failed or returned 0 results, fall back to PostgreSQL lexical/FTS
+    if (results.length === 0) {
+      try {
+        this.logger.log(
+          { narrativeSnippet: narrative.substring(0, 100) },
+          'Zero vector matches — executing PostgreSQL lexical search fallback',
+        );
+        results = await this.vectorStore.lexicalSearch(narrative, k);
+        isLexicalFallback = true;
+      } catch (lexicalErr) {
+        this.logger.error({ lexicalErr }, 'Both vector and lexical law retrieval failed');
+      }
+    }
+
+    const references = this.mapDocsToReferences(results);
+
+    // 4. Cache only high-fidelity vector matches (never cache degraded lexical fallbacks or empty results)
+    if (references.length > 0 && !isLexicalFallback) {
+      await this.cacheService.set(cacheKey, references, LAW_RETRIEVAL_CACHE_TTL);
+    }
+
+    return references;
+  }
+
+  private mapDocsToReferences(results: [Document, number][]): CleanedLawReference[] {
+    return results.map(([doc]) => {
+      const pageContent = doc.pageContent;
+      const descMatch = pageContent.match(/Description:\r?\n([\s\S]*)$/i);
+      const description = descMatch?.[1]?.trim() ?? pageContent;
+
+      const rawOffense = String(doc.metadata?.offense || '').trim();
+      const offense =
+        !rawOffense || rawOffense.toLowerCase() === 'nan'
+          ? String(doc.metadata?.section || STRING_NA)
+          : rawOffense;
+
+      const rawPunishment = String(doc.metadata?.punishment || '').trim();
+      const punishment =
+        !rawPunishment || rawPunishment.toLowerCase() === 'nan'
+          ? 'As prescribed under statutory provisions.'
+          : rawPunishment;
+
+      return {
+        section: String(doc.metadata?.section || STRING_NA),
+        title: offense,
+        content: pageContent,
+        source: String(doc.metadata?.source || 'IPC'),
+        offense,
+        punishment,
+        description,
+      };
+    });
   }
 }

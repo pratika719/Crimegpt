@@ -18,6 +18,16 @@ export class CreateEvidenceDto {
   @IsString()
   description?: string;
 
+  @ApiPropertyOptional({ example: 'Chain of custody notes...' })
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @ApiPropertyOptional({ example: 'https://storage.s3/evidence-12.jpg' })
+  @IsOptional()
+  @IsString()
+  fileUrl?: string;
+
   @ApiPropertyOptional({ example: 'uploads/evidence/photo.jpg' })
   @IsOptional()
   @IsString()
@@ -32,4 +42,9 @@ export class CreateEvidenceDto {
   @IsOptional()
   @IsNumber()
   fileSize?: number;
+
+  @ApiPropertyOptional({ example: 1024000 })
+  @IsOptional()
+  @IsNumber()
+  fileSizeBytes?: number;
 }

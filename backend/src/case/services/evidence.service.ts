@@ -22,9 +22,12 @@ export class EvidenceService {
       title: string;
       type: EvidenceType;
       description?: string;
+      notes?: string;
+      fileUrl?: string;
       storageKey?: string;
       mimeType?: string;
       fileSize?: number;
+      fileSizeBytes?: number;
     },
   ) {
     this.logger.log({ caseId, userId, title: input.title }, 'Registering evidence');
@@ -64,9 +67,12 @@ export class EvidenceService {
       title?: string;
       type?: EvidenceType;
       description?: string;
+      notes?: string;
+      fileUrl?: string;
       storageKey?: string;
       mimeType?: string;
       fileSize?: number;
+      fileSizeBytes?: number;
     },
     caseId?: string,
   ) {

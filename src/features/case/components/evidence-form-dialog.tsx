@@ -53,6 +53,8 @@ export function EvidenceFormDialog({
     handleSubmit,
     formState: { errors },
     reset,
+    setError,
+    clearErrors,
   } = useForm<CreateEvidenceInput>({
     resolver: zodResolver(createEvidenceSchema),
     values: {
@@ -67,12 +69,29 @@ export function EvidenceFormDialog({
 
   async function onSubmit(values: CreateEvidenceInput) {
     startTransition(async () => {
+      clearErrors();
       const { caseId: _, ...data } = values;
+
+      // Clean empty strings so optional fields are cleanly passed
+      const cleanData: any = {
+        title: data.title.trim(),
+        type: data.type,
+      };
+      if (data.description !== undefined && data.description !== null) {
+        cleanData.description = data.description.trim() || undefined;
+      }
+      if (data.notes !== undefined && data.notes !== null) {
+        cleanData.notes = data.notes.trim() || undefined;
+      }
+      if (data.fileUrl !== undefined && data.fileUrl !== null) {
+        cleanData.fileUrl = data.fileUrl.trim() || undefined;
+      }
+
       try {
         if (isEdit && evidence) {
-          await evidenceClient.update(caseId, evidence.id, data);
+          await evidenceClient.update(caseId, evidence.id, cleanData);
         } else {
-          await evidenceClient.create(caseId, data);
+          await evidenceClient.create(caseId, cleanData);
         }
         toast.success(`Evidence ${isEdit ? "updated" : "registered"} successfully.`);
         router.refresh();
@@ -80,6 +99,47 @@ export function EvidenceFormDialog({
         onOpenChange(false);
         if (!isEdit) reset();
       } catch (error: any) {
+        // Parse raw validation error messages from NestJS ValidationPipe or ApiError
+        const rawMessages: string[] = Array.isArray(error?.data?.message)
+          ? error.data.message
+          : typeof error?.data?.message === "string"
+          ? [error.data.message]
+          : typeof error?.message === "string"
+          ? error.message.split(",").map((s: string) => s.trim())
+          : ["Failed to process evidence record."];
+
+        let hasFieldErrors = false;
+        const unmappedMessages: string[] = [];
+
+        for (const msg of rawMessages) {
+          const lower = msg.toLowerCase();
+          if (lower.includes("title")) {
+            setError("title", { type: "server", message: msg });
+            hasFieldErrors = true;
+          } else if (lower.includes("type")) {
+            setError("type", { type: "server", message: msg });
+            hasFieldErrors = true;
+          } else if (lower.includes("fileurl") || lower.includes("storagekey") || lower.includes("file url")) {
+            setError("fileUrl", { type: "server", message: msg });
+            hasFieldErrors = true;
+          } else if (lower.includes("description")) {
+            setError("description", { type: "server", message: msg });
+            hasFieldErrors = true;
+          } else if (lower.includes("notes") || lower.includes("custody")) {
+            setError("notes", { type: "server", message: msg });
+            hasFieldErrors = true;
+          } else {
+            unmappedMessages.push(msg);
+          }
+        }
+
+        if (unmappedMessages.length > 0 || !hasFieldErrors) {
+          setError("root", {
+            type: "server",
+            message: unmappedMessages.join(". ") || error.message || "An error occurred during submission.",
+          });
+        }
+
         toast.error(error.message || `Failed to ${isEdit ? "update" : "register"} evidence.`);
       }
     });
@@ -100,6 +160,17 @@ export function EvidenceFormDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Server Error Alert Banner */}
+          {errors.root?.message && (
+            <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 flex items-start gap-2 text-red-600 dark:text-red-400">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <div className="text-[11px] font-mono leading-relaxed">
+                <p className="font-semibold uppercase tracking-wider text-[10px]">Validation Error</p>
+                <p className="mt-0.5">{errors.root.message}</p>
+              </div>
+            </div>
+          )}
+
           {/* Title */}
           <div className="space-y-1.5">
             <label htmlFor="title" className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">
@@ -185,6 +256,12 @@ export function EvidenceFormDialog({
               className="min-h-[70px]"
               {...register("description")}
             />
+            {errors.description && (
+              <p className="flex items-center gap-1 text-[10px] font-semibold text-red-500 font-mono">
+                <AlertCircle className="h-3 w-3" />
+                {errors.description.message}
+              </p>
+            )}
           </div>
 
           {/* Notes */}
@@ -200,6 +277,12 @@ export function EvidenceFormDialog({
               className="min-h-[50px]"
               {...register("notes")}
             />
+            {errors.notes && (
+              <p className="flex items-center gap-1 text-[10px] font-semibold text-red-500 font-mono">
+                <AlertCircle className="h-3 w-3" />
+                {errors.notes.message}
+              </p>
+            )}
           </div>
 
           {/* Actions */}

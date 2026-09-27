@@ -58,6 +58,18 @@ export const HNSW_M = 16;
 /** HNSW index parameter ef_construction (controls index quality). */
 export const HNSW_EF_CONSTRUCTION = 64;
 
+/** Primary similarity threshold for high-confidence law matching. */
+export const VECTOR_SIMILARITY_PRIMARY_THRESHOLD = 0.25;
+
+/** Fallback similarity threshold for short or informal complaint narratives. */
+export const VECTOR_SIMILARITY_FALLBACK_THRESHOLD = 0.18;
+
+/** Cache TTL for query embeddings in seconds (24 hours). */
+export const QUERY_EMBEDDING_CACHE_TTL = 86_400;
+
+/** Timeout for FastAPI embedding HTTP calls in milliseconds (3 seconds). */
+export const FASTAPI_TIMEOUT_MS = 3_000;
+
 // ---------------------------------------------------------------------------
 // Law Retriever
 // ---------------------------------------------------------------------------

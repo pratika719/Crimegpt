@@ -1,4 +1,4 @@
-import { caseClient } from "@/lib/api";
+import { caseClient, jobClient } from "@/lib/api";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { 
@@ -54,8 +54,15 @@ export default async function CaseDetailPage({
     victims: caseItem.victims || [],
   };
 
-  const activeJobs: any[] = [];
-  const failedJobs: any[] = [];
+  let activeJobs: any[] = [];
+  let failedJobs: any[] = [];
+  try {
+    const jobsData = await jobClient.getCaseJobs(id);
+    activeJobs = jobsData.activeJobs || [];
+    failedJobs = jobsData.failedJobs || [];
+  } catch (error) {
+    console.error("Error fetching case jobs:", error);
+  }
 
   // Calculate metadata completeness percentage
   const metadataFields = [

@@ -59,7 +59,8 @@ export class AuthController {
     @CurrentUser() user: AuthUser,
     @Res() res: Response,
   ) {
-    const frontendUrl = this.config.get<string>(FRONTEND_URL_ENV_KEY, DEFAULT_FRONTEND_URL);
+    const rawFrontendUrl = this.config.get<string>(FRONTEND_URL_ENV_KEY, DEFAULT_FRONTEND_URL);
+    const frontendUrl = rawFrontendUrl.replace(/\/+$/, '');
 
     if (!user) {
       return res.redirect(`${frontendUrl}/login?error=oauth_failed`);

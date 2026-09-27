@@ -15,6 +15,10 @@ const nextConfig: NextConfig = {
         source: '/api/:path*',
         destination: `${nestUrl}/:path*`,
       },
+      {
+        source: '/auth/:path*',
+        destination: `${nestUrl}/auth/:path*`,
+      },
     ];
   },
    async headers() {

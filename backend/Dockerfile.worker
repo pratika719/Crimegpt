@@ -24,20 +24,23 @@ RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV PORT=3001
+ENV PORT=10000
 
 RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nestjs
+RUN adduser --system --uid 1001 worker
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package*.json ./
 
-RUN chown -R nestjs:nodejs /app
+RUN chown -R worker:nodejs /app
 
-USER nestjs
+USER worker
 
-EXPOSE 3001
+EXPOSE 10000
 
-CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/src/main"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:10000/health || exit 1
+
+CMD ["node", "dist/src/worker"]

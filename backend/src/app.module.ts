@@ -56,8 +56,11 @@ import { EmbeddingModule } from './embedding/embedding.module';
     PrismaModule,
     RedisModule,
     CacheModule,
-    QueueModule,
-    WorkerModule,
+    // In production, workers run in a dedicated process (worker.ts).
+    // In development, workers run with the main process for convenience unless ENABLE_WORKER=false.
+    ...(process.env.NODE_ENV === 'production'
+      ? process.env.ENABLE_WORKER === 'true' ? [WorkerModule] : []
+      : process.env.ENABLE_WORKER !== 'false' && !process.env.VERCEL ? [WorkerModule] : []),
 
     // Health
     HealthModule,

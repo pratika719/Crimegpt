@@ -81,3 +81,4 @@ backend/dist/
 backend/src/generated/
 
 
+.env*

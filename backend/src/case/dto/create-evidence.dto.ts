@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, MinLength, MaxLength, IsEnum, IsOptional, IsNumber } from 'class-validator';
-import { EvidenceType } from '@/generated/prisma/client';
+import { EvidenceType } from '@prisma/client';
 
 export class CreateEvidenceDto {
   @ApiProperty({ example: 'Crime scene photograph' })

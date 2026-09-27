@@ -3,7 +3,7 @@ import { CaseRepository } from '../repositories/case.repository';
 import { ActivityService } from './activity.service';
 import { CacheService } from '../../cache/cache.service';
 import { CacheKeysService } from '../../cache/cache-keys.service';
-import { CaseStatus } from '@/generated/prisma/client';
+import { CaseStatus } from '@prisma/client';
 
 @Injectable()
 export class CaseService {

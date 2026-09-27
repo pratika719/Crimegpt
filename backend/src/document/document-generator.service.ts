@@ -8,7 +8,7 @@ import { UnifiedContextService } from '../case/services/unified-context.service'
 import { DocumentRegistry, DocumentType } from './document-registry';
 import { RedisService } from '../redis/redis.service';
 import { z, ZodError } from 'zod';
-import { AIRequestType, ActivityType } from '@/generated/prisma/client';
+import { AIRequestType, ActivityType } from '@prisma/client';
 
 // ---------------------------------------------------------------------------
 // Types

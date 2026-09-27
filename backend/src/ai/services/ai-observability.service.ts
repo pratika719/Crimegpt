@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { OBSERVABILITY_PROMPT_MAX_CHARS, OBSERVABILITY_RESPONSE_MAX_CHARS } from '../constants/ai.constants';
-import type { AIRequestType } from '@/generated/prisma/client';
+import type { AIRequestType } from '@prisma/client';
 
 /**
  * Records AI request telemetry in the AIRequestLog table.

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { EvidenceRepository } from '../repositories/evidence.repository';
 import { ActivityService } from './activity.service';
-import { EvidenceType } from '@/generated/prisma/client';
+import { EvidenceType } from '@prisma/client';
 
 @Injectable()
 export class EvidenceService {

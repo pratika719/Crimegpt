@@ -20,7 +20,7 @@ import { QUEUE_NAMES } from '../queue-names';
 import { DOCUMENT_LOCK_TTL_MS, DOCUMENT_STALLED_INTERVAL_MS } from '../constants/queue.constants';
 import { ErrorClassifier, NonRetryableError } from '../errors/error-classifier';
 import { DocumentType } from '../../document/document-registry';
-import type { AIRequestType } from '@/generated/prisma/client';
+import type { AIRequestType } from '@prisma/client';
 import { ProgressTracker } from '../services/progress-tracker.service';
 import { CacheInvalidationService } from '../services/cache-invalidation.service';
 import { AiObservabilityService } from '../../ai/services/ai-observability.service';

@@ -40,8 +40,18 @@ async function bootstrap() {
 }
 
 export default async function handler(req: Request, res: Response) {
-  if (!isAppInitialized) {
-    await bootstrap();
+  try {
+    if (!isAppInitialized) {
+      await bootstrap();
+    }
+    return server(req, res);
+  } catch (err: unknown) {
+    const error = err as Error;
+    console.error('NestJS Vercel Bootstrap failed:', error);
+    return res.status(500).json({
+      statusCode: 500,
+      error: 'BOOTSTRAP_FAILED',
+      message: error?.message || 'NestJS serverless bootstrap failed',
+    });
   }
-  return server(req, res);
 }

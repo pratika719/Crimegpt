@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { ActivityType } from '@/generated/prisma/client';
+import { ActivityType } from '@prisma/client';
 import { AuditFilterDto, AuditSeverity, AuditModuleType } from './dto/audit-filter.dto';
 
 export interface EnrichedActivity {

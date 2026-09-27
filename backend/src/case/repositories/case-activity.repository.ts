@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ActivityType } from '@/generated/prisma/client';
+import { ActivityType } from '@prisma/client';
 
 @Injectable()
 export class CaseActivityRepository {

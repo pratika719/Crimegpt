@@ -5,7 +5,7 @@ import { AIDiagnosticsChainService } from '../chains/ai-diagnostics.chain';
 import { UnifiedContextService } from '../../case/services/unified-context.service';
 import { ActivityService } from '../../case/services/activity.service';
 import { AiObservabilityService } from './ai-observability.service';
-import { DocumentType, CaseStatus, AIRequestType } from '@/generated/prisma/client';
+import { DocumentType, CaseStatus, AIRequestType } from '@prisma/client';
 
 @Injectable()
 export class AiOrchestrationService {

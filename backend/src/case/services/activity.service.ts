@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { CaseActivityRepository } from '../repositories/case-activity.repository';
-import { ActivityType } from '@/generated/prisma/client';
+import { ActivityType } from '@prisma/client';
 
 @Injectable()
 export class ActivityService {

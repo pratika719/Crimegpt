@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsBoolean, IsOptional } from 'class-validator';
-import { DocumentType } from '@/generated/prisma/client';
+import { DocumentType } from '@prisma/client';
 
 export class GenerateDocumentDto {
   @ApiProperty({ enum: DocumentType, example: DocumentType.FIR })

@@ -39,7 +39,7 @@ export class AuthController {
   // @UseGuards(GoogleAuthGuard) triggers passport.authenticate('google'). On the
   // initial call Passport redirects the user to Google; the handler body never
   // runs until Google redirects back (and only on success).
-  @Get('google')
+  @Get(['google', 'signin/google'])
   @UseGuards(GoogleAuthGuard)
   @ApiOperation({ summary: 'Start Google OAuth flow (redirects to Google)' })
   googleInit() {
@@ -52,7 +52,7 @@ export class AuthController {
   // Direct Express res.redirect() is used instead of @Redirect() so that the
   // global TransformInterceptor does not wrap the redirect URL in { data: { url } },
   // which causes Express to output a blank 'Found. Redirecting to ' pause.
-  @Get('google/callback')
+  @Get(['google/callback', 'callback/google'])
   @UseGuards(GoogleAuthGuard)
   @ApiOperation({ summary: 'Google OAuth callback — issues JWT cookie and redirects' })
   googleCallback(

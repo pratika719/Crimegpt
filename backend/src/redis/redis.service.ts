@@ -14,7 +14,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
 
     this.client = new Redis(url, {
-      maxRetriesPerRequest: null,
+      maxRetriesPerRequest: 1,
+      enableOfflineQueue: false,
+      connectTimeout: 5000,
       enableReadyCheck: false,
       lazyConnect: true,
       tls: url.startsWith('rediss://') ? {} : undefined,
@@ -24,8 +26,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       this.logger.error(`Redis connection error: ${err.message}`);
     });
 
-    await this.client.connect();
-    this.logger.log('Redis connected');
+    try {
+      await this.client.connect();
+      this.logger.log('Redis connected');
+    } catch (err: unknown) {
+      this.logger.warn(`Redis initial connection skipped: ${(err as Error)?.message}`);
+    }
   }
 
   async onModuleDestroy() {

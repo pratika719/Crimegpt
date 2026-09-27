@@ -25,23 +25,8 @@ import {
   CourtInformationSchema,
 } from "@/features/case/schemas/investigation-profile.schema";
 
-import {
-  upsertInvestigationProfileAction,
-  addVictimAction,
-  updateVictimAction,
-  addAccusedAction,
-  updateAccusedAction,
-  addWitnessAction,
-  updateWitnessAction,
-  addVehicleAction,
-  updateVehicleAction,
-  addSeizedItemAction,
-  updateSeizedItemAction,
-  addMedicalInfoAction,
-  updateMedicalInfoAction,
-  addCourtInfoAction,
-  updateCourtInfoAction,
-} from "@/features/case/actions/investigation-profile.action";
+import { useRouter } from "next/navigation";
+import { investigationProfileClient } from "@/features/case/api";
 
 function formatDateForInput(date: any): string {
   if (!date) return "";
@@ -72,6 +57,7 @@ export function PoliceAndIncidentDialog({
   onSuccess?: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   const {
     register,
@@ -99,13 +85,14 @@ export function PoliceAndIncidentDialog({
         incidentDateTime: values.incidentDateTime ? new Date(values.incidentDateTime) : null,
       };
 
-      const response = await upsertInvestigationProfileAction(caseId, data);
-      if (!response.success) {
-        toast.error(response.message || "Failed to update profile.");
-      } else {
+      try {
+        await investigationProfileClient.upsert(caseId, data);
         toast.success("Investigation Profile updated successfully.");
+        router.refresh();
         onSuccess?.();
         onOpenChange(false);
+      } catch (error: any) {
+        toast.error(error.message || "Failed to update profile.");
       }
     });
   };
@@ -199,6 +186,7 @@ export function VictimDialog({
   onSuccess?: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const isEdit = !!victim;
 
   const {
@@ -221,20 +209,19 @@ export function VictimDialog({
 
   const onSubmit = (values: any) => {
     startTransition(async () => {
-      let response;
-      if (isEdit && victim) {
-        response = await updateVictimAction(victim.id, caseId, values);
-      } else {
-        response = await addVictimAction(caseId, values);
-      }
-
-      if (!response.success) {
-        toast.error(response.message || "Failed to save victim.");
-      } else {
+      try {
+        if (isEdit && victim) {
+          await investigationProfileClient.updateVictim(caseId, victim.id, values);
+        } else {
+          await investigationProfileClient.addVictim(caseId, values);
+        }
         toast.success(`Victim ${isEdit ? "updated" : "added"} successfully.`);
+        router.refresh();
         onSuccess?.();
         onOpenChange(false);
         if (!isEdit) reset();
+      } catch (error: any) {
+        toast.error(error.message || "Failed to save victim.");
       }
     });
   };
@@ -322,6 +309,7 @@ export function AccusedDialog({
   onSuccess?: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const isEdit = !!accused;
 
   const {
@@ -344,20 +332,19 @@ export function AccusedDialog({
 
   const onSubmit = (values: any) => {
     startTransition(async () => {
-      let response;
-      if (isEdit && accused) {
-        response = await updateAccusedAction(accused.id, caseId, values);
-      } else {
-        response = await addAccusedAction(caseId, values);
-      }
-
-      if (!response.success) {
-        toast.error(response.message || "Failed to save accused.");
-      } else {
+      try {
+        if (isEdit && accused) {
+          await investigationProfileClient.updateAccused(caseId, accused.id, values);
+        } else {
+          await investigationProfileClient.addAccused(caseId, values);
+        }
         toast.success(`Accused ${isEdit ? "updated" : "added"} successfully.`);
+        router.refresh();
         onSuccess?.();
         onOpenChange(false);
         if (!isEdit) reset();
+      } catch (error: any) {
+        toast.error(error.message || "Failed to save accused.");
       }
     });
   };
@@ -446,6 +433,7 @@ export function WitnessDialog({
   onSuccess?: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const isEdit = !!witness;
 
   const {
@@ -473,20 +461,19 @@ export function WitnessDialog({
         statementDate: values.statementDate ? new Date(values.statementDate) : null,
       };
 
-      let response;
-      if (isEdit && witness) {
-        response = await updateWitnessAction(witness.id, caseId, data);
-      } else {
-        response = await addWitnessAction(caseId, data);
-      }
-
-      if (!response.success) {
-        toast.error(response.message || "Failed to save witness.");
-      } else {
+      try {
+        if (isEdit && witness) {
+          await investigationProfileClient.updateWitness(caseId, witness.id, data);
+        } else {
+          await investigationProfileClient.addWitness(caseId, data);
+        }
         toast.success(`Witness ${isEdit ? "updated" : "added"} successfully.`);
+        router.refresh();
         onSuccess?.();
         onOpenChange(false);
         if (!isEdit) reset();
+      } catch (error: any) {
+        toast.error(error.message || "Failed to save witness.");
       }
     });
   };
@@ -575,6 +562,7 @@ export function VehicleDialog({
   onSuccess?: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const isEdit = !!vehicle;
 
   const {
@@ -599,20 +587,19 @@ export function VehicleDialog({
 
   const onSubmit = (values: any) => {
     startTransition(async () => {
-      let response;
-      if (isEdit && vehicle) {
-        response = await updateVehicleAction(vehicle.id, caseId, values);
-      } else {
-        response = await addVehicleAction(caseId, values);
-      }
-
-      if (!response.success) {
-        toast.error(response.message || "Failed to save vehicle.");
-      } else {
+      try {
+        if (isEdit && vehicle) {
+          await investigationProfileClient.updateVehicle(caseId, vehicle.id, values);
+        } else {
+          await investigationProfileClient.addVehicle(caseId, values);
+        }
         toast.success(`Vehicle ${isEdit ? "updated" : "added"} successfully.`);
+        router.refresh();
         onSuccess?.();
         onOpenChange(false);
         if (!isEdit) reset();
+      } catch (error: any) {
+        toast.error(error.message || "Failed to save vehicle.");
       }
     });
   };
@@ -713,6 +700,7 @@ export function SeizedItemDialog({
   onSuccess?: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const isEdit = !!item;
 
   const {
@@ -741,20 +729,19 @@ export function SeizedItemDialog({
         seizureDate: values.seizureDate ? new Date(values.seizureDate) : null,
       };
 
-      let response;
-      if (isEdit && item) {
-        response = await updateSeizedItemAction(item.id, caseId, data);
-      } else {
-        response = await addSeizedItemAction(caseId, data);
-      }
-
-      if (!response.success) {
-        toast.error(response.message || "Failed to save seized property.");
-      } else {
+      try {
+        if (isEdit && item) {
+          await investigationProfileClient.updateSeizedItem(caseId, item.id, data);
+        } else {
+          await investigationProfileClient.addSeizedItem(caseId, data);
+        }
         toast.success(`Seized Property ${isEdit ? "updated" : "added"} successfully.`);
+        router.refresh();
         onSuccess?.();
         onOpenChange(false);
         if (!isEdit) reset();
+      } catch (error: any) {
+        toast.error(error.message || "Failed to save seized property.");
       }
     });
   };
@@ -851,6 +838,7 @@ export function MedicalInfoDialog({
   onSuccess?: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const isEdit = !!medicalInfo;
 
   const {
@@ -878,20 +866,19 @@ export function MedicalInfoDialog({
         admissionDate: values.admissionDate ? new Date(values.admissionDate) : null,
       };
 
-      let response;
-      if (isEdit && medicalInfo) {
-        response = await updateMedicalInfoAction(medicalInfo.id, caseId, data);
-      } else {
-        response = await addMedicalInfoAction(caseId, data);
-      }
-
-      if (!response.success) {
-        toast.error(response.message || "Failed to save medical details.");
-      } else {
+      try {
+        if (isEdit && medicalInfo) {
+          await investigationProfileClient.updateMedicalInfo(caseId, medicalInfo.id, data);
+        } else {
+          await investigationProfileClient.addMedicalInfo(caseId, data);
+        }
         toast.success(`Medical Details ${isEdit ? "updated" : "added"} successfully.`);
+        router.refresh();
         onSuccess?.();
         onOpenChange(false);
         if (!isEdit) reset();
+      } catch (error: any) {
+        toast.error(error.message || "Failed to save medical details.");
       }
     });
   };
@@ -980,6 +967,7 @@ export function CourtInfoDialog({
   onSuccess?: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const isEdit = !!courtInfo;
 
   const {
@@ -1008,20 +996,19 @@ export function CourtInfoDialog({
         chargesheetFiledDate: values.chargesheetFiledDate ? new Date(values.chargesheetFiledDate) : null,
       };
 
-      let response;
-      if (isEdit && courtInfo) {
-        response = await updateCourtInfoAction(courtInfo.id, caseId, data);
-      } else {
-        response = await addCourtInfoAction(caseId, data);
-      }
-
-      if (!response.success) {
-        toast.error(response.message || "Failed to save court details.");
-      } else {
+      try {
+        if (isEdit && courtInfo) {
+          await investigationProfileClient.updateCourtInfo(caseId, courtInfo.id, data);
+        } else {
+          await investigationProfileClient.addCourtInfo(caseId, data);
+        }
         toast.success(`Court Registry ${isEdit ? "updated" : "added"} successfully.`);
+        router.refresh();
         onSuccess?.();
         onOpenChange(false);
         if (!isEdit) reset();
+      } catch (error: any) {
+        toast.error(error.message || "Failed to save court details.");
       }
     });
   };

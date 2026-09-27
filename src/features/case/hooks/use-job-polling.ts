@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { getJobStatusAction } from "@/features/case/actions/job-status.action";
-import type { MinimalJobStatusResponse } from "@/services/queue/job-status.service";
+import { jobClient } from "@/features/case/api";
+import type { JobStatusResponse } from "@/lib/api/types";
 
 type UseJobPollingInput = {
   jobId: string | null;
@@ -42,7 +42,7 @@ export function useJobPolling({
   maxPollingMs = 90_000,
   waitingStallMs = 30_000,
 }: UseJobPollingInput) {
-  const [status, setStatus] = useState<MinimalJobStatusResponse | null>(null);
+  const [status, setStatus] = useState<JobStatusResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const [isStalled, setIsStalled] = useState(false);
@@ -97,20 +97,10 @@ export function useJobPolling({
       }
 
       try {
-        const response = await getJobStatusAction({
-          jobId,
-          queueName,
-        });
+        const jobStatus = await jobClient.getStatus(queueName!, jobId!);
 
         if (stoppedRef.current) return;
 
-        if (!response.success) {
-          setError(response.message ?? "Failed to check job status.");
-          setIsPolling(false);
-          return;
-        }
-
-        const jobStatus = response.data;
         setStatus(jobStatus);
 
         const state = jobStatus.state;

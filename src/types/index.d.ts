@@ -15,51 +15,7 @@
 declare namespace NodeJS {
   interface ProcessEnv {
     readonly NODE_ENV: "development" | "test" | "production";
-    readonly DATABASE_URL: string;
-    readonly REDIS_URL: string;
-
-    // ── Auth ──────────────────────────────────────────────────────────────
-    readonly AUTH_SECRET: string;
-    readonly AUTH_URL?: string;
-    readonly NEXT_PUBLIC_APP_URL?: string;
-    readonly AUTH_GOOGLE_ID: string;
-    readonly AUTH_GOOGLE_SECRET: string;
-
-    // ── AI ────────────────────────────────────────────────────────────────
-    readonly GEMINI_API_KEY: string;
-    readonly GEMINI_MODEL?: string;
-
-    // ── Embedding service ─────────────────────────────────────────────────
-    readonly EMBEDDING_PROVIDER: "fastapi";
-    readonly EMBEDDING_SERVICE_URL: string;
-    readonly EMBEDDING_REQUEST_TIMEOUT_MS?: string;
-
-    // ── Observability ─────────────────────────────────────────────────────
-    readonly HEALTHCHECK_SECRET?: string;
-    readonly SERVICE_NAME?: string;
-    readonly LOG_LEVEL?: string;
-    readonly PINO_PRETTY?: string;
-    readonly WORKER_HEALTH_URL?: string;
-    readonly PORT?: string;
-
-    // ── Worker concurrency ────────────────────────────────────────────────
-    readonly DOCUMENT_GENERATION_CONCURRENCY?: string;
-    readonly EMBEDDING_CONCURRENCY?: string;
-    readonly INGESTION_CONCURRENCY?: string;
-    readonly EMAIL_CONCURRENCY?: string;
-    readonly CLEANUP_CONCURRENCY?: string;
-    readonly DOCGEN_REPAIR_RETRY?: string;
-
-    // ── AI limits & tuning ────────────────────────────────────────────────
-    readonly AI_DOCUMENT_DAILY_LIMIT?: string;
-    readonly AI_REGENERATE_DAILY_LIMIT?: string;
-    readonly LAW_RETRIEVAL_TOP_K?: string;
-    readonly AI_MAX_CONTEXT_CHARS?: string;
-    readonly AI_MAX_OUTPUT_TOKENS?: string;
-    readonly AI_USE_LEGAL_RETRIEVAL?: string;
-    readonly AI_USE_EMBEDDINGS?: string;
-    readonly AI_USE_FALLBACK?: string;
-    readonly AI_USE_CACHE?: string;
+    readonly NESTJS_API_URL?: string;
   }
 }
 

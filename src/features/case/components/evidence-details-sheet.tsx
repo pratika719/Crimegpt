@@ -18,7 +18,8 @@ import {
   Loader2,
   Paperclip
 } from "lucide-react";
-import { deleteEvidenceAction } from "@/features/case/actions/evidence.action";
+import { useRouter } from "next/navigation";
+import { evidenceClient } from "@/features/case/api";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -56,6 +57,7 @@ export default function EvidenceDetailsSheet({
   caseId,
   onEditTrigger,
 }: EvidenceDetailsSheetProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isMounted, setIsMounted] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -78,13 +80,14 @@ export default function EvidenceDetailsSheet({
     if (!evidence) return;
 
     startTransition(async () => {
-      const response = await deleteEvidenceAction(evidence.id, caseId);
-      if (!response.success) {
-        toast.error(response.message || "Failed to remove evidence record.");
-      } else {
+      try {
+        await evidenceClient.remove(caseId, evidence.id);
         toast.success(`Removed evidence record: ${evidence.title}`);
+        router.refresh();
         setIsDeleteOpen(false);
         onClose();
+      } catch (error: any) {
+        toast.error(error.message || "Failed to remove evidence record.");
       }
     });
   };

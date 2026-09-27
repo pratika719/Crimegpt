@@ -48,10 +48,8 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
-import {
-  updateTimelineEventAction,
-  deleteTimelineEventAction,
-} from "@/features/case/actions/case-activity.action";
+import { useRouter } from "next/navigation";
+import { timelineClient } from "@/features/case/api";
 import { toast } from "sonner";
 
 interface CaseActivity {
@@ -96,6 +94,7 @@ function formatRelativeTime(dateInput: Date | string) {
 }
 
 export default function CaseTimeline({ caseId, activities }: CaseTimelineProps) {
+  const router = useRouter();
   const [editingActivity, setEditingActivity] = useState<CaseActivity | null>(null);
   const [deletingActivity, setDeletingActivity] = useState<CaseActivity | null>(null);
   const [editDescription, setEditDescription] = useState("");
@@ -110,17 +109,17 @@ export default function CaseTimeline({ caseId, activities }: CaseTimelineProps) 
     if (!editingActivity || !editDescription.trim()) return;
 
     startTransition(async () => {
-      const response = await updateTimelineEventAction(
-        editingActivity.id,
-        caseId,
-        editDescription.trim()
-      );
-
-      if (response.success) {
+      try {
+        await timelineClient.update(
+          editingActivity.id,
+          caseId,
+          editDescription.trim()
+        );
         toast.success("Timeline entry updated.");
+        router.refresh();
         setEditingActivity(null);
-      } else {
-        toast.error(response.message || "Failed to update timeline entry.");
+      } catch (error: any) {
+        toast.error(error.message || "Failed to update timeline entry.");
       }
     });
   };
@@ -129,13 +128,13 @@ export default function CaseTimeline({ caseId, activities }: CaseTimelineProps) 
     if (!deletingActivity) return;
 
     startTransition(async () => {
-      const response = await deleteTimelineEventAction(deletingActivity.id, caseId);
-
-      if (response.success) {
+      try {
+        await timelineClient.remove(deletingActivity.id, caseId);
         toast.success("Timeline entry deleted.");
+        router.refresh();
         setDeletingActivity(null);
-      } else {
-        toast.error(response.message || "Failed to delete timeline entry.");
+      } catch (error: any) {
+        toast.error(error.message || "Failed to delete timeline entry.");
       }
     });
   };

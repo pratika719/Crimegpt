@@ -12,9 +12,10 @@ type CaseCardProps = {
     status: string;
     createdAt?: Date | string;
   };
+  isHighlighted?: boolean;
 };
 
-export function CaseCard({ case: caseItem }: CaseCardProps) {
+export function CaseCard({ case: caseItem, isHighlighted }: CaseCardProps) {
   // Format creation date
   const formattedDate = caseItem.createdAt
     ? new Date(caseItem.createdAt).toLocaleDateString("en-US", {
@@ -28,21 +29,35 @@ export function CaseCard({ case: caseItem }: CaseCardProps) {
   const wordCount = caseItem.narrative.split(/\s+/).filter(Boolean).length;
 
   return (
-    <div className="group relative flex flex-col justify-between rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700">
+    <div
+      className={`group relative flex flex-col justify-between rounded-xl border p-5 shadow-sm transition-all duration-300 ${
+        isHighlighted
+          ? "border-blue-500 dark:border-blue-500 ring-2 ring-blue-500/50 shadow-lg shadow-blue-500/10 bg-blue-50/20 dark:bg-blue-950/20"
+          : "border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700"
+      }`}
+    >
       <div>
         {/* Badge & Metadata Header */}
         <div className="flex items-center justify-between gap-2">
-          <span
-            className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-mono font-medium border ${
-              caseItem.status === "OPEN"
-                ? "bg-blue-50 text-blue-700 border-blue-200/50 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/30"
-                : caseItem.status === "UNDER_INVESTIGATION"
-                ? "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/30"
-                : "bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/30"
-            }`}
-          >
-            {caseItem.status === "UNDER_INVESTIGATION" ? "Active Inquest" : caseItem.status}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-mono font-medium border ${
+                caseItem.status === "OPEN"
+                  ? "bg-blue-50 text-blue-700 border-blue-200/50 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/30"
+                  : caseItem.status === "UNDER_INVESTIGATION"
+                  ? "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/30"
+                  : "bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/30"
+              }`}
+            >
+              {caseItem.status === "UNDER_INVESTIGATION" ? "Active Inquest" : caseItem.status}
+            </span>
+            {isHighlighted && (
+              <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-mono font-semibold bg-blue-600 text-white animate-pulse">
+                <span className="h-1 w-1 rounded-full bg-white animate-ping" />
+                JUST ADDED
+              </span>
+            )}
+          </div>
           <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500">
             ID: {caseItem.id.slice(-6).toUpperCase()}
           </span>

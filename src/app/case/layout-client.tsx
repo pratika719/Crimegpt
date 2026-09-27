@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
 import { 
   FolderOpen, 
   Settings, 
@@ -261,9 +260,15 @@ export default function DashboardLayoutClient({
 
                   <div className="border-t border-zinc-100 dark:border-zinc-800/80 pt-1">
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         setIsUserMenuOpen(false);
-                        signOut({ callbackUrl: "/" });
+                        try {
+                          await fetch("/api/auth/logout", { method: "POST" });
+                        } catch {
+                          // Ignore fetch error
+                        } finally {
+                          window.location.href = "/login";
+                        }
                       }}
                       className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors cursor-pointer font-medium"
                     >

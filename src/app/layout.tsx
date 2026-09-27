@@ -2,14 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-// Fire-and-forget warmup for worker & embedding service (only on server boot)
-import { warmupServices } from "@/lib/warmup";
 // Client-side keep-alive (only in browser)
 import { KeepWarm } from "@/components/keep-warm";
-
-if (typeof window === "undefined") {
-  warmupServices();
-}
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

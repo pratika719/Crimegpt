@@ -24,11 +24,9 @@ import {
   MoreHorizontal
 } from "lucide-react";
 import { toast } from "sonner";
-import { generateDocumentAction, logDocumentActivityAction } from "@/features/case/actions/document-generation.action";
-import { renameDocumentAction, deleteDocumentAction } from "@/features/case/actions/document.action";
-import { analyzeCaseAction } from "@/features/case/actions/legal-analysis.action";
+import { documentClient, aiClient } from "@/features/case/api";
 import { useJobPolling } from "@/features/case/hooks/use-job-polling";
-import { DocumentType } from "@/features/case/services/pdf/pdf-template-registry";
+import { DocumentType } from "@/features/case/pdf/pdf-template-registry";
 import {
   getPreflightIssue,
   type PreflightCaseData,
@@ -188,7 +186,12 @@ export default function CaseAnalysisPanel({
 }: CaseAnalysisPanelProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [activeType, setActiveType] = useState<string>("LEGAL_ANALYSIS");
+  const [activeType, setActiveType] = useState<string>(() => {
+    if (initialActiveJobs && initialActiveJobs.length > 0 && initialActiveJobs[0].documentType) {
+      return initialActiveJobs[0].documentType;
+    }
+    return "LEGAL_ANALYSIS";
+  });
   const activeMeta = DOCUMENT_TYPES_METADATA.find((m) => m.type === activeType)!;
   const ActiveIcon = activeMeta.icon;
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -248,7 +251,21 @@ export default function CaseAnalysisPanel({
     status?.state === "pending" ||
     status?.state === "active" ||
     isPolling ||
-    Boolean(refreshingDocId);
+    Boolean(refreshingDocId) ||
+    Boolean(activeJobInfo) ||
+    _actionType !== null;
+
+  // Warn user if they attempt to refresh or close tab while a document is generating
+  useEffect(() => {
+    if (!isJobRunning) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "Document generation is in progress. Are you sure you want to leave?";
+      return e.returnValue;
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isJobRunning]);
 
   // Handle completion, failure, and error in polling
   useEffect(() => {
@@ -453,48 +470,39 @@ export default function CaseAnalysisPanel({
     setFailedJobs((prev) => prev.filter((j) => j.documentType !== type));
     setActionType(isRegen ? "REGENERATE" : "GENERATE");
     startTransition(async () => {
-      let response;
-      if (type === "LEGAL_ANALYSIS") {
-        // Legal analysis runs its own action
-        response = await analyzeCaseAction(caseId);
-      } else {
-        // All other documents use the new Document Engine action
-        response = await generateDocumentAction({
-          caseId,
-          documentType: type as any,
-          forceRegenerate: isRegen,
-        });
-      }
-
-      if (!response.success) {
-        const errMsg = (response as any).message || `Failed to generate ${type}.`;
-        setGenerationError(errMsg);
-        toast.error(errMsg);
-        setActionType(null);
-      } else {
+      try {
         if (type === "LEGAL_ANALYSIS") {
+          await aiClient.legalAnalysis(caseId);
           toast.success(`${isRegen ? "Regenerated" : "Generated"} successfully!`);
           router.refresh();
           setActionType(null);
         } else {
-          // For BullMQ documents, we receive jobId and queueName
-          const jobData = (response as any).data;
-          if (jobData && jobData.jobId && jobData.queueName) {
+          const res = await documentClient.generate(caseId, {
+            documentType: type,
+            forceRegenerate: isRegen,
+          });
+
+          const jobData = res as any;
+          if (jobData && jobData.jobId) {
             setGeneratingJobs((prev) => ({
               ...prev,
               [type]: {
                 jobId: jobData.jobId,
-                queueName: jobData.queueName,
+                queueName: jobData.queueName || "document-generation",
               },
             }));
             toast.info("Document generation started in the background...");
           } else {
-            const errMsg = (response as any).message || `Failed to generate ${type}.`;
-            toast.error(errMsg);
-            setGenerationError(errMsg);
+            toast.success(`${isRegen ? "Regenerated" : "Generated"} successfully!`);
+            router.refresh();
             setActionType(null);
           }
         }
+      } catch (err: any) {
+        const errMsg = err.message || `Failed to generate ${type}.`;
+        setGenerationError(errMsg);
+        toast.error(errMsg);
+        setActionType(null);
       }
     });
   };
@@ -503,7 +511,7 @@ export default function CaseAnalysisPanel({
   const handlePDFDownload = async () => {
     if (!activeDoc) return;
     try {
-      const { PDFExportService } = await import("@/features/case/services/pdf/pdf-export.service");
+      const { PDFExportService } = await import("@/features/case/pdf/pdf-export.service");
       PDFExportService.export(
         activeDoc.title,
         activeDoc.type as DocumentType,
@@ -515,13 +523,16 @@ export default function CaseAnalysisPanel({
       );
       toast.success("PDF generated and download started!");
       // Log the download activity
-      await logDocumentActivityAction(
-        caseId,
-        "DOWNLOAD",
-        activeDoc.type,
-        activeDoc.title,
-        activeDoc.version
-      );
+      try {
+        await documentClient.logActivity(caseId, {
+          actionType: "DOWNLOAD",
+          docType: activeDoc.type,
+          docTitle: activeDoc.title,
+          version: activeDoc.version,
+        });
+      } catch {
+        // Non-fatal if telemetry log fails
+      }
       router.refresh();
     } catch (err: any) {
       toast.error("Failed to generate PDF download.");
@@ -538,13 +549,13 @@ export default function CaseAnalysisPanel({
     if (!renamingDoc || !renameTitle.trim()) return;
 
     startTransition(async () => {
-      const response = await renameDocumentAction(renamingDoc.id, caseId, renameTitle.trim());
-      if (response.success) {
+      try {
+        await documentClient.rename(caseId, renamingDoc.id, renameTitle.trim());
         toast.success("Document renamed.");
         setRenamingDoc(null);
         router.refresh();
-      } else {
-        toast.error(response.message || "Failed to rename document.");
+      } catch (err: any) {
+        toast.error(err.message || "Failed to rename document.");
       }
     });
   };
@@ -553,13 +564,13 @@ export default function CaseAnalysisPanel({
     if (!deletingDoc) return;
 
     startTransition(async () => {
-      const response = await deleteDocumentAction(deletingDoc.id, caseId);
-      if (response.success) {
+      try {
+        await documentClient.remove(caseId, deletingDoc.id);
         toast.success("Generated document deleted.");
         setDeletingDoc(null);
         router.refresh();
-      } else {
-        toast.error(response.message || "Failed to delete document.");
+      } catch (err: any) {
+        toast.error(err.message || "Failed to delete document.");
       }
     });
   };

@@ -16,7 +16,7 @@ import {
   Scale,
   Zap
 } from "lucide-react";
-import { runAIDiagnosticsAction } from "@/features/case/actions/ai-diagnostics.action";
+import { aiClient } from "@/features/case/api";
 import { toast } from "sonner";
 
 interface AIDiagnostics {
@@ -64,15 +64,15 @@ export default function CaseAIInsightsDash({ caseId }: CaseAIInsightsDashProps) 
   const handleRunDiagnostics = () => {
     setError(null);
     startTransition(async () => {
-      const response = await runAIDiagnosticsAction(caseId);
-      if (!response.success) {
-        const errMsg = response.message || "Failed to run insights analysis. Please try again.";
-        setError(errMsg);
-        toast.error(errMsg);
-      } else if (response.data) {
-        setDiagnostics(response.data as AIDiagnostics);
+      try {
+        const data = await aiClient.diagnostics(caseId);
+        setDiagnostics(data as AIDiagnostics);
         setError(null);
         toast.success("Case insights refreshed successfully.");
+      } catch (err: any) {
+        const errMsg = err.message || "Failed to run insights analysis. Please try again.";
+        setError(errMsg);
+        toast.error(errMsg);
       }
     });
   };

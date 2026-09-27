@@ -44,15 +44,8 @@ import {
   CourtInfoDialog
 } from "./investigation-profile-dialogs";
 
-import {
-  deleteVictimAction,
-  deleteAccusedAction,
-  deleteWitnessAction,
-  deleteVehicleAction,
-  deleteSeizedItemAction,
-  deleteMedicalInfoAction,
-  deleteCourtInfoAction
-} from "@/features/case/actions/investigation-profile.action";
+import { useRouter } from "next/navigation";
+import { investigationProfileClient } from "@/features/case/api";
 const formatSafeDate = (dateVal?: string | Date | null, includeTime = false) => {
   if (!dateVal) return "Not Recorded";
   const date = new Date(dateVal);
@@ -74,6 +67,7 @@ interface CaseInvestigationProfileSectionProps {
 type TabType = "admin" | "victims" | "accused" | "witnesses" | "vehicles" | "seized" | "medical" | "court";
 
 export default function CaseInvestigationProfileSection({ caseId, caseData }: CaseInvestigationProfileSectionProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>("admin");
   const [isPending, startTransition] = useTransition();
 
@@ -123,22 +117,23 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
     const target = deleteTarget;
     setDeletingId(target.id);
     startTransition(async () => {
-      let response;
-      if (target.type === "victims") response = await deleteVictimAction(target.id, caseId);
-      else if (target.type === "accused") response = await deleteAccusedAction(target.id, caseId);
-      else if (target.type === "witnesses") response = await deleteWitnessAction(target.id, caseId);
-      else if (target.type === "vehicles") response = await deleteVehicleAction(target.id, caseId);
-      else if (target.type === "seized") response = await deleteSeizedItemAction(target.id, caseId);
-      else if (target.type === "medical") response = await deleteMedicalInfoAction(target.id, caseId);
-      else if (target.type === "court") response = await deleteCourtInfoAction(target.id, caseId);
+      try {
+        if (target.type === "victims") await investigationProfileClient.deleteVictim(caseId, target.id);
+        else if (target.type === "accused") await investigationProfileClient.deleteAccused(caseId, target.id);
+        else if (target.type === "witnesses") await investigationProfileClient.deleteWitness(caseId, target.id);
+        else if (target.type === "vehicles") await investigationProfileClient.deleteVehicle(caseId, target.id);
+        else if (target.type === "seized") await investigationProfileClient.deleteSeizedItem(caseId, target.id);
+        else if (target.type === "medical") await investigationProfileClient.deleteMedicalInfo(caseId, target.id);
+        else if (target.type === "court") await investigationProfileClient.deleteCourtInfo(caseId, target.id);
 
-      if (response && !response.success) {
-        toast.error(response.message || `Failed to delete ${target.name}.`);
-      } else {
         toast.success(`${target.name} has been deleted successfully.`);
+        router.refresh();
         setDeleteTarget(null);
+      } catch (error: any) {
+        toast.error(error.message || `Failed to delete ${target.name}.`);
+      } finally {
+        setDeletingId(null);
       }
-      setDeletingId(null);
     });
   };
 

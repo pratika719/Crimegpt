@@ -40,10 +40,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { updateCaseAction, deleteCaseAction } from "@/features/case/actions/case.action";
+import { caseClient } from "@/lib/api";
 import { toast } from "sonner";
 
-import type { CaseStatus } from "@/generated/prisma/client";
+import type { CaseStatus } from "@/lib/api/types";
 
 interface CaseHeaderActionsProps {
   caseId: string;
@@ -78,31 +78,31 @@ export default function CaseHeaderActions({
 
   const handleSaveEdit = () => {
     startTransition(async () => {
-      const result = await updateCaseAction(caseId, {
-        title: editTitle,
-        narrative: editNarrative,
-        status: editStatus,
-      });
-
-      if (result.success) {
+      try {
+        await caseClient.update(caseId, {
+          title: editTitle,
+          narrative: editNarrative,
+          status: editStatus,
+        });
         toast.success("Case dossier updated successfully.");
         setIsEditOpen(false);
-      } else {
-        toast.error(result.message || "Failed to update case.");
+        router.refresh();
+      } catch (err: any) {
+        toast.error(err.message || "Failed to update case.");
       }
     });
   };
 
   const handleDelete = () => {
     startTransition(async () => {
-      const result = await deleteCaseAction(caseId);
-
-      if (result.success) {
+      try {
+        await caseClient.remove(caseId);
         toast.success("Investigation permanently deleted.");
         setIsDeleteOpen(false);
+        router.refresh();
         router.push("/case");
-      } else {
-        toast.error(result.message || "Failed to delete case.");
+      } catch (err: any) {
+        toast.error(err.message || "Failed to delete case.");
       }
     });
   };

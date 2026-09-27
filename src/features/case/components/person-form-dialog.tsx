@@ -4,8 +4,9 @@ import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, AlertCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { CreatePersonSchema, CreatePersonInput } from "@/features/case/schemas/person.schema";
-import { createPersonAction, updatePersonAction } from "@/features/case/actions/person.action";
+import { personClient } from "@/features/case/api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,7 @@ export function PersonFormDialog({
   onSuccess,
 }: PersonFormDialogProps) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const isEdit = !!person;
 
   const {
@@ -68,21 +70,19 @@ export function PersonFormDialog({
   async function onSubmit(values: CreatePersonInput) {
     startTransition(async () => {
       const { caseId: _, ...data } = values;
-      let response;
-
-      if (isEdit && person) {
-        response = await updatePersonAction(person.id, caseId, data);
-      } else {
-        response = await createPersonAction(caseId, data);
-      }
-
-      if (!response.success) {
-        toast.error(response.message || `Failed to ${isEdit ? "update" : "add"} person.`);
-      } else {
+      try {
+        if (isEdit && person) {
+          await personClient.update(caseId, person.id, data);
+        } else {
+          await personClient.create(caseId, data);
+        }
         toast.success(`Person ${isEdit ? "updated" : "added"} successfully.`);
+        router.refresh();
         onSuccess?.();
         onOpenChange(false);
         if (!isEdit) reset();
+      } catch (error: any) {
+        toast.error(error.message || `Failed to ${isEdit ? "update" : "add"} person.`);
       }
     });
   }

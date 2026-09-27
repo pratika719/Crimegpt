@@ -19,8 +19,8 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { performGlobalSearchAction } from "@/features/search/actions/search.action";
-import { SearchResultDTO } from "@/features/search/schemas/search.types";
+import { searchClient } from "@/features/search/api";
+import type { SearchResultDTO } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 interface SearchDialogProps {
@@ -115,10 +115,14 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
 
     const delayDebounce = setTimeout(() => {
       startTransition(async () => {
-        const response = await performGlobalSearchAction(query);
-        if (response.success && response.results) {
-          setResults(response.results);
-          setSelectedIndex(0);
+        try {
+          const response = await searchClient.search(query);
+          if (response && response.results) {
+            setResults(response.results);
+            setSelectedIndex(0);
+          }
+        } catch {
+          setResults([]);
         }
       });
     }, 150); // Small debounce

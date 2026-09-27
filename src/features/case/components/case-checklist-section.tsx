@@ -11,12 +11,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  createChecklistItemAction, 
-  toggleChecklistItemAction, 
-  deleteChecklistItemAction,
-  renameChecklistItemAction
-} from "@/features/case/actions/checklist.action";
+import { checklistClient } from "@/lib/api";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -51,6 +47,7 @@ interface CaseChecklistSectionProps {
 }
 
 export default function CaseChecklistSection({ caseId, initialChecklist }: CaseChecklistSectionProps) {
+  const router = useRouter();
   const [newTitle, setNewTitle] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -75,16 +72,13 @@ export default function CaseChecklistSection({ caseId, initialChecklist }: CaseC
 
     setIsAdding(true);
     try {
-      const res = await createChecklistItemAction(caseId, newTitle.trim());
-      if (res.success) {
-        setNewTitle("");
-        toast.success("Task added to investigation checklist.");
-      } else {
-        toast.error(res.message || "Failed to create task.");
-      }
-    } catch (err) {
+      await checklistClient.create(caseId, newTitle.trim());
+      setNewTitle("");
+      toast.success("Task added to investigation checklist.");
+      router.refresh();
+    } catch (err: any) {
       console.error(err);
-      toast.error("An error occurred while adding the task.");
+      toast.error(err?.message || "An error occurred while adding the task.");
     } finally {
       setIsAdding(false);
     }
@@ -95,19 +89,16 @@ export default function CaseChecklistSection({ caseId, initialChecklist }: CaseC
     setUpdatingId(id);
     startTransition(async () => {
       try {
-        const res = await toggleChecklistItemAction(id, caseId, targetCompleted);
-        if (res.success) {
-          toast.success(
-            targetCompleted 
-              ? "Task marked as completed and logged to timeline." 
-              : "Task marked as incomplete."
-          );
-        } else {
-          toast.error(res.message || "Failed to update task.");
-        }
-      } catch (err) {
+        await checklistClient.update(caseId, id, { completed: targetCompleted });
+        toast.success(
+          targetCompleted 
+            ? "Task marked as completed and logged to timeline." 
+            : "Task marked as incomplete."
+        );
+        router.refresh();
+      } catch (err: any) {
         console.error(err);
-        toast.error("An error occurred while updating the task.");
+        toast.error(err?.message || "An error occurred while updating the task.");
       } finally {
         setUpdatingId(null);
       }
@@ -125,16 +116,13 @@ export default function CaseChecklistSection({ caseId, initialChecklist }: CaseC
     setUpdatingId(editingTask.id);
     startTransition(async () => {
       try {
-        const res = await renameChecklistItemAction(editingTask.id, caseId, editTitle.trim());
-        if (res.success) {
-          toast.success("Checklist task renamed.");
-          setEditingTask(null);
-        } else {
-          toast.error(res.message || "Failed to rename task.");
-        }
-      } catch (err) {
+        await checklistClient.update(caseId, editingTask.id, { title: editTitle.trim() });
+        toast.success("Checklist task renamed.");
+        setEditingTask(null);
+        router.refresh();
+      } catch (err: any) {
         console.error(err);
-        toast.error("An error occurred while renaming the task.");
+        toast.error(err?.message || "An error occurred while renaming the task.");
       } finally {
         setUpdatingId(null);
       }
@@ -148,16 +136,13 @@ export default function CaseChecklistSection({ caseId, initialChecklist }: CaseC
     setDeletingId(target.id);
     startTransition(async () => {
       try {
-        const res = await deleteChecklistItemAction(target.id, caseId);
-        if (res.success) {
-          toast.success("Task removed from checklist.");
-          setDeleteTarget(null);
-        } else {
-          toast.error(res.message || "Failed to delete task.");
-        }
-      } catch (err) {
+        await checklistClient.remove(caseId, target.id);
+        toast.success("Task removed from checklist.");
+        setDeleteTarget(null);
+        router.refresh();
+      } catch (err: any) {
         console.error(err);
-        toast.error("An error occurred while deleting the task.");
+        toast.error(err?.message || "An error occurred while deleting the task.");
       } finally {
         setDeletingId(null);
       }

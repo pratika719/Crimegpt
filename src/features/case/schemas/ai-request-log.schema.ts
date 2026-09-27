@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { AIRequestStatus, AIRequestType } from "@/generated/prisma/client";
 
 export const AIRequestTypeList = [
   "LEGAL_ANALYSIS",
@@ -19,6 +18,9 @@ export const AIRequestStatusList = [
   "FAILED",
   "CANCELLED"
 ] as const;
+
+export type AIRequestType = (typeof AIRequestTypeList)[number];
+export type AIRequestStatus = (typeof AIRequestStatusList)[number];
 
 export const createAIRequestLogSchema = z.object({
   caseId: z.string().cuid().optional(),

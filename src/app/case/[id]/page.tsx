@@ -1,7 +1,6 @@
-import { CaseService } from "@/features/case/services/case.service";
+import { caseClient, jobClient } from "@/lib/api";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { notFound, redirect } from "next/navigation";
 import { 
   ArrowLeft, 
   Calendar, 
@@ -19,8 +18,7 @@ import CaseAIInsightsDash from "@/features/case/components/case-ai-insights-dash
 import CaseInvestigationProfileSection from "@/features/case/components/case-investigation-profile-section";
 import CaseHeaderActions from "@/features/case/components/case-header-actions";
 
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth/session";
 import { toClient } from "@/lib/utils";
 
 export default async function CaseDetailPage({
@@ -28,67 +26,43 @@ export default async function CaseDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
+  await requireUser();
 
   const { id } = await params;
-  const service = new CaseService();
 
-  let caseItem;
+  let caseItem: any;
   try {
-    caseItem = await service.getCaseById(id, session.user.id);
-  } catch (error) {
+    caseItem = await caseClient.get(id);
+  } catch (error: any) {
     console.error("Error fetching CaseDetailPage:", error);
+    if (error?.status === 401) {
+      redirect('/login');
+    }
+    notFound();
+  }
+
+  if (!caseItem) {
     notFound();
   }
 
   const documents = caseItem.generatedDocuments || [];
 
   // Minimal case data for client-side pre-flight validation of document generation
-  // (mirrors the backend checks — warns/disables before a doomed Gemini call is queued).
   const preflightData = {
-    accused: (caseItem.accused || []).map((a) => ({ arrestStatus: a.arrestStatus ?? null })),
-    persons: (caseItem.persons || []).map((p) => ({ role: p.role })),
+    accused: (caseItem.accused || []).map((a: any) => ({ arrestStatus: a.arrestStatus ?? null })),
+    persons: (caseItem.persons || []).map((p: any) => ({ role: p.role })),
     victims: caseItem.victims || [],
   };
 
-  // Fetch active/pending document generation jobs for state recovery (within last 10 minutes)
-  const activeJobs = await prisma.jobStatus.findMany({
-    where: {
-      caseId: id,
-      status: { in: ["pending", "active"] },
-      updatedAt: { gte: new Date(Date.now() - 10 * 60 * 1000) },
-    },
-    select: {
-      id: true,
-      queueName: true,
-      documentType: true,
-    },
-  });
-
-  // Fetch recent failed jobs so the UI can surface "last generation failed"
-  // banners even after a page reload (failed jobs are otherwise invisible).
-  const failedJobs = await prisma.jobStatus.findMany({
-    where: {
-      caseId: id,
-      status: "failed",
-      updatedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-    },
-    orderBy: { updatedAt: "desc" },
-    take: 10,
-    select: {
-      id: true,
-      queueName: true,
-      documentType: true,
-      errorMessage: true,
-      errorCode: true,
-      failureType: true,
-      updatedAt: true,
-    },
-  });
-
+  let activeJobs: any[] = [];
+  let failedJobs: any[] = [];
+  try {
+    const jobsData = await jobClient.getCaseJobs(id);
+    activeJobs = jobsData.activeJobs || [];
+    failedJobs = jobsData.failedJobs || [];
+  } catch (error) {
+    console.error("Error fetching case jobs:", error);
+  }
 
   // Calculate metadata completeness percentage
   const metadataFields = [
@@ -136,7 +110,7 @@ export default async function CaseDetailPage({
 
   const totalPersons = caseItem.persons?.length || 0;
   const totalEvidence = caseItem.evidence?.length || 0;
-  const checklistCompleted = caseItem.checklistItems?.filter(item => item.completed).length || 0;
+  const checklistCompleted = caseItem.checklistItems?.filter((item: any) => item.completed).length || 0;
   const checklistTotal = caseItem.checklistItems?.length || 0;
 
   return (

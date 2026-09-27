@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { DocumentType, GeneratedDocumentStatus } from "@/generated/prisma/client";
 
 export const DocumentTypeList = [
   "FIR",
@@ -11,6 +10,8 @@ export const DocumentTypeList = [
   "CASE_DIARY"
 ] as const;
 
+export type DocumentType = (typeof DocumentTypeList)[number];
+
 export const GeneratedDocumentStatusList = [
   "DRAFT",
   "GENERATING",
@@ -18,6 +19,8 @@ export const GeneratedDocumentStatusList = [
   "FAILED",
   "ARCHIVED"
 ] as const;
+
+export type GeneratedDocumentStatus = (typeof GeneratedDocumentStatusList)[number];
 
 export const generateDocumentSchema = z.object({
   caseId: z.string().cuid(),

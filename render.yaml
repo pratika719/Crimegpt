@@ -1,0 +1,81 @@
+services:
+  # ---------------------------------------------------------------------------
+  # 1. Python FastAPI Local Embedding Service (HuggingFace sentence-transformers)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: crimegpt-embedding-api
+    runtime: docker
+    dockerfilePath: ./embedding-service/Dockerfile
+    dockerContext: ./embedding-service
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+
+  # ---------------------------------------------------------------------------
+  # 2. CrimeGPT Background Worker (BullMQ job processor + /health endpoint)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: crimegpt-worker
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile.worker
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: EMBEDDING_SERVICE_URL
+        fromService:
+          type: web
+          name: crimegpt-embedding-api
+          property: host
+
+  # ---------------------------------------------------------------------------
+  # 3. CrimeGPT Backend (NestJS API) — Recommended to host on Render
+  # (Can also be deployed to Vercel via backend/api/index.ts)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: crimegpt-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CALLBACK_URL
+        sync: false
+      - key: EMBEDDING_SERVICE_URL
+        fromService:
+          type: web
+          name: crimegpt-embedding-api
+          property: host

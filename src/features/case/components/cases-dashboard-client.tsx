@@ -129,6 +129,17 @@ export function CasesDashboardClient({ initialCases, initialError }: CasesDashbo
   }, [cases, searchQuery, statusFilter, sortBy]);
 
   if (cases.length === 0) {
+    if (isRefreshing) {
+      return (
+        <div className="flex h-96 w-full items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <RotateCw className="h-8 w-8 animate-spin text-blue-500" />
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">Loading case dossiers...</p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="p-6 md:p-12 max-w-5xl mx-auto space-y-12 animate-fade-in">
         {/* Header Hero Section with Premium Gradients */}

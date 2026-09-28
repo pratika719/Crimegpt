@@ -5,7 +5,15 @@ import { requireUser } from "@/lib/auth/session";
 export default async function CasesPage() {
   await requireUser();
 
-  const cases = await caseClient.list().catch(() => []);
+  let cases: any[] = [];
+  let initialError: string | null = null;
 
-  return <CasesDashboardClient initialCases={cases as any} />;
+  try {
+    cases = await caseClient.list();
+  } catch (err: any) {
+    console.error("[CasesPage SSR] Failed to fetch cases:", err);
+    initialError = err?.message || "Failed to fetch cases during server rendering";
+  }
+
+  return <CasesDashboardClient initialCases={cases} initialError={initialError} />;
 }

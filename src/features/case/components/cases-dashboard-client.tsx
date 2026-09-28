@@ -11,14 +11,16 @@ import { caseClient } from "@/lib/api";
 
 type CasesDashboardClientProps = {
   initialCases: Case[];
+  initialError?: string | null;
 };
 
 type StatusFilter = "ALL" | "OPEN" | "UNDER_INVESTIGATION" | "CLOSED" | "ARCHIVED";
 type SortOption = "newest" | "oldest" | "title";
 
-export function CasesDashboardClient({ initialCases }: CasesDashboardClientProps) {
+export function CasesDashboardClient({ initialCases, initialError }: CasesDashboardClientProps) {
   const router = useRouter();
   const [cases, setCases] = useState<Case[]>(initialCases);
+  const [loadError, setLoadError] = useState<string | null>(initialError || null);
   const [highlightedCaseId, setHighlightedCaseId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [, startTransition] = useTransition();
@@ -39,6 +41,13 @@ export function CasesDashboardClient({ initialCases }: CasesDashboardClientProps
     });
   }, [initialCases]);
 
+  // Auto-sync client-side on mount if initialCases is empty or if SSR failed
+  useEffect(() => {
+    if (initialCases.length === 0 || initialError) {
+      handleRefresh();
+    }
+  }, []);
+
   const handleCaseCreated = (newCase: Case) => {
     // 1. Instantly prepend the new case to local state
     setCases((prev) => [newCase, ...prev.filter((c) => c.id !== newCase.id)]);
@@ -58,14 +67,16 @@ export function CasesDashboardClient({ initialCases }: CasesDashboardClientProps
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
+    setLoadError(null);
     try {
       const refreshedCases = await caseClient.list();
       setCases(refreshedCases);
       startTransition(() => {
         router.refresh();
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to refresh cases list", err);
+      setLoadError(err?.message || "Failed to load cases from server");
     } finally {
       setIsRefreshing(false);
     }
@@ -209,6 +220,22 @@ export function CasesDashboardClient({ initialCases }: CasesDashboardClientProps
           <CreateCaseDialog onCaseCreated={handleCaseCreated} />
         </div>
       </div>
+
+      {/* Error Alert if data fetch failed */}
+      {loadError && (
+        <div className="flex items-center justify-between p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400 text-xs">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{loadError}</span>
+          </div>
+          <button
+            onClick={handleRefresh}
+            className="underline hover:text-red-700 dark:hover:text-red-300 font-medium cursor-pointer"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Metrics Section */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

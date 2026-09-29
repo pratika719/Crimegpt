@@ -57,8 +57,9 @@ export default function CaseChecklistSection({ caseId, initialChecklist }: CaseC
   const [isAdding, setIsAdding] = useState(false);
   const [, startTransition] = useTransition();
 
-  const totalTasks = initialChecklist.length;
-  const completedTasks = initialChecklist.filter(item => item.completed).length;
+  const checklist = initialChecklist || [];
+  const totalTasks = checklist.length;
+  const completedTasks = checklist.filter(item => item.completed).length;
   const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   const handleAddTask = async (e: FormEvent) => {
@@ -224,7 +225,7 @@ export default function CaseChecklistSection({ caseId, initialChecklist }: CaseC
           </div>
         ) : (
           <div className="space-y-2">
-            {initialChecklist.map((item) => {
+            {checklist.map((item) => {
               const isUpdating = updatingId === item.id;
               const isDeleting = deletingId === item.id;
               

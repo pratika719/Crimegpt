@@ -11,5 +11,12 @@ export function cn(...inputs: ClassValue[]) {
  * and server action responses.
  */
 export function toClient<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T;
+  if (value === undefined) return undefined as unknown as T;
+  if (value === null) return null as unknown as T;
+  try {
+    return JSON.parse(JSON.stringify(value)) as T;
+  } catch (err) {
+    console.error("[toClient serialization warning]:", err);
+    return value;
+  }
 }

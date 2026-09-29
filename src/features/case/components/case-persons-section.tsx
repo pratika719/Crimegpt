@@ -59,10 +59,11 @@ export default function CasePersonsSection({
   const [deleteTarget, setDeleteTarget] = useState<Person | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const victims = initialPersons.filter((p) => p.role === "VICTIM");
-  const suspects = initialPersons.filter((p) => p.role === "SUSPECT");
-  const witnesses = initialPersons.filter((p) => p.role === "WITNESS");
-  const officers = initialPersons.filter((p) => p.role === "OFFICER");
+  const safePersons = initialPersons || [];
+  const victims = safePersons.filter((p) => p.role === "VICTIM");
+  const suspects = safePersons.filter((p) => p.role === "SUSPECT");
+  const witnesses = safePersons.filter((p) => p.role === "WITNESS");
+  const officers = safePersons.filter((p) => p.role === "OFFICER");
 
   const handleAddPerson = () => {
     setEditingPerson(null);

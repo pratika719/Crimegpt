@@ -192,7 +192,7 @@ export default function CaseAnalysisPanel({
     }
     return "LEGAL_ANALYSIS";
   });
-  const activeMeta = DOCUMENT_TYPES_METADATA.find((m) => m.type === activeType)!;
+  const activeMeta = DOCUMENT_TYPES_METADATA.find((m) => m.type === activeType) || DOCUMENT_TYPES_METADATA[0];
   const ActiveIcon = activeMeta.icon;
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [typeFilter, setTypeFilter] = useState<string>("ALL");

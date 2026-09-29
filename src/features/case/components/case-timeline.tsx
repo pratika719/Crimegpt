@@ -93,7 +93,8 @@ function formatRelativeTime(dateInput: Date | string) {
   });
 }
 
-export default function CaseTimeline({ caseId, activities }: CaseTimelineProps) {
+export default function CaseTimeline({ caseId, activities = [] }: CaseTimelineProps) {
+  const safeActivities = activities || [];
   const router = useRouter();
   const [editingActivity, setEditingActivity] = useState<CaseActivity | null>(null);
   const [deletingActivity, setDeletingActivity] = useState<CaseActivity | null>(null);
@@ -237,19 +238,19 @@ export default function CaseTimeline({ caseId, activities }: CaseTimelineProps) 
           </span>
         </div>
         <span className="text-[10px] font-mono text-zinc-400 uppercase">
-          {activities.length} Events Logged
+          {safeActivities.length} Events Logged
         </span>
       </div>
 
       {/* Main body */}
       <div className="p-6 md:p-8">
-        {activities.length === 0 ? (
+        {safeActivities.length === 0 ? (
           <div className="text-center py-6 text-xs text-zinc-400 dark:text-zinc-500">
             No activities logged for this case profile.
           </div>
         ) : (
           <div className="relative border-l border-zinc-200 dark:border-zinc-800 ml-3.5 pl-6.5 space-y-6 py-1">
-            {activities.map((activity) => {
+            {safeActivities.map((activity) => {
               const { icon: Icon, colorClass, dotClass } = getActivityStyles(activity.activityType);
               const relativeTime = formatRelativeTime(activity.createdAt);
 

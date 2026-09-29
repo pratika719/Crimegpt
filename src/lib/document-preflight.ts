@@ -41,6 +41,18 @@ export function getPreflightIssue(
           "A Remand Request requires at least one accused person or suspect. Add an accused person to the case first.",
       };
     }
+
+    if (accused.length > 0) {
+      const hasArrestedAccused = accused.some(
+        (a) => a.arrestStatus && ARRESTED_STATUS_RE.test(a.arrestStatus),
+      );
+      if (!hasArrestedAccused) {
+        return {
+          message:
+            "A Remand Request requires at least one arrested accused person (status: Arrested or In Custody).",
+        };
+      }
+    }
   }
 
   if (type === "CHARGE_SHEET") {

@@ -34,6 +34,7 @@ interface CaseEvidenceSectionProps {
 }
 
 export default function CaseEvidenceSection({ caseId, initialEvidence }: CaseEvidenceSectionProps) {
+  const evidenceList = initialEvidence || [];
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [activeEvidence, setActiveEvidence] = useState<Evidence | null>(null);
@@ -124,7 +125,7 @@ export default function CaseEvidenceSection({ caseId, initialEvidence }: CaseEvi
       </div>
 
       {/* Grid of Evidence Cards */}
-      {initialEvidence.length === 0 ? (
+      {evidenceList.length === 0 ? (
         <div className="rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/10 p-8 text-center flex flex-col items-center justify-center space-y-4">
           <Paperclip className="h-10 w-10 text-zinc-350 dark:text-zinc-600 animate-pulse" />
           <div className="space-y-1">
@@ -143,7 +144,7 @@ export default function CaseEvidenceSection({ caseId, initialEvidence }: CaseEvi
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-          {initialEvidence.map((item) => {
+          {evidenceList.map((item) => {
             const { icon: ConfigIcon, colorClass, label } = getEvidenceConfig(item.type);
             const dateStr = new Date(item.createdAt).toLocaleDateString("en-US", {
               month: "short",

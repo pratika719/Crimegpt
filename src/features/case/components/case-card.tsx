@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { Calendar, FileText, ArrowRight } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
 
 type CaseCardProps = {
   case: {
     id: string;
     title: string;
-    narrative: string;
+    narrative?: string | null;
     status: string;
     createdAt?: Date | string;
   };
@@ -25,18 +24,26 @@ export function CaseCard({ case: caseItem, isHighlighted }: CaseCardProps) {
       })
     : "No Date Recorded";
 
-  // Calculate approximate reading/word length metric
-  const wordCount = caseItem.narrative.split(/\s+/).filter(Boolean).length;
+  // Calculate approximate reading/word length metric safely
+  const safeNarrative = caseItem.narrative || "";
+  const wordCount = safeNarrative.split(/\s+/).filter(Boolean).length;
 
   return (
     <div
-      className={`group relative flex flex-col justify-between rounded-xl border p-5 shadow-sm transition-all duration-300 ${
+      className={`group relative flex flex-col justify-between rounded-xl border p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer ${
         isHighlighted
           ? "border-blue-500 dark:border-blue-500 ring-2 ring-blue-500/50 shadow-lg shadow-blue-500/10 bg-blue-50/20 dark:bg-blue-950/20"
-          : "border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700"
+          : "border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 hover:shadow-md hover:border-zinc-400 dark:hover:border-zinc-700"
       }`}
     >
-      <div>
+      {/* Full-card accessible overlay link */}
+      <Link
+        href={`/case/${caseItem.id}`}
+        className="absolute inset-0 z-0 rounded-xl"
+        aria-label={`Open dossier for ${caseItem.title}`}
+      />
+
+      <div className="relative z-10 pointer-events-none">
         {/* Badge & Metadata Header */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
@@ -64,18 +71,18 @@ export function CaseCard({ case: caseItem, isHighlighted }: CaseCardProps) {
         </div>
 
         {/* Title */}
-        <h3 className="mt-3.5 text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 group-hover:text-black dark:group-hover:text-white transition-colors line-clamp-1">
+        <h3 className="mt-3.5 text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
           {caseItem.title}
         </h3>
 
         {/* Narrative Description Preview */}
         <p className="mt-2 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400 line-clamp-3">
-          {caseItem.narrative}
+          {safeNarrative || "No narrative recorded for this case."}
         </p>
       </div>
 
       {/* Footer Details */}
-      <div className="mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800/50 flex items-center justify-between">
+      <div className="relative z-10 mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800/50 flex items-center justify-between pointer-events-none">
         <div className="flex items-center gap-3.5 text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">
           <span className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
@@ -87,13 +94,10 @@ export function CaseCard({ case: caseItem, isHighlighted }: CaseCardProps) {
           </span>
         </div>
 
-        <Link
-          href={`/case/${caseItem.id}`}
-          className="inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors group/link"
-        >
+        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
           View Dossier
-          <ArrowRight className="h-3 w-3 transition-transform group-hover/link:translate-x-0.5" />
-        </Link>
+          <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
+        </span>
       </div>
     </div>
   );

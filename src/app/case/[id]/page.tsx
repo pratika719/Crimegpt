@@ -1,10 +1,11 @@
 import { caseClient, jobClient } from "@/lib/api";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { 
   ArrowLeft, 
   Calendar, 
   Clock, 
+  Lock
 } from "lucide-react";
 import CaseAnalysisPanel, { type AIRequestLog } from "@/features/case/components/case-analysis-panel";
 import CaseMetadataSection from "@/features/case/components/case-metadata-section";
@@ -30,27 +31,70 @@ export default async function CaseDetailPage({
 
   const { id } = await params;
 
-  let caseItem: any;
+  let caseItem: any = null;
+  let fetchError: any = null;
+
   try {
     caseItem = await caseClient.get(id);
   } catch (error: any) {
-    console.error("Error fetching CaseDetailPage:", error);
-    if (error?.status === 401) {
-      redirect('/login');
-    }
+    console.error(`[CaseDetailPage] Error loading case "${id}":`, error);
+    fetchError = error;
+  }
+
+  // Gracefully handle 401 without redirect loops back to login/case
+  if (fetchError?.status === 401) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center select-none font-sans">
+        <div className="max-w-md w-full space-y-6">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-amber-600 dark:text-amber-400 shadow-sm">
+            <Lock className="h-7 w-7" />
+          </div>
+          <div className="space-y-2">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1 rounded">
+              Authentication Session Expired
+            </span>
+            <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+              Session Requires Re-authentication
+            </h1>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+              Your security session with the investigation backend has expired or is invalid. Please sign in again to access this dossier.
+            </p>
+          </div>
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <a
+              href="/api/auth/google"
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400 text-white px-4 py-2.5 text-xs font-semibold shadow-sm transition-all"
+            >
+              Sign In with Google
+            </a>
+            <Link
+              href="/case"
+              className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-4 py-2.5 text-xs font-semibold shadow-sm transition-all"
+            >
+              Back to Cases
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Not found (404) or missing case record
+  if (fetchError?.status === 404 || (!fetchError && !caseItem)) {
     notFound();
   }
 
-  if (!caseItem) {
-    notFound();
+  // Re-throw unexpected 5xx / network errors to the error.tsx boundary
+  if (fetchError) {
+    throw fetchError;
   }
 
   const documents = caseItem.generatedDocuments || [];
 
   // Minimal case data for client-side pre-flight validation of document generation
   const preflightData = {
-    accused: (caseItem.accused || []).map((a: any) => ({ arrestStatus: a.arrestStatus ?? null })),
-    persons: (caseItem.persons || []).map((p: any) => ({ role: p.role })),
+    accused: (caseItem.accused || []).map((a: any) => ({ arrestStatus: a?.arrestStatus ?? null })),
+    persons: (caseItem.persons || []).map((p: any) => ({ role: p?.role })),
     victims: caseItem.victims || [],
   };
 
@@ -58,10 +102,10 @@ export default async function CaseDetailPage({
   let failedJobs: any[] = [];
   try {
     const jobsData = await jobClient.getCaseJobs(id);
-    activeJobs = jobsData.activeJobs || [];
-    failedJobs = jobsData.failedJobs || [];
+    activeJobs = jobsData?.activeJobs || [];
+    failedJobs = jobsData?.failedJobs || [];
   } catch (error) {
-    console.error("Error fetching case jobs:", error);
+    console.error(`[CaseDetailPage] Could not load background jobs for case "${id}":`, error);
   }
 
   // Calculate metadata completeness percentage
@@ -114,7 +158,7 @@ export default async function CaseDetailPage({
   const checklistTotal = caseItem.checklistItems?.length || 0;
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-8">
+    <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-8 font-sans">
       
       {/* Breadcrumb Navigation & Security Classification Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-4">
@@ -166,14 +210,14 @@ export default async function CaseDetailPage({
           <CaseHeaderActions
             caseId={caseItem.id}
             caseTitle={caseItem.title}
-            caseNarrative={caseItem.narrative}
+            caseNarrative={caseItem.narrative || ""}
             caseStatus={caseItem.status}
           />
 
         </div>
 
         {/* Expandable statement narrative */}
-        <CaseNarrativeCollapse narrative={caseItem.narrative} />
+        <CaseNarrativeCollapse narrative={caseItem.narrative || "No case narrative recorded."} />
       </div>
 
       {/* 2. Overview Cards */}
@@ -206,19 +250,19 @@ export default async function CaseDetailPage({
       {/* 5. Persons/Parties Profile Section */}
       <CasePersonsSection 
         caseId={caseItem.id} 
-        initialPersons={caseItem.persons ? toClient(caseItem.persons) : []} 
+        initialPersons={toClient(caseItem.persons || [])} 
       />
 
       {/* 6. Evidence List Profile Section */}
       <CaseEvidenceSection 
         caseId={caseItem.id} 
-        initialEvidence={caseItem.evidence ? toClient(caseItem.evidence) : []} 
+        initialEvidence={toClient(caseItem.evidence || [])} 
       />
 
       {/* 7. Checklist / Procedures Section */}
       <CaseChecklistSection 
         caseId={caseItem.id} 
-        initialChecklist={caseItem.checklistItems ? toClient(caseItem.checklistItems) : []} 
+        initialChecklist={toClient(caseItem.checklistItems || [])} 
       />
 
       {/* 8. AI Generated Documents / Analysis Section */}
@@ -236,7 +280,7 @@ export default async function CaseDetailPage({
       {/* 9. Chronological Activity Timeline */}
       <CaseTimeline 
         caseId={caseItem.id}
-        activities={caseItem.activities ? toClient(caseItem.activities) : []} 
+        activities={toClient(caseItem.activities || [])} 
       />
 
     </div>

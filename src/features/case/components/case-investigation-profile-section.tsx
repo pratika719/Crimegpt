@@ -102,14 +102,14 @@ export default function CaseInvestigationProfileSection({ caseId, caseData }: Ca
     type: TabType;
   } | null>(null);
 
-  const profile = caseData.investigationProfile || null;
-  const victims = caseData.victims || [];
-  const accused = caseData.accused || [];
-  const witnesses = caseData.witnesses || [];
-  const vehicles = caseData.vehicles || [];
-  const seizedItems = caseData.seizedItems || [];
-  const medicalInfos = caseData.medicalInfos || [];
-  const courtInfos = caseData.courtInfos || [];
+  const profile = caseData?.investigationProfile || null;
+  const victims = caseData?.victims || [];
+  const accused = caseData?.accused || [];
+  const witnesses = caseData?.witnesses || [];
+  const vehicles = caseData?.vehicles || [];
+  const seizedItems = caseData?.seizedItems || [];
+  const medicalInfos = caseData?.medicalInformation || caseData?.medicalInfos || [];
+  const courtInfos = caseData?.courtInformation || caseData?.courtInfos || [];
 
   const handleDelete = () => {
     if (!deleteTarget) return;

@@ -29,9 +29,13 @@ export class FastapiEmbeddingService implements CrimeGPTEmbeddingProvider {
   ) {
     const url = this.config.get<string>('EMBEDDING_SERVICE_URL');
     if (!url) {
-      throw new Error('EMBEDDING_SERVICE_URL is not configured.');
+      this.logger.warn(
+        'EMBEDDING_SERVICE_URL is not configured. Text embedding requests will fail until configured.',
+      );
+      this.serviceUrl = '';
+    } else {
+      this.serviceUrl = url.replace(/\/+$/, '').replace(/\/embed$/, '');
     }
-    this.serviceUrl = url.replace(/\/+$/, '');
   }
 
   // -----------------------------------------------------------------------
@@ -126,6 +130,12 @@ export class FastapiEmbeddingService implements CrimeGPTEmbeddingProvider {
   }
 
   private async requestEmbeddings(texts: string[]): Promise<EmbeddingOutput> {
+    if (!this.serviceUrl) {
+      throw new Error(
+        'EMBEDDING_SERVICE_URL is not configured. Text embedding cannot proceed.',
+      );
+    }
+
     const response = await fetch(`${this.serviceUrl}/embed`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -9,6 +9,14 @@ import { AppModule } from '../src/app.module';
 const server: Express = express();
 let isAppInitialized = false;
 
+// Forward root /health requests to /api/health so both /health and /api/health work
+server.use((req, _res, next) => {
+  if (req.url === '/health' || req.url.startsWith('/health/')) {
+    req.url = `/api${req.url}`;
+  }
+  next();
+});
+
 async function bootstrap() {
   // Ensure background worker doesn't run inside serverless function
   process.env.ENABLE_WORKER = 'false';

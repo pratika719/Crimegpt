@@ -58,6 +58,10 @@ export class DocumentGenerationProcessor extends WorkerHost {
     const startedAt = Date.now();
 
     this.validatePayload(job.data);
+    this.logger.log(
+      { jobId: job.id, caseId, documentType },
+      'Received and started processing document generation job',
+    );
     await this.initializeJob(job);
 
     const onProgress = this.createProgressCallback(job);

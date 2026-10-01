@@ -13,9 +13,13 @@ on:
       - develop
 
 jobs:
-  app-checks:
-    name: App Checks
+  backend-checks:
+    name: Backend Checks (NestJS)
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
 
     env:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
@@ -67,20 +71,48 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: backend/package-lock.json
 
-      - name: Install dependencies
+      - name: Install backend dependencies
         run: npm ci
 
       - name: Generate Prisma client
         run: npx prisma generate
 
-      - name: Typecheck
+      - name: Typecheck backend
         run: npm run typecheck
 
-      - name: Run tests
+      - name: Run backend tests
         run: npm run test
 
-      - name: Build app
+      - name: Build backend
+        run: npm run build
+
+  frontend-checks:
+    name: Frontend Checks (Next.js)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Typecheck frontend
+        run: npm run typecheck
+
+      - name: Run frontend tests
+        run: npm run test
+
+      - name: Build frontend app
         run: npm run build
 
   embedding-service-check:

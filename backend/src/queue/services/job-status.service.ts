@@ -55,4 +55,51 @@ export class JobStatusService {
   async getJobStatus(jobId: string) {
     return this.prisma.jobStatus.findUnique({ where: { id: jobId } });
   }
+
+  /**
+   * Get active and recently failed jobs for a case.
+   */
+  async getCaseJobs(caseId: string) {
+    const activeCutoff = new Date(Date.now() - 15 * 60 * 1000);
+    const activeJobs = await this.prisma.jobStatus.findMany({
+      where: {
+        caseId,
+        status: { in: ['pending', 'active'] },
+        updatedAt: { gte: activeCutoff },
+      },
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        id: true,
+        queueName: true,
+        documentType: true,
+        status: true,
+        updatedAt: true,
+      },
+    });
+
+    const failedCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const failedJobs = await this.prisma.jobStatus.findMany({
+      where: {
+        caseId,
+        status: 'failed',
+        updatedAt: { gte: failedCutoff },
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 10,
+      select: {
+        id: true,
+        queueName: true,
+        documentType: true,
+        errorMessage: true,
+        errorCode: true,
+        failureType: true,
+        updatedAt: true,
+      },
+    });
+
+    return {
+      activeJobs,
+      failedJobs,
+    };
+  }
 }

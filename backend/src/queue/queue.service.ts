@@ -18,16 +18,10 @@ export class QueueService {
   constructor(
     @InjectQueue(QUEUE_NAMES.DOCUMENT_GENERATION)
     private documentQueue: Queue<DocumentGenerationJobPayload>,
-    @InjectQueue(QUEUE_NAMES.AI_GENERATION)
-    private aiQueue: Queue<AIGenerationJobPayload>,
     @InjectQueue(QUEUE_NAMES.EMBEDDING)
     private embeddingQueue: Queue<EmbeddingJobPayload>,
     @InjectQueue(QUEUE_NAMES.INGESTION)
     private ingestionQueue: Queue<IngestionJobPayload>,
-    @InjectQueue(QUEUE_NAMES.EMAIL)
-    private emailQueue: Queue<EmailJobPayload>,
-    @InjectQueue(QUEUE_NAMES.CLEANUP)
-    private cleanupQueue: Queue<CleanupJobPayload>,
   ) {}
 
   async getJobCounts(queueName: string) {
@@ -84,15 +78,12 @@ export class QueueService {
   private getQueue(name: string): Queue {
     const queues: Record<string, Queue> = {
       [QUEUE_NAMES.DOCUMENT_GENERATION]: this.documentQueue,
-      [QUEUE_NAMES.AI_GENERATION]: this.aiQueue,
       [QUEUE_NAMES.EMBEDDING]: this.embeddingQueue,
       [QUEUE_NAMES.INGESTION]: this.ingestionQueue,
-      [QUEUE_NAMES.EMAIL]: this.emailQueue,
-      [QUEUE_NAMES.CLEANUP]: this.cleanupQueue,
     };
     const queue = queues[name];
     if (!queue) {
-      throw new Error(`Unknown queue: ${name}`);
+      throw new Error(`Unknown or inactive queue: ${name}`);
     }
     return queue;
   }

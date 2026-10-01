@@ -31,12 +31,16 @@ import { AIModule } from './ai/ai.module';
 import { AuthModule } from './auth/auth.module';
 import { EmbeddingModule } from './embedding/embedding.module';
 
+import { validateEnv, configuration } from './config';
+
 @Module({
   imports: [
-    // Config — loads .env globally
+    // Config — loads .env globally with validation
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
+      load: [configuration],
+      validate: validateEnv,
     }),
 
     // Logger

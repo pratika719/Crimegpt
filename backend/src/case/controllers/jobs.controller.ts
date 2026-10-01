@@ -13,8 +13,8 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { QueueService } from '../../queue/queue.service';
+import { JobStatusService } from '../../queue/services/job-status.service';
 import { CaseService } from '../services/case.service';
-import { PrismaService } from '../../prisma/prisma.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthGuard } from '../../common/guards/auth.guard';
 
@@ -27,8 +27,8 @@ export class JobsController {
 
   constructor(
     private readonly queueService: QueueService,
+    private readonly jobStatusService: JobStatusService,
     private readonly caseService: CaseService,
-    private readonly prisma: PrismaService,
   ) {}
 
   @Get('case/:caseId')
@@ -42,48 +42,7 @@ export class JobsController {
     @CurrentUser('id') userId: string,
   ) {
     await this.caseService.getCaseById(caseId, userId);
-
-    const activeCutoff = new Date(Date.now() - 15 * 60 * 1000);
-    const activeJobs = await this.prisma.jobStatus.findMany({
-      where: {
-        caseId,
-        status: { in: ['pending', 'active'] },
-        updatedAt: { gte: activeCutoff },
-      },
-      orderBy: { updatedAt: 'desc' },
-      select: {
-        id: true,
-        queueName: true,
-        documentType: true,
-        status: true,
-        updatedAt: true,
-      },
-    });
-
-    const failedCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const failedJobs = await this.prisma.jobStatus.findMany({
-      where: {
-        caseId,
-        status: 'failed',
-        updatedAt: { gte: failedCutoff },
-      },
-      orderBy: { updatedAt: 'desc' },
-      take: 10,
-      select: {
-        id: true,
-        queueName: true,
-        documentType: true,
-        errorMessage: true,
-        errorCode: true,
-        failureType: true,
-        updatedAt: true,
-      },
-    });
-
-    return {
-      activeJobs,
-      failedJobs,
-    };
+    return this.jobStatusService.getCaseJobs(caseId);
   }
 
   @Get(':queueName/:jobId')

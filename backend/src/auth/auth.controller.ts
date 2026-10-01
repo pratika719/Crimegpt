@@ -8,37 +8,26 @@ import {
   HttpStatus,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { GoogleAuthGuard } from '../common/guards/google-auth.guard';
-import { JwtService } from '@nestjs/jwt';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { AuthService } from './auth.service';
 import {
-  AUTH_COOKIE_MAX_AGE_MS,
   AUTH_COOKIE_NAME,
   AUTH_COOKIE_PATH,
-  DEFAULT_FRONTEND_URL,
-  FRONTEND_URL_ENV_KEY,
-  POST_LOGIN_REDIRECT_PATH,
   type AuthUser,
 } from './auth.constants';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly config: ConfigService,
-    private readonly jwt: JwtService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   // ---------------------------------------------------------------------------
   // Google OAuth initiation
   // ---------------------------------------------------------------------------
-  // @UseGuards(GoogleAuthGuard) triggers passport.authenticate('google'). On the
-  // initial call Passport redirects the user to Google; the handler body never
-  // runs until Google redirects back (and only on success).
   @Get(['google', 'signin/google'])
   @UseGuards(GoogleAuthGuard)
   @ApiOperation({ summary: 'Start Google OAuth flow (redirects to Google)' })
@@ -49,9 +38,6 @@ export class AuthController {
   // ---------------------------------------------------------------------------
   // Google OAuth callback
   // ---------------------------------------------------------------------------
-  // Direct Express res.redirect() is used instead of @Redirect() so that the
-  // global TransformInterceptor does not wrap the redirect URL in { data: { url } },
-  // which causes Express to output a blank 'Found. Redirecting to ' pause.
   @Get(['google/callback', 'callback/google'])
   @UseGuards(GoogleAuthGuard)
   @ApiOperation({ summary: 'Google OAuth callback — issues JWT cookie and redirects' })
@@ -59,18 +45,14 @@ export class AuthController {
     @CurrentUser() user: AuthUser,
     @Res() res: Response,
   ) {
-    const rawFrontendUrl = this.config.get<string>(FRONTEND_URL_ENV_KEY, DEFAULT_FRONTEND_URL);
-    const frontendUrl = rawFrontendUrl.replace(/\/+$/, '');
-
     if (!user) {
-      return res.redirect(`${frontendUrl}/login?error=oauth_failed`);
+      return res.redirect(this.authService.getPostLoginRedirectUrl(false));
     }
 
-    const token = this.jwt.sign({ sub: user.id, email: user.email, name: user.name });
+    const token = this.authService.issueToken(user);
+    res.cookie(AUTH_COOKIE_NAME, token, this.authService.getCookieOptions());
 
-    res.cookie(AUTH_COOKIE_NAME, token, this.buildCookieOptions());
-
-    return res.redirect(`${frontendUrl}${POST_LOGIN_REDIRECT_PATH}`);
+    return res.redirect(this.authService.getPostLoginRedirectUrl(true));
   }
 
   // ---------------------------------------------------------------------------
@@ -87,9 +69,7 @@ export class AuthController {
   }
 
   // ---------------------------------------------------------------------------
-  // Logout — clears the httpOnly cookie server-side.
-  // The frontend should also clear any in-memory state; this endpoint ensures
-  // the cookie is gone even if the browser doesn't process a JS-side clear.
+  // Logout
   // ---------------------------------------------------------------------------
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -97,17 +77,5 @@ export class AuthController {
   logout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie(AUTH_COOKIE_NAME, { path: AUTH_COOKIE_PATH });
     return;
-  }
-
-  /** Cookie options for the auth cookie — single definition, shared here. */
-  private buildCookieOptions() {
-    const secure = this.config.get<string>('NODE_ENV') === 'production';
-    return {
-      httpOnly: true,
-      secure,
-      sameSite: 'lax' as const,
-      maxAge: AUTH_COOKIE_MAX_AGE_MS,
-      path: AUTH_COOKIE_PATH,
-    };
   }
 }

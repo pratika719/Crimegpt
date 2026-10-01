@@ -23,6 +23,8 @@ import { AIModule } from './ai/ai.module';
 import { AuthModule } from './auth/auth.module';
 import { EmbeddingModule } from './embedding/embedding.module';
 
+import { validateEnv, configuration } from './config';
+
 /**
  * Dedicated root module for the background worker process.
  * Unconditionally boots WorkerModule and all BullMQ processors.
@@ -32,6 +34,8 @@ import { EmbeddingModule } from './embedding/embedding.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
+      load: [configuration],
+      validate: validateEnv,
     }),
     LoggerModule,
     PrismaModule,

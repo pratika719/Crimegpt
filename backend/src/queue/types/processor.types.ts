@@ -39,7 +39,7 @@ export interface AiTempStateParams {
 /**
  * Job status values stored in PostgreSQL.
  */
-export type JobStatusType = 'active' | 'completed' | 'failed';
+export type JobStatusType = 'pending' | 'active' | 'completed' | 'failed';
 
 /**
  * Parameters for writing job status to the database.

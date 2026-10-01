@@ -2,13 +2,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, type Profile, type VerifyCallback } from 'passport-google-oauth20';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../../prisma/prisma.service';
+import { AuthService } from '../auth.service';
 import {
   DEFAULT_GOOGLE_CALLBACK_URL,
   GOOGLE_CALLBACK_URL_ENV_KEY,
   GOOGLE_CLIENT_ID_ENV_KEY,
   GOOGLE_CLIENT_SECRET_ENV_KEY,
-  type AuthUser,
 } from '../auth.constants';
 
 /**
@@ -25,7 +24,10 @@ import {
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   private readonly logger = new Logger(GoogleStrategy.name);
 
-  constructor(private readonly config: ConfigService, private readonly prisma: PrismaService) {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly authService: AuthService,
+  ) {
     const clientID =
       config.get<string>(GOOGLE_CLIENT_ID_ENV_KEY) ||
       config.get<string>('AUTH_GOOGLE_ID') ||
@@ -59,50 +61,11 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     profile: Profile,
     done: VerifyCallback,
   ): Promise<void> {
-    const email = profile.emails?.[0]?.value;
-
-    if (!email) {
-      this.logger.warn({ profileId: profile.id }, 'Google profile missing email — rejecting');
-      return done(new Error('Google profile missing email'), false);
-    }
-
     try {
-      let user = await this.prisma.user.findUnique({ where: { email } });
-
-      if (!user) {
-        user = await this.prisma.user.create({
-          data: {
-            name: profile.displayName ?? undefined,
-            email,
-            emailVerified: new Date(),
-            image: profile.photos?.[0]?.value ?? undefined,
-          },
-        });
-      }
-
-      // Keep an Account record for auditability (mirrors what NextAuth's
-      // PrismaAdapter did). Upsert is safe if the record already exists.
-      await this.prisma.account.upsert({
-        where: {
-          provider_providerAccountId: { provider: 'google', providerAccountId: profile.id },
-        },
-        create: {
-          userId: user.id,
-          provider: 'google',
-          type: 'oauth',
-          providerAccountId: profile.id,
-        },
-        update: {},
-      });
-
-      const authUser: AuthUser = {
-        id: user.id,
-        email: user.email ?? undefined,
-        name: user.name ?? undefined,
-      };
+      const authUser = await this.authService.validateOrCreateGoogleUser(profile);
       return done(null, authUser);
     } catch (err) {
-      this.logger.error({ err, email }, 'Google strategy validation failed');
+      this.logger.error({ err, profileId: profile.id }, 'Google strategy validation failed');
       return done(err as Error, false);
     }
   }

@@ -1,8 +1,11 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { PrismaModule } from '../prisma/prisma.module';
 import { QueueService } from './queue.service';
+import { JobStatusService } from './services/job-status.service';
 import { QUEUE_NAMES } from './queue-names';
+import { QUEUE_RETRY_POLICY } from './retry-policy';
 
 function getRedisConnectionOptions(configService?: ConfigService) {
   const redisUrl = configService?.get<string>('REDIS_URL') || process.env.REDIS_URL;
@@ -32,23 +35,42 @@ function getRedisConnectionOptions(configService?: ConfigService) {
 
 @Module({
   imports: [
+    PrismaModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         connection: getRedisConnectionOptions(configService),
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 3_000,
+          },
+          removeOnComplete: true,
+          removeOnFail: {
+            age: 300,
+            count: 5,
+          },
+        },
       }),
     }),
     BullModule.registerQueue(
-      { name: QUEUE_NAMES.DOCUMENT_GENERATION },
-      { name: QUEUE_NAMES.AI_GENERATION },
-      { name: QUEUE_NAMES.EMBEDDING },
-      { name: QUEUE_NAMES.INGESTION },
-      { name: QUEUE_NAMES.EMAIL },
-      { name: QUEUE_NAMES.CLEANUP },
+      {
+        name: QUEUE_NAMES.DOCUMENT_GENERATION,
+        defaultJobOptions: QUEUE_RETRY_POLICY.DOCUMENT_GENERATION,
+      },
+      {
+        name: QUEUE_NAMES.EMBEDDING,
+        defaultJobOptions: QUEUE_RETRY_POLICY.EMBEDDING,
+      },
+      {
+        name: QUEUE_NAMES.INGESTION,
+        defaultJobOptions: QUEUE_RETRY_POLICY.INGESTION,
+      },
     ),
   ],
-  providers: [QueueService],
-  exports: [BullModule, QueueService],
+  providers: [QueueService, JobStatusService],
+  exports: [BullModule, QueueService, JobStatusService],
 })
 export class QueueModule {}

@@ -3,10 +3,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe, UnauthorizedException } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
-import { PrismaService } from '../src/prisma/prisma.service';
-import { RedisService } from '../src/redis/redis.service';
+import { PrismaService } from '../src/common/prisma';
+import { RedisService } from '../src/common/redis';
 import { JwtService } from '@nestjs/jwt';
-import { QUEUE_NAMES } from '../src/queue/queue-names';
+import { QUEUE_NAMES } from '../src/modules/queue/queue-names';
 
 // ---------------------------------------------------------------------------
 // Module mocks — @nestjs/passport, @nestjs/bullmq, and bullmq ship ESM-only

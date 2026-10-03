@@ -1,29 +1,27 @@
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { Logger, Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import http from 'http';
 
 // Infrastructure
+import { ConfigModule } from './common/config';
+import { RedisModule } from './common/redis';
+import { PrismaModule } from './common/prisma';
+import { CacheModule } from './common/cache';
 import { LoggerModule } from './common/logger/logger.module';
-import { PrismaModule } from './prisma/prisma.module';
-import { RedisModule } from './redis/redis.module';
-import { CacheModule } from './cache/cache.module';
-import { QueueModule } from './queue/queue.module';
-import { WorkerModule } from './queue/worker.module';
+import { QueueModule } from './modules/queue/queue.module';
+import { WorkerModule } from './modules/queue/worker.module';
 
 // Domain Modules
-import { HealthModule } from './health/health.module';
-import { CaseModule } from './case/case.module';
-import { DocumentModule } from './document/document.module';
-import { EvidenceModule } from './evidence/evidence.module';
-import { SearchModule } from './search/search.module';
-import { AuditModule } from './audit/audit.module';
-import { AIModule } from './ai/ai.module';
-import { AuthModule } from './auth/auth.module';
-import { EmbeddingModule } from './embedding/embedding.module';
-
-import { validateEnv, configuration } from './config';
+import { HealthModule } from './modules/health/health.module';
+import { CaseModule } from './modules/case/case.module';
+import { DocumentModule } from './modules/document/document.module';
+import { EvidenceModule } from './modules/evidence/evidence.module';
+import { SearchModule } from './modules/search/search.module';
+import { AuditModule } from './modules/audit/audit.module';
+import { AIModule } from './modules/ai/ai.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { EmbeddingModule } from './modules/embedding/embedding.module';
 
 /**
  * Dedicated root module for the background worker process.
@@ -31,12 +29,7 @@ import { validateEnv, configuration } from './config';
  */
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: ['.env.local', '.env'],
-      load: [configuration],
-      validate: validateEnv,
-    }),
+    ConfigModule.forRoot(),
     LoggerModule,
     PrismaModule,
     RedisModule,

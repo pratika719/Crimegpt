@@ -1,47 +1,40 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 
-// Infrastructure
-import { PrismaModule } from './prisma/prisma.module';
-import { RedisModule } from './redis/redis.module';
-import { CacheModule } from './cache/cache.module';
-import { QueueModule } from './queue/queue.module';
-import { WorkerModule } from './queue/worker.module';
+// Common Infrastructure
+import { ConfigModule } from './common/config';
+import { RedisModule } from './common/redis';
+import { PrismaModule } from './common/prisma';
+import { CacheModule } from './common/cache';
+import { LoggerModule } from './common/logger/logger.module';
 
-// Health
-import { HealthModule } from './health/health.module';
+// Operational & Infrastructure Modules
+import { QueueModule } from './modules/queue/queue.module';
+import { WorkerModule } from './modules/queue/worker.module';
+import { HealthModule } from './modules/health/health.module';
 
-// Common
+// Common Interceptors, Filters, Guards
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { PromptSecurityInterceptor } from './common/interceptors/prompt-security.interceptor';
 import { RateLimitGuard } from './common/guards/throttler.guard';
-import { LoggerModule } from './common/logger/logger.module';
 
-// Domain (skeleton — populated in Phase 3-7)
-import { CaseModule } from './case/case.module';
-import { DocumentModule } from './document/document.module';
-import { EvidenceModule } from './evidence/evidence.module';
-import { SearchModule } from './search/search.module';
-import { AuditModule } from './audit/audit.module';
-import { AIModule } from './ai/ai.module';
-import { AuthModule } from './auth/auth.module';
-import { EmbeddingModule } from './embedding/embedding.module';
-
-import { validateEnv, configuration } from './config';
+// Bounded Domain Modules
+import { CaseModule } from './modules/case/case.module';
+import { DocumentModule } from './modules/document/document.module';
+import { EvidenceModule } from './modules/evidence/evidence.module';
+import { SearchModule } from './modules/search/search.module';
+import { AuditModule } from './modules/audit/audit.module';
+import { AIModule } from './modules/ai/ai.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { EmbeddingModule } from './modules/embedding/embedding.module';
 
 @Module({
   imports: [
     // Config — loads .env globally with validation
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: ['.env.local', '.env'],
-      load: [configuration],
-      validate: validateEnv,
-    }),
+    ConfigModule.forRoot(),
 
     // Logger
     LoggerModule,
